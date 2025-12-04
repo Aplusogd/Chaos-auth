@@ -1,6 +1,6 @@
 /**
  * A+ TOTEM SECURITY CORE: SAAS EDITION
- * FINAL FIX: Forces '/' to serve landing.html directly.
+ * FINAL FIX: Renamed landing.html to index.html for default root loading.
  * Security: CHAOS, NIGHTMARE, ABYSS, SPHINX, CONSTELLATION
  */
 
@@ -14,11 +14,6 @@ const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 const publicPath = path.join(__dirname, 'public');
-
-// --- DEBUG: Verify Files Exist on Startup (for local development) ---
-if (!fs.existsSync(publicPath)) {
-    console.error("❌ CRITICAL ERROR: 'public' folder missing!");
-}
 
 // ==========================================
 // 🌌 THE ABYSS (State)
@@ -128,22 +123,16 @@ app.post('/api/v1/verify', (req, res) => {
 
 app.use(express.static(publicPath));
 
-// ROUTING LOGIC (The critical change to prioritize landing.html)
+// ROUTING LOGIC (The definitive fix: let Express handle the default index.html)
 app.get('/', (req, res) => {
-    // FORCE SERVE LANDING PAGE on the root URL
-    const landingFile = path.join(publicPath, 'landing.html');
-    res.sendFile(landingFile, (err) => {
-        if (err) {
-            // This error tells Render exactly what is wrong if the file is missing
-            console.error(`ERROR: Could not find ${landingFile}. Check filename and location.`);
-            res.status(404).send("404 NOT FOUND: Storefront (landing.html) is missing. Check your GitHub file names!");
-        }
-    });
+    // Express automatically looks in public/ for index.html when serving '/'
+    // Since we renamed landing.html to index.html, this loads the storefront.
+    res.sendFile(path.join(publicPath, 'index.html'));
 });
 
 app.get('/app', (req, res) => {
-    // Explicitly serves the secure app file
-    res.sendFile(path.join(publicPath, 'index.html'));
+    // Explicitly serves the secure app file (now renamed to app.html)
+    res.sendFile(path.join(publicPath, 'app.html'));
 });
 
 app.listen(PORT, () => console.log(`🛡️ A+ TOTEM BUSINESS CORE ONLINE: ${PORT}`));
