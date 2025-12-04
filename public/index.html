@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>A+ Totem Final | The Fortress</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- CryptoJS is required for the SHA256 Math Riddle -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script> 
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -61,22 +62,31 @@
         let currentNonce = null;
         let targetSequence = []; 
         let userSequence = []; 
+        let currentSessionToken = null; // New: Store the validated token
 
-        // --- THE SECRET HANDSHAKE ---
+        // --- THE SECRET HANDSHAKE (Required by Iron Dome) ---
         const HEADERS = { 
             'Content-Type': 'application/json',
             'X-APLUS-SECURE': 'TOTEM_V4_ACCESS' 
         };
 
+        // --- 1. START HANDSHAKE (INITIATES CAPTCHA) ---
         document.getElementById('btn-init').addEventListener('click', async () => {
             log("Requesting Constellation Puzzle...", "info");
             document.getElementById('captcha-layer').classList.remove('hidden');
-
+            
             try {
                 // Must send headers even for the challenge!
                 const res = await fetch('/api/v1/challenge', { headers: HEADERS });
-                const data = await res.json();
+                
+                if (res.status === 403) {
+                    log("❌ ACCESS DENIED: Missing Secret Header. Check server configuration.", "error");
+                    document.getElementById('captcha-layer').classList.add('hidden');
+                    return;
+                }
 
+                const data = await res.json();
+                
                 if (data.pulse && data.sequence) {
                     currentNonce = data.pulse;
                     targetSequence = data.sequence;
@@ -84,6 +94,7 @@
                     renderStars(targetSequence);
                 } else {
                     log("Error: " + (data.error || "Unknown server response"), "error");
+                    document.getElementById('captcha-layer').classList.add('hidden');
                 }
             } catch(e) {
                 log("Connection Error: " + e.message, "error");
@@ -97,7 +108,7 @@
             userSequence = [];
             document.getElementById('target-sequence').innerText = seq.map(c => c.toUpperCase()).join(' > ');
             document.getElementById('captcha-msg').innerText = "Click the stars in order.";
-
+            
             const starsToSpawn = [...seq].sort(() => Math.random() - 0.5); 
 
             starsToSpawn.forEach(color => {
@@ -130,27 +141,34 @@
             }
         }
 
+        // --- 2. COMPLETE HANDSHAKE (TOKEN ISSUANCE) ---
         async function completeHandshake() {
             const echo = CryptoJS.SHA256(currentNonce + "TOTEM_PRIME_DIRECTIVE").toString();
             try {
                 const res = await fetch('/api/v1/verify', {
                     method: 'POST',
-                    headers: HEADERS, // Sending the badge here
+                    headers: HEADERS, 
                     body: JSON.stringify({ nonce: currentNonce, echo: echo, solution: userSequence })
                 });
-
+                
                 const data = await res.json();
-
+                
                 if (data.valid) {
-                    log("✅ ACCESS GRANTED. Session: " + data.session.substring(0,8), "success");
-                    document.getElementById('auth-state').innerText = "SECURE";
+                    currentSessionToken = data.session; // Save the token
+                    log("✅ ACCESS GRANTED. Session: " + currentSessionToken.substring(0,8) + "...", "success");
+                    log("COPY THIS TOKEN for external app login verification.", "success");
+                    
+                    document.getElementById('auth-state').innerText = `TOKEN ISSUED: ${currentSessionToken.substring(0,8)}...`;
                     document.getElementById('auth-state').className = "text-xs status-green mb-6 font-bold";
                 } else {
                     log("❌ ACCESS DENIED: " + (data.error || "Refused"), "error");
+                    document.getElementById('auth-state').innerText = "LOCKED";
+                    document.getElementById('auth-state').className = "text-xs text-gray-400 mb-6";
                 }
             } catch(e) { log("Handshake Error: " + e.message, "error"); }
         }
 
+        // --- INITIAL CHECK (Ensure server is alive) ---
         (async () => {
             try { await fetch('/', { headers: HEADERS }); document.getElementById('connection-status').innerText = "ONLINE"; document.getElementById('connection-status').className = "text-xs font-bold status-green"; } catch(e){}
         })();
