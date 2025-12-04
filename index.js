@@ -1,7 +1,7 @@
 /**
  * A+ TOTEM SECURITY CORE: SAAS EDITION
- * FINAL FIX: Renamed landing.html to index.html for default root loading.
- * Security: CHAOS, NIGHTMARE, ABYSS, SPHINX, CONSTELLATION
+ * FINAL FIX: Uses public/index.html for the Landing Page (Storefront).
+ * Routing: '/' -> index.html (Storefront) | '/app' -> app.html (War Room)
  */
 
 const express = require('express');
@@ -123,15 +123,14 @@ app.post('/api/v1/verify', (req, res) => {
 
 app.use(express.static(publicPath));
 
-// ROUTING LOGIC (The definitive fix: let Express handle the default index.html)
+// ROUTING LOGIC (Express automatically loads public/index.html on '/')
 app.get('/', (req, res) => {
-    // Express automatically looks in public/ for index.html when serving '/'
-    // Since we renamed landing.html to index.html, this loads the storefront.
+    // This loads public/index.html (The Storefront)
     res.sendFile(path.join(publicPath, 'index.html'));
 });
 
 app.get('/app', (req, res) => {
-    // Explicitly serves the secure app file (now renamed to app.html)
+    // This loads public/app.html (The Secure War Room)
     res.sendFile(path.join(publicPath, 'app.html'));
 });
 
