@@ -15,7 +15,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 const publicPath = path.join(__dirname, 'public');
 
-// --- DEBUG: Verify Files Exist on Startup ---
+// --- DEBUG: Verify Files Exist on Startup (for local development) ---
 if (!fs.existsSync(publicPath)) {
     console.error("❌ CRITICAL ERROR: 'public' folder missing!");
 }
@@ -68,7 +68,7 @@ const Nightmare = {
         const timestamps = Nightmare._requests.get(ip).filter(time => now - time < 10000);
         timestamps.push(now);
         Nightmare._requests.set(ip, timestamps);
-
+        
         const jitter = Math.floor(Math.random() * 50); 
         if (timestamps.length > 50) {
             setTimeout(() => res.status(429).json({ error: "ERR_RATE_LIMIT" }), jitter);
@@ -91,7 +91,7 @@ const Nightmare = {
         }
         next();
     },
-
+    
     antiBot: (req, res, next) => {
         const secretHeader = req.get('X-APLUS-SECURE');
         if (req.path.startsWith('/api') && secretHeader !== 'TOTEM_V4_ACCESS') {
@@ -109,6 +109,7 @@ app.use(Nightmare.antiBot);
 // 🛣️ ROUTES
 // ==========================================
 
+// API
 app.get('/api/v1/challenge', (req, res) => {
     const data = createChallenge();
     res.json({ pulse: data.nonce, sequence: data.sequence });
@@ -128,16 +129,20 @@ app.post('/api/v1/verify', (req, res) => {
 
 app.use(express.static(publicPath));
 
+// ROUTING LOGIC (The crucial change is here)
 app.get('/', (req, res) => {
+    // 1. Check for landing.html (The Storefront)
     const landingFile = path.join(publicPath, 'landing.html');
     if (fs.existsSync(landingFile)) {
         res.sendFile(landingFile);
     } else {
+        // 2. Fallback to index.html (The App) if landing is missing
         res.sendFile(path.join(publicPath, 'index.html'));
     }
 });
 
 app.get('/app', (req, res) => {
+    // Explicitly serves the secure app file
     res.sendFile(path.join(publicPath, 'index.html'));
 });
 
