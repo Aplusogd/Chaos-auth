@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A+ Totem Final | The Fortress</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script> 
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+        body { background-color: #050505; color: #e5e5e5; font-family: 'JetBrains Mono', monospace; overflow-x: hidden; user-select: none; }
+        .abyss-bg { background-image: linear-gradient(rgba(0, 255, 128, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 128, 0.03) 1px, transparent 1px); background-size: 30px 30px; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: -1; }
+        .status-green { color: #10B981; text-shadow: 0 0 10px rgba(16, 185, 129, 0.5); }
+        .status-red { color: #EF4444; text-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
+        .status-blue { color: #3B82F6; text-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
+        .console-box { background: rgba(10, 10, 10, 0.9); border: 1px solid #333; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
+        .star { position: absolute; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; transition: all 0.2s; box-shadow: 0 0 15px currentColor; border: 2px solid white; }
+        .star:active { transform: scale(0.8); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col p-4 md:p-8">
+    <div class="abyss-bg"></div>
+
+    <header class="flex justify-between items-center mb-8 border-b border-gray-800 pb-4">
+        <div><h1 class="text-2xl md:text-3xl font-bold tracking-widest text-white"><i class="fas fa-shield-alt mr-2 text-green-500"></i>A+ TOTEM <span class="text-xs align-top text-gray-500">FINAL</span></h1><p class="text-xs text-gray-500 mt-1">CONSTELLATION + IRON DOME</p></div>
+        <div class="text-right"><div id="connection-status" class="text-xs font-bold status-red">OFFLINE</div></div>
+    </header>
+
+    <main class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-grow relative">
+        <!-- CONSTELLATION OVERLAY -->
+        <div id="captcha-layer" class="absolute inset-0 z-40 bg-black/95 flex flex-col items-center justify-center hidden">
+            <h2 class="text-2xl font-bold text-white mb-2">HUMANITY CHECK</h2>
+            <p class="text-gray-400 mb-8 text-sm">Sequence Required: <span id="target-sequence" class="text-white font-bold tracking-widest">LOADING...</span></p>
+            <div id="star-field" class="relative w-full max-w-lg h-96 border border-gray-800 bg-gray-900 rounded-lg overflow-hidden"></div>
+            <p id="captcha-msg" class="mt-4 text-blue-400 h-6 animate-pulse">Initializing...</p>
+        </div>
+
+        <div class="lg:col-span-8 flex flex-col gap-6">
+            <div class="console-box rounded-lg p-4 h-64 md:h-96 overflow-y-auto font-mono text-xs flex flex-col-reverse" id="console"><div class="text-gray-600">> System Ready.</div></div>
+        </div>
+
+        <div class="lg:col-span-4 flex flex-col gap-6">
+            <div class="console-box rounded-lg p-6 relative overflow-hidden">
+                <h2 class="text-xl font-bold mb-2 status-blue">IDENTITY UPLINK</h2>
+                <div id="auth-state" class="text-xs text-gray-400 mb-6">LOCKED</div>
+                <button id="btn-init" class="w-full py-4 bg-blue-900/30 border border-blue-500/50 hover:bg-blue-900/50 text-blue-400 font-bold rounded transition"><i class="fas fa-unlock"></i> INITIATE HANDSHAKE</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const log = (msg, type='info') => {
+            const consoleEl = document.getElementById('console');
+            const div = document.createElement('div');
+            div.className = 'mb-1 ' + (type === 'error' ? 'status-red' : type === 'success' ? 'status-green' : 'text-gray-400');
+            div.innerHTML = `<span class="opacity-50">[${new Date().toLocaleTimeString()}]</span> ${msg}`;
+            consoleEl.insertBefore(div, consoleEl.firstChild);
+        };
+
+        let currentNonce = null;
+        let targetSequence = []; 
+        let userSequence = []; 
+
+        // --- THE SECRET HANDSHAKE ---
+        const HEADERS = { 
+            'Content-Type': 'application/json',
+            'X-APLUS-SECURE': 'TOTEM_V4_ACCESS' 
+        };
+
+        document.getElementById('btn-init').addEventListener('click', async () => {
+            log("Requesting Constellation Puzzle...", "info");
+            document.getElementById('captcha-layer').classList.remove('hidden');
+
+            try {
+                // Must send headers even for the challenge!
+                const res = await fetch('/api/v1/challenge', { headers: HEADERS });
+                const data = await res.json();
+
+                if (data.pulse && data.sequence) {
+                    currentNonce = data.pulse;
+                    targetSequence = data.sequence;
+                    log(`Pulse Received: ${currentNonce.substring(0,8)}...`, "info");
+                    renderStars(targetSequence);
+                } else {
+                    log("Error: " + (data.error || "Unknown server response"), "error");
+                }
+            } catch(e) {
+                log("Connection Error: " + e.message, "error");
+                document.getElementById('captcha-layer').classList.add('hidden');
+            }
+        });
+
+        function renderStars(seq) {
+            const field = document.getElementById('star-field');
+            field.innerHTML = '';
+            userSequence = [];
+            document.getElementById('target-sequence').innerText = seq.map(c => c.toUpperCase()).join(' > ');
+            document.getElementById('captcha-msg').innerText = "Click the stars in order.";
+
+            const starsToSpawn = [...seq].sort(() => Math.random() - 0.5); 
+
+            starsToSpawn.forEach(color => {
+                const star = document.createElement('div');
+                star.className = `star bg-${color}-500`;
+                star.style.left = Math.random() * 80 + 10 + '%';
+                star.style.top = Math.random() * 80 + 10 + '%';
+                star.onclick = () => handleStarClick(color, star);
+                field.appendChild(star);
+                setInterval(() => { star.style.transform = `translate(${Math.random()*4-2}px, ${Math.random()*4-2}px)`; }, 100);
+            });
+        }
+
+        async function handleStarClick(color, element) {
+            const expectedColor = targetSequence[userSequence.length];
+            if (color !== expectedColor) {
+                document.getElementById('captcha-msg').innerText = "WRONG STAR! RESETTING...";
+                document.getElementById('captcha-msg').className = "mt-4 text-red-500 font-bold";
+                setTimeout(() => document.getElementById('btn-init').click(), 1000); 
+                return;
+            }
+            userSequence.push(color);
+            element.style.opacity = '0'; 
+            element.style.pointerEvents = 'none';
+
+            if (userSequence.length === targetSequence.length) {
+                document.getElementById('captcha-layer').classList.add('hidden');
+                log("Constellation Verified locally. Sending to Abyss...", "info");
+                completeHandshake();
+            }
+        }
+
+        async function completeHandshake() {
+            const echo = CryptoJS.SHA256(currentNonce + "TOTEM_PRIME_DIRECTIVE").toString();
+            try {
+                const res = await fetch('/api/v1/verify', {
+                    method: 'POST',
+                    headers: HEADERS, // Sending the badge here
+                    body: JSON.stringify({ nonce: currentNonce, echo: echo, solution: userSequence })
+                });
+
+                const data = await res.json();
+
+                if (data.valid) {
+                    log("✅ ACCESS GRANTED. Session: " + data.session.substring(0,8), "success");
+                    document.getElementById('auth-state').innerText = "SECURE";
+                    document.getElementById('auth-state').className = "text-xs status-green mb-6 font-bold";
+                } else {
+                    log("❌ ACCESS DENIED: " + (data.error || "Refused"), "error");
+                }
+            } catch(e) { log("Handshake Error: " + e.message, "error"); }
+        }
+
+        (async () => {
+            try { await fetch('/', { headers: HEADERS }); document.getElementById('connection-status').innerText = "ONLINE"; document.getElementById('connection-status').className = "text-xs font-bold status-green"; } catch(e){}
+        })();
+    </script>
+</body>
+</html>
