@@ -1,6 +1,6 @@
 /**
  * A+ TOTEM SECURITY CORE: SAAS EDITION
- * Routing: Landing Page (Marketing) vs App (War Room)
+ * FINAL FIX: Forces '/' to serve landing.html directly.
  * Security: CHAOS, NIGHTMARE, ABYSS, SPHINX, CONSTELLATION
  */
 
@@ -109,7 +109,6 @@ app.use(Nightmare.antiBot);
 // 🛣️ ROUTES
 // ==========================================
 
-// API
 app.get('/api/v1/challenge', (req, res) => {
     const data = createChallenge();
     res.json({ pulse: data.nonce, sequence: data.sequence });
@@ -129,16 +128,17 @@ app.post('/api/v1/verify', (req, res) => {
 
 app.use(express.static(publicPath));
 
-// ROUTING LOGIC (The crucial change is here)
+// ROUTING LOGIC (The critical change to prioritize landing.html)
 app.get('/', (req, res) => {
-    // 1. Check for landing.html (The Storefront)
+    // FORCE SERVE LANDING PAGE on the root URL
     const landingFile = path.join(publicPath, 'landing.html');
-    if (fs.existsSync(landingFile)) {
-        res.sendFile(landingFile);
-    } else {
-        // 2. Fallback to index.html (The App) if landing is missing
-        res.sendFile(path.join(publicPath, 'index.html'));
-    }
+    res.sendFile(landingFile, (err) => {
+        if (err) {
+            // This error tells Render exactly what is wrong if the file is missing
+            console.error(`ERROR: Could not find ${landingFile}. Check filename and location.`);
+            res.status(404).send("404 NOT FOUND: Storefront (landing.html) is missing. Check your GitHub file names!");
+        }
+    });
 });
 
 app.get('/app', (req, res) => {
