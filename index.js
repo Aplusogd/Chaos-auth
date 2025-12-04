@@ -134,7 +134,7 @@ app.get('/', (req, res) => {
     const landingFile = path.join(publicPath, 'landing.html');
     res.sendFile(landingFile, (err) => {
         if (err) {
-            // This error tells Render exactly what is wrong if the file is missing
+            // If landing.html is missing, throw an error to confirm file issue
             console.error(`ERROR: Could not find ${landingFile}. Check filename and location.`);
             res.status(404).send("404 NOT FOUND: Storefront (landing.html) is missing. Check your GitHub file names!");
         }
