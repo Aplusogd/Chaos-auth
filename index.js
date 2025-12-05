@@ -1,6 +1,6 @@
 /**
- * A+ CHAOS ID: V24 (STABILITY ENGINE)
- * STATUS: Crash Proofing + Global Error Handling
+ * A+ CHAOS ID: V25 (DEBUGGER EDITION)
+ * STATUS: Request Logging Active + Explicit File Mapping
  */
 const express = require('express');
 const path = require('path');
@@ -14,62 +14,63 @@ const {
     verifyAuthenticationResponse 
 } = require('@simplewebauthn/server');
 
-// 1. SETUP APP
 const app = express();
 const PORT = process.env.PORT || 3000;
 const publicPath = path.join(__dirname, 'public');
 
+// ==========================================
+// 1. TRAFFIC LOGGER (WATCH YOUR LOGS!)
+// ==========================================
+app.use((req, res, next) => {
+    console.log(`[REQUEST] ${req.method} ${req.url}`);
+    next();
+});
+
 app.use(cors({ origin: '*' })); 
 app.use(express.json());
+
+// Serve Static Files (CSS/JS/HTML)
 app.use(express.static(publicPath));
 
-// 2. DEFINE SECURITY ENGINES (MUST BE AT TOP)
+// ==========================================
+// 2. SECURITY ENGINES
+// ==========================================
 const Abyss = {
     partners: new Map(),
     agents: new Map(),
     hash: (key) => crypto.createHash('sha256').update(key).digest('hex'),
 };
-
-// Seed Data
-const demoHash = Abyss.hash('sk_chaos_demo123');
-Abyss.partners.set(demoHash, { company: 'Demo', plan: 'free', usage: 0, limit: 50, active: true });
+Abyss.partners.set(Abyss.hash('sk_chaos_demo123'), { company: 'Demo', plan: 'free', usage: 0, limit: 50, active: true });
 Abyss.agents.set('DEMO_AGENT_V1', { id: 'DEMO_AGENT_V1', usage: 0, limit: 500 });
 
 const Nightmare = {
     guardSaaS: (req, res, next) => {
-        try {
-            const rawKey = req.get('X-CHAOS-API-KEY');
-            if (!rawKey) return res.status(401).json({ error: "MISSING_KEY" });
-            
-            const partner = Abyss.partners.get(Abyss.hash(rawKey));
-            if (!partner) return res.status(403).json({ error: "INVALID_KEY" });
-            
-            if (partner.usage >= partner.limit) return res.status(402).json({ error: "QUOTA_EXCEEDED" });
-
-            partner.usage++;
-            req.partner = partner; // Attach for next step
-            next();
-        } catch (e) {
-            console.error("Nightmare Error:", e);
-            res.status(500).json({ error: "SECURITY_CHECK_FAILED" });
-        }
+        const rawKey = req.get('X-CHAOS-API-KEY');
+        if (!rawKey) return res.status(401).json({ error: "MISSING_KEY" });
+        const partner = Abyss.partners.get(Abyss.hash(rawKey));
+        if (!partner || partner.usage >= partner.limit) return res.status(403).json({ error: "ACCESS_DENIED" });
+        partner.usage++;
+        req.partner = partner;
+        next();
     }
 };
 
 const Chaos = { mintToken: () => 'tk_' + crypto.randomBytes(16).toString('hex') };
-const Users = new Map(); 
+const Users = new Map();
 const Challenges = new Map();
 
-// 3. PERSISTENCE (Admin DNA)
+// Load DNA
 if (process.env.ADMIN_DNA) {
     try {
         const adminData = JSON.parse(process.env.ADMIN_DNA);
         if(adminData.credentialID) Users.set('admin-user', adminData);
-        console.log(">>> ADMIN RESTORED FROM ENV.");
+        console.log(">>> ADMIN RESTORED.");
     } catch (e) { console.error("DNA LOAD FAILED"); }
 }
 
-// 4. AUTH ROUTES
+// ==========================================
+// 3. AUTH ROUTES
+// ==========================================
 const getOrigin = (req) => {
     const host = req.headers['x-forwarded-host'] || req.get('host');
     const proto = req.headers['x-forwarded-proto'] || 'http';
@@ -152,56 +153,46 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
     } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-// 5. SAAS & BETA ROUTES
 app.post('/api/v1/external/verify', Nightmare.guardSaaS, (req, res) => {
-    // Safety check in case middleware failed but passed through
-    if (!req.partner) return res.status(500).json({ error: "INTERNAL_ERROR_NO_PARTNER" });
-    
-    res.json({
-        valid: true,
-        user: "Admin User",
-        method: "LEGACY_KEY",
-        quota: { used: req.partner.usage, limit: req.partner.limit }
-    });
+    if (!req.partner) return res.status(500).json({ error: "ERR" });
+    res.json({ valid: true, user: "Admin", quota: { used: req.partner.usage, limit: req.partner.limit } });
 });
 
 app.get('/api/v1/beta/pulse-demo', (req, res) => {
-    const agent = Abyss.agents.get('DEMO_AGENT_V1');
-    if (agent.usage >= agent.limit) return res.status(402).json({ error: "LIMIT", msg: "Limit Reached" });
-    agent.usage++;
-    
-    setTimeout(() => {
-        res.json({ 
-            valid: true, 
-            hash: 'pulse_' + Date.now(), 
-            ms: Math.floor(Math.random() * 30) + 5,
-            quota: { used: agent.usage, limit: agent.limit }
-        });
-    }, 200);
+    setTimeout(() => res.json({ valid: true, hash: 'pulse_' + Date.now(), ms: 15 }), 200);
 });
 
-// 6. ROUTING (THE WHITE SCREEN FIXER)
-// This forces the server to explicitly find the files.
-app.get('/dashboard', (req, res) => {
-    const file = path.join(publicPath, 'dashboard.html');
-    if (fs.existsSync(file)) res.sendFile(file);
-    else res.send("<h1>ERROR: dashboard.html is missing in public folder</h1>");
+// ==========================================
+// 4. EXPLICIT ROUTING (THE MAP)
+// ==========================================
+
+// Helper to serve file with debug logs
+const serve = (filename, res) => {
+    const file = path.join(publicPath, filename);
+    if (fs.existsSync(file)) {
+        console.log(`   > Serving: ${filename}`);
+        res.sendFile(file);
+    } else {
+        console.error(`   > ERROR: ${filename} MISSING in public folder!`);
+        res.status(404).send(`<h1>ERROR: ${filename} Not Found</h1>`);
+    }
+};
+
+// Map EVERY page explicitly
+app.get('/', (req, res) => serve('app.html', res));
+app.get('/app', (req, res) => serve('app.html', res));
+app.get('/app.html', (req, res) => serve('app.html', res));
+
+app.get('/dashboard', (req, res) => serve('dashboard.html', res));
+app.get('/dashboard.html', (req, res) => serve('dashboard.html', res));
+
+app.get('/admin', (req, res) => serve('admin.html', res));
+app.get('/admin.html', (req, res) => serve('admin.html', res));
+
+// Catch-All
+app.get('*', (req, res) => {
+    console.log(`   > Unknown Route: ${req.url} -> Redirecting to /`);
+    res.redirect('/');
 });
 
-app.get('/admin', (req, res) => {
-    const file = path.join(publicPath, 'admin.html');
-    if (fs.existsSync(file)) res.sendFile(file);
-    else res.send("<h1>ERROR: admin.html is missing in public folder</h1>");
-});
-
-// Root & Catch-All
-app.get('/', (req, res) => res.sendFile(path.join(publicPath, 'app.html')));
-app.get('/app', (req, res) => res.sendFile(path.join(publicPath, 'app.html')));
-
-// 7. GLOBAL ERROR HANDLER (PREVENTS CRASHES)
-app.use((err, req, res, next) => {
-    console.error("!!! SERVER ERROR:", err.stack);
-    res.status(500).send("<h1>System Critical Error</h1><p>Check Logs.</p>");
-});
-
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V24 STABLE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V25 (DEBUG) ONLINE: ${PORT}`));
