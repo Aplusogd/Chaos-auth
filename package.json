@@ -1,18 +1,19 @@
 {
-  "name": "chaos-security-core",
+  "name": "aplus-chaos-v8",
   "version": "1.0.0",
-  "description": "A+ Totem V8: Biometric Chaos",
+  "description": "A+ Chaos Security Core - Biometric Edition",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "node index.js"
+    "start": "node index.js"
   },
   "dependencies": {
+    "@simplewebauthn/server": "^9.0.3",
+    "@simplewebauthn/types": "^9.0.3",
     "express": "^4.18.2",
-    "@simplewebauthn/server": "^9.0.3"
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5"
   },
   "engines": {
     "node": ">=18.x"
   }
 }
-
