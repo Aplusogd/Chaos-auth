@@ -26,7 +26,7 @@ const COLORS = ['red', 'blue', 'green', 'yellow'];
 
 // IN-MEMORY PROFILE STORE (The "Abyss")
 // Stores ONLY hashes: { "device_hash": "hashed_pattern" }
-// In a real app, this would be a Redis/Database, but it still wouldn't store names.
+// It remembers "This device knows this pattern", but doesn't know WHO it is.
 const AbyssProfiles = new Map(); 
 
 function generateQuantumPulse() {
@@ -47,13 +47,20 @@ function createChallenge() {
 function registerProfile(deviceHash, patternHash) {
     // The Abyss remembers this device + pattern combo
     AbyssProfiles.set(deviceHash, patternHash);
+    console.log(`[ABYSS] New Anonymous Profile Created: ${deviceHash.substring(0,8)}...`);
     return true;
 }
 
 function verifyLogin(deviceHash, patternHash) {
-    if (!AbyssProfiles.has(deviceHash)) return { valid: false, error: "ERR_UNKNOWN_DEVICE" };
+    // 1. Check if device exists
+    if (!AbyssProfiles.has(deviceHash)) {
+        return { valid: false, error: "ERR_UNKNOWN_DEVICE" };
+    }
+    // 2. Check if pattern matches
     const storedPattern = AbyssProfiles.get(deviceHash);
-    if (storedPattern !== patternHash) return { valid: false, error: "ERR_WRONG_PATTERN" };
+    if (storedPattern !== patternHash) {
+        return { valid: false, error: "ERR_WRONG_PATTERN" };
+    }
     return { valid: true };
 }
 
@@ -63,7 +70,7 @@ function verifyResponse(nonce, clientEcho, clientPattern, deviceHash, mode) {
     ChallengeMap.delete(nonce); // Burn nonce
     if (Date.now() > data.expires) return { valid: false, error: "ERR_TIMEOUT" };
 
-    // HASH THE PATTERN (So we never store the raw sequence)
+    // HASH THE PATTERN (So we never store the raw sequence in memory)
     const patternHash = crypto.createHash('sha256').update(JSON.stringify(clientPattern)).digest('hex');
 
     if (mode === 'REGISTER') {
@@ -81,7 +88,14 @@ function verifyResponse(nonce, clientEcho, clientPattern, deviceHash, mode) {
 // ==========================================
 const Nightmare = {
     rateLimiter: (req, res, next) => {
-        // (Simplified rate limiter for brevity - assumes full logic from previous versions)
+        const ip = req.ip || req.connection.remoteAddress;
+        if (!Nightmare._requests) Nightmare._requests = new Map();
+        if (!Nightmare._requests.has(ip)) Nightmare._requests.set(ip, []);
+        const now = Date.now();
+        const timestamps = Nightmare._requests.get(ip).filter(time => now - time < 10000);
+        timestamps.push(now);
+        Nightmare._requests.set(ip, timestamps);
+        if (timestamps.length > 50) return res.status(429).json({ error: "ERR_RATE_LIMIT" });
         next();
     },
     antiBot: (req, res, next) => {
@@ -123,15 +137,32 @@ app.use(express.static(publicPath));
 
 // ROUTING LOGIC - WAR ROOM FIRST
 app.get('/', (req, res) => {
-    res.sendFile(path.join(publicPath, 'app.html')); // Main Entry = War Room
+    // Default Route: Loads the Secure App (War Room)
+    const appFile = path.join(publicPath, 'app.html');
+    if (fs.existsSync(appFile)) {
+        res.sendFile(appFile);
+    } else {
+        res.status(404).send("Error: public/app.html is missing.");
+    }
 });
 
 app.get('/info', (req, res) => {
-    res.sendFile(path.join(publicPath, 'index.html')); // Marketing/Info
+    // Info Route: Loads the Marketing Page
+    const landingFile = path.join(publicPath, 'index.html');
+    if (fs.existsSync(landingFile)) {
+        res.sendFile(landingFile);
+    } else {
+        res.status(404).send("Error: public/index.html is missing.");
+    }
 });
 
 app.get('/dashboard', (req, res) => {
-    res.sendFile(path.join(publicPath, 'dashboard.html'));
+    const dashFile = path.join(publicPath, 'dashboard.html');
+    if (fs.existsSync(dashFile)) {
+        res.sendFile(dashFile);
+    } else {
+        res.status(404).send("Error: public/dashboard.html is missing.");
+    }
 });
 
 app.listen(PORT, () => console.log(`🛡️ A+ TOTEM ZERO-DATA CORE ONLINE: ${PORT}`));
