@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>A+ CHAOS | SECURE LOGIN GATE</title>
+    <meta name="description" content="Quantum-Resistant Biometric Entry — DREAMS V3 + MBF Ready">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@simplewebauthn/browser@10.0.0/dist/bundle/index.umd.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -13,7 +14,7 @@
         .hud-status { font-size: 1.8rem; font-weight: 800; text-align: center; text-transform: uppercase; text-shadow: 0 0 15px #00ff41; margin-bottom: 2rem; min-height: 4rem; transition: all 0.4s ease; }
         .smart-btn { width: 100%; padding: 1.8rem; font-size: 1.3rem; font-weight: bold; border: 2px solid #00ff41; background: linear-gradient(to bottom, #001a00, #000); color: #00ff41; border-radius: 16px; transition: all 0.3s; text-transform: uppercase; letter-spacing: 3px; box-shadow: 0 0 20px rgba(0, 255, 65, 0.3); }
         .smart-btn:hover:not(:disabled) { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0, 255, 65, 0.5); background: linear-gradient(to bottom, #002200, #001100); }
-        .smart-btn:disabled { opacity: 0.5; cursor: not-allowed; border-color: #333; color: #666; }
+        .smart-btn:disabled { opacity: 0.4; cursor: not-allowed; border-color: #333; color: #666; }
         .status-seal { font-size: 11px; padding: 6px 12px; border-radius: 6px; margin: 6px 0; display: inline-block; min-width: 200px; }
         .pulse { animation: pulse 2s infinite; }
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
@@ -22,19 +23,22 @@
 <body class="h-screen flex flex-col items-center justify-center p-6 bg-black">
 
     <div class="w-full max-w-sm text-center mb-10">
-        <div class="text-xs text-gray-600 mb-3">A+ CHAOS CORE // V47 FORTRESS</div>
+        <div class="text-xs text-gray-600 mb-3">A+ CHAOS CORE // V48 FORCED UI</div>
         <h1 class="text-4xl font-bold tracking-tighter text-white">BIOMETRIC GATE</h1>
     </div>
 
-    <div id="hud" class="hud-status text-green-500 pulse">INITIALIZING...</div>
+    <div id="hud" class="hud-status text-green-500 pulse">SYSTEM READY</div>
     
     <div class="text-center mb-10 space-y-3">
-        <div id="check-secure" class="status-seal bg-red-900/50 text-red-400 border border-red-900">SECURE CONTEXT: PENDING</div>
-        <div id="check-server" class="status-seal bg-red-900/50 text-red-400 border border-red-900">SERVER STATUS: CHECKING</div>
+        <div id="check-secure" class="status-seal bg-red-900/50 text-red-400 border border-red-900">SECURE CONTEXT: CHECKING</div>
+        <div id="check-server" class="status-seal bg-red-900/50 text-red-400 border border-red-900">SERVER: CHECKING</div>
     </div>
 
     <div class="w-full max-w-sm">
-        <button id="main-btn" class="smart-btn" disabled onclick="handleMainAction()">CHECKING...</button>
+        <!-- Button starts enabled by default after load -->
+        <button id="main-btn" class="smart-btn" onclick="handleMainAction()">
+            VERIFY IDENTITY
+        </button>
     </div>
 
     <div id="toast" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900/95 text-white px-6 py-3 rounded-lg shadow-2xl opacity-0 transition-opacity duration-500 text-sm backdrop-blur"></div>
@@ -43,83 +47,73 @@
         const { startAuthentication } = SimpleWebAuthnBrowser;
         const API_BASE = '/api/v1';
         const HEADERS = { 'Content-Type': 'application/json', 'X-APLUS-SECURE': 'TOTEM_V8_BIO' };
-        let isRegistered = false;
-
-        // --- MOBILE PAUSE TRACKING (DREAMS V2) ---
-        let pauseStart = null;
-        let totalPaused = 0;
-        let pauseEvents = 0;
-
-        document.addEventListener('visibilitychange', () => {
-            if (document.hidden) {
-                pauseStart = Date.now();
-                pauseEvents++;
-            } else if (pauseStart) {
-                totalPaused += (Date.now() - pauseStart);
-                pauseStart = null;
-                showToast(`Connection Resumed. (Paused: ${totalPaused}ms)`);
-            }
-        });
-
-        // UTILS
+        
+        // --- UTILS ---
         function updateHUD(text, color = 'text-green-500') { const h = document.getElementById('hud'); h.innerText = text; h.className = `hud-status ${color} pulse`; }
         function updateSeal(id, success, msg) { const el = document.getElementById(id); el.innerHTML = success ? `<i class="fas fa-check-circle mr-2"></i>${msg}` : `<i class="fas fa-times-circle mr-2"></i>${msg}`; el.className = `status-seal ${success ? 'bg-green-900/50 text-green-400 border border-green-700' : 'bg-red-900/50 text-red-400 border border-red-900'}`; }
-        function showToast(msg, success = false) { const t = document.getElementById('toast'); t.innerText = msg; t.style.opacity = 1; setTimeout(() => t.style.opacity = 0, 4000); }
+        function showToast(msg, success = false) { const t = document.getElementById('toast'); t.innerText = msg; t.className = `fixed bottom-6 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-lg shadow-2xl transition-opacity duration-500 text-sm backdrop-blur ${success ? 'bg-green-900/95 text-green-300' : 'bg-red-900/95 text-red-300'}`; t.style.opacity = 1; setTimeout(() => t.style.opacity = 0, 4000); }
         function buzz() { if (navigator.vibrate) navigator.vibrate([100, 50, 100]); }
 
+        // --- ENVIRONMENT CHECK (NON-BLOCKING) ---
         async function checkEnvironment() {
-            const btn = document.getElementById('main-btn');
+            // 1. Secure Context
             if (window.isSecureContext) updateSeal('check-secure', true, 'SECURE CONTEXT: ACTIVE');
             else updateSeal('check-secure', false, 'HTTPS REQUIRED');
 
+            // 2. Server Ping
             try {
-                const statusResp = await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS });
-                if (statusResp.ok || statusResp.status === 404) {
-                    isRegistered = true; 
-                    updateSeal('check-server', true, 'SERVER: ID FOUND');
-                    updateHUD("CHAOS CORE READY", "text-green-400");
-                    btn.innerHTML = '<i class="fas fa-fingerprint mr-3"></i> VERIFY IDENTITY';
-                    btn.disabled = false;
-                    btn.classList.add('hover:text-white');
-                } else { throw new Error('Server Error'); }
+                // Just checking if we can hit the server, ignoring 404/403 results
+                await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS });
+                updateSeal('check-server', true, 'SERVER: ONLINE');
+                updateHUD("CHAOS CORE READY", "text-green-400");
             } catch (e) {
                 updateSeal('check-server', false, 'ABYSS UNREACHABLE');
-                btn.innerText = "RETRY";
-                btn.disabled = false;
+                updateHUD("CONNECTION ERROR", "text-red-500");
             }
+            
+            // FORCE ENABLE BUTTON REGARDLESS OF CHECKS
+            const btn = document.getElementById('main-btn');
+            btn.disabled = false;
         }
 
         async function handleMainAction() {
-            document.getElementById('main-btn').disabled = true;
-            await doLogin();
-            document.getElementById('main-btn').disabled = false;
+            console.log("Button Clicked");
+            const btn = document.getElementById('main-btn');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> PROCESSING...';
+            
+            try {
+                await doLogin();
+            } catch (e) {
+                console.error(e);
+            }
+            
+            // Reset button state
+            btn.disabled = false;
+            btn.innerHTML = 'VERIFY IDENTITY';
         }
 
         async function doLogin() {
-            // Reset DREAMS counters
-            totalPaused = 0; 
-            pauseEvents = 0;
-
-            updateHUD("SCAN BIOMETRIC NOW", "text-white");
+            updateHUD("INITIATING HANDSHAKE...", "text-white");
             try {
-                const opts = await (await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS })).json();
-                
-                // Client-side Attestation Request (For Device Trust)
-                // Note: We can't force 'direct' on login-options easily without re-registering,
-                // but we prepare the flow here.
-                
-                const asseResp = await startAuthentication({ publicKey: opts });
-                
-                // Inject Pause Data for DREAMS Analysis
-                const payload = {
-                    ...asseResp,
-                    pause_summary: { events: pauseEvents, total_paused_ms: totalPaused }
-                };
+                // A. GET OPTIONS
+                const resp = await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS });
+                if (!resp.ok) throw new Error(`Server Error: ${resp.status}`);
+                const opts = await resp.json();
 
-                updateHUD("ANALYZING BEHAVIOR...", "text-blue-400");
+                updateHUD("SCAN BIOMETRIC NOW", "text-blue-400");
+                buzz();
+
+                // B. SCAN
+                // Note: useBrowserAutofill: false forces the modal to appear
+                const asseResp = await startAuthentication({ publicKey: opts, useBrowserAutofill: false });
+
+                // C. VERIFY
+                updateHUD("VERIFYING SIGNATURE...", "text-yellow-400");
                 const verifyResp = await fetch(`${API_BASE}/auth/login-verify`, {
-                    method: 'POST', headers: HEADERS, body: JSON.stringify(payload)
+                    method: 'POST', headers: HEADERS, body: JSON.stringify(asseResp)
                 });
+                
                 const result = await verifyResp.json();
 
                 if (result.verified) {
@@ -127,20 +121,27 @@
                     document.body.style.background = "radial-gradient(circle at center, #002200, #000)";
                     buzz();
                     if (result.token) sessionStorage.setItem('chaos_session', result.token);
-                    showToast("Welcome, Agent");
-                    setTimeout(() => location.href = '/dashboard.html', 1500);
+                    showToast("Welcome, Admin.", true);
+                    setTimeout(() => window.location.href = '/dashboard.html', 1000);
                 } else {
-                    throw new Error(result.error || "Invalid Credentials");
+                    throw new Error(result.error || "Verification Rejected");
                 }
             } catch (e) {
+                let msg = e.message;
+                if(msg.includes("The operation either timed out")) msg = "Scan Cancelled or Timed Out";
+                
                 updateHUD("ACCESS DENIED", "text-red-500");
-                document.body.style.background = "radial-gradient(circle at center, #220000, #000)";
-                showToast(e.message);
-                setTimeout(() => document.body.style.background = "#000", 2000);
+                showToast(msg, false);
+                setTimeout(() => {
+                    updateHUD("SYSTEM READY", "text-green-500");
+                }, 2000);
             }
         }
 
+        // Initialize immediately
         window.onload = checkEnvironment;
+        // Failsafe: Ensure button enables after 1s even if checks hang
+        setTimeout(() => document.getElementById('main-btn').disabled = false, 1000);
     </script>
 </body>
 </html>
