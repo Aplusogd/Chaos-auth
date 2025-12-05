@@ -1,92 +1,229 @@
-<script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>A+ MOBILE CORE | V26</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@simplewebauthn/browser@10.0.0/dist/bundle/index.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
+        
+        body { 
+            background-color: #000; 
+            color: #00ff41; 
+            font-family: 'JetBrains Mono', monospace; 
+            touch-action: manipulation; 
+        }
+
+        .hud-status {
+            font-size: 1.5rem;
+            font-weight: 800;
+            text-align: center;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px #00ff41;
+            margin-bottom: 2rem;
+            min-height: 3rem;
+            transition: color 0.3s ease;
+        }
+
+        .bio-btn {
+            width: 100%;
+            padding: 1.5rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border: 2px solid #333;
+            background: #111;
+            color: #fff;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .bio-btn:active {
+            transform: scale(0.95);
+            background: #00ff41;
+            color: #000;
+            border-color: #00ff41;
+        }
+
+        #toast {
+            visibility: hidden;
+            min-width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 16px;
+            position: fixed;
+            z-index: 999;
+            left: 50%;
+            bottom: 30px;
+            transform: translateX(-50%);
+            font-size: 14px;
+            border: 1px solid #00ff41;
+            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+        }
+
+        #toast.show {
+            visibility: visible;
+            animation: fadein 0.5s, fadeout 0.5s 2.5s;
+        }
+
+        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
+        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+    </style>
+</head>
+<body class="h-screen flex flex-col items-center justify-center p-6 bg-black">
+
+    <div class="w-full max-w-sm text-center mb-8">
+        <div class="text-xs text-gray-500 mb-2">A+ OVERHEAD GARAGE DOORS</div>
+        <h1 class="text-3xl font-bold tracking-tighter text-white">CHAOS <span class="text-green-500">MOBILE</span></h1>
+    </div>
+
+    <div id="hud" class="hud-status text-green-500">SYSTEM READY</div>
+
+    <div class="w-full max-w-sm">
+        <button id="btn-reg" class="bio-btn border-yellow-800 text-yellow-500" onclick="doRegister()">
+            <span class="block text-xs opacity-50 mb-1">STEP 1</span>
+            CLAIM DEVICE
+        </button>
+
+        <button id="btn-log" class="bio-btn border-green-800 text-green-500" onclick="doLogin()">
+            <span class="block text-xs opacity-50 mb-1">STEP 2</span>
+            VERIFY ID
+        </button>
+    </div>
+
+    <div id="toast">Notification Area</div>
+
+    <script>
         const { startRegistration, startAuthentication } = SimpleWebAuthnBrowser;
         const HEADERS = { 'Content-Type': 'application/json', 'X-APLUS-SECURE': 'TOTEM_V8_BIO' };
-        
-        // UTILS (HUD, Toast, Buzz) ... (Same as before)
-        function updateHUD(text, color) { document.getElementById('hud').innerText = text; document.getElementById('hud').className = `hud-status ${color}`; }
-        function showToast(msg) { const x = document.getElementById("toast"); x.innerText = msg; x.className = "show"; setTimeout(() => x.className="", 3000); }
+
+        // UTILS
+        function updateHUD(text, color = 'text-green-500') {
+            const h = document.getElementById('hud');
+            h.innerText = text;
+            h.className = `hud-status ${color}`;
+        }
+
+        function showToast(msg) {
+            const x = document.getElementById("toast");
+            x.innerText = msg;
+            x.className = "show";
+            setTimeout(() => { x.className = x.className.replace("show", ""); }, 3000);
+        }
+
         function buzz() { if (navigator.vibrate) navigator.vibrate([50]); }
 
-        // --- REGISTER ---
+        // --- 1. REGISTER ---
         async function doRegister() {
             updateHUD("CONNECTING...", "text-yellow-400");
             try {
                 const resp = await fetch('/api/v1/auth/register-options', { headers: HEADERS });
+                if (!resp.ok) throw new Error("Server Error: " + resp.status);
                 const opts = await resp.json();
-                
+
                 updateHUD("SCAN FINGERPRINT", "text-white animate-pulse");
                 buzz();
                 const attResp = await startRegistration(opts);
-                
+
                 updateHUD("VERIFYING...", "text-blue-400");
                 const verifyResp = await fetch('/api/v1/auth/register-verify', {
-                    method: 'POST', headers: HEADERS, body: JSON.stringify(attResp)
+                    method: 'POST',
+                    headers: HEADERS,
+                    body: JSON.stringify(attResp)
                 });
+
                 const result = await verifyResp.json();
 
                 if (result.verified) {
                     updateHUD("ACCESS SECURED", "text-green-500");
                     
-                    // --- V21: MOBILE COPY MODAL ---
+                    // SHOW DNA FOR COPYING
                     if (result.adminDNA) {
-                        // Create a temporary text area to copy from
                         const dna = result.adminDNA;
                         const copyArea = document.createElement('textarea');
                         copyArea.value = dna;
-                        copyArea.style.position = 'fixed'; // Avoid scrolling to bottom
-                        copyArea.style.left = '0';
-                        copyArea.style.top = '0';
-                        copyArea.style.width = '100%';
-                        copyArea.style.height = '100px'; // Big enough to tap
+                        copyArea.style.position = 'fixed';
+                        copyArea.style.left = '0'; copyArea.style.top = '0';
+                        copyArea.style.width = '100%'; copyArea.style.height = '150px';
                         copyArea.style.zIndex = '9999';
-                        copyArea.style.background = '#222';
+                        copyArea.style.background = '#111';
                         copyArea.style.color = '#0f0';
+                        copyArea.style.fontSize = '12px';
+                        copyArea.style.padding = '20px';
                         document.body.appendChild(copyArea);
-                        
-                        copyArea.focus();
-                        copyArea.select();
-                        
+                        copyArea.focus(); copyArea.select();
                         try {
                             document.execCommand('copy');
-                            alert("ADMIN DNA COPIED TO CLIPBOARD!\n\nPaste this into your Render Environment Variables.");
+                            alert("ADMIN DNA COPIED! Paste into Render Environment Variables.");
                         } catch (err) {
-                            alert("COPY FAILED. Manually copy the text at the top of the screen.");
+                            alert("COPY FAILED. Please manually copy the text block.");
                         }
-                        
-                        // Keep it visible just in case auto-copy failed
-                        setTimeout(() => document.body.removeChild(copyArea), 10000); 
+                        setTimeout(() => document.body.removeChild(copyArea), 15000);
+                    } else {
+                        showToast("SUCCESS: Device Bound");
                     }
-                    
                 } else { throw new Error("Verification Rejected"); }
             } catch (e) { updateHUD("FAILED", "text-red-500"); showToast(e.message); }
         }
 
-        // --- LOGIN ---
+        // --- 2. LOGIN (CLEAN VERSION) ---
         async function doLogin() {
-            // ... (Keep existing Login logic) ...
-            // This part is fine.
-             updateHUD("CONNECTING...", "text-blue-400");
+            updateHUD("CONNECTING...", "text-blue-400");
             try {
+                // A. GET OPTIONS
                 const resp = await fetch('/api/v1/auth/login-options', { headers: HEADERS });
-                if(!resp.ok) throw new Error("User Not Found");
+                if(!resp.ok) throw new Error("User Not Found. Please Register.");
                 const opts = await resp.json();
+
+                // B. SCAN
                 updateHUD("SCAN FINGERPRINT", "text-white animate-pulse");
                 buzz();
                 const asseResp = await startAuthentication(opts);
+
+                // C. VERIFY
                 updateHUD("CHECKING...", "text-blue-400");
                 const verifyResp = await fetch('/api/v1/auth/login-verify', {
-                    method: 'POST', headers: HEADERS, body: JSON.stringify(asseResp)
+                    method: 'POST',
+                    headers: HEADERS,
+                    body: JSON.stringify(asseResp)
                 });
+
                 const result = await verifyResp.json();
+
+                // D. SUCCESS & REDIRECT
                 if (result.verified) {
                     updateHUD("UNLOCKED", "text-green-500");
                     document.body.style.backgroundColor = "#002200"; 
+                    buzz();
+                    
+                    // SAVE TOKEN
                     if(result.token) {
                         sessionStorage.setItem('chaos_session', result.token);
                         sessionStorage.setItem('chaos_dna', "PIXEL-V8-SECURE");
                     }
-                    setTimeout(() => window.location.href = '/dashboard.html', 1500);
+
+                    // REDIRECT TO DASHBOARD
+                    showToast("Redirecting to Command Center...");
+                    setTimeout(() => {
+                        // EXPLICITLY POINT TO .HTML
+                        window.location.href = '/dashboard.html';
+                    }, 1500);
+
                 } else { throw new Error("Invalid Credentials"); }
-            } catch (e) { updateHUD("DENIED", "text-red-500"); showToast(e.message); }
+            } catch (e) {
+                updateHUD("DENIED", "text-red-500");
+                document.body.style.backgroundColor = "#220000";
+                showToast(e.message);
+                buzz();
+                setTimeout(() => document.body.style.backgroundColor = "#000", 2000);
+            }
         }
     </script>
+</body>
+</html>
