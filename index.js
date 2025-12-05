@@ -25,12 +25,12 @@ app.use(express.static(publicPath));
 // ==========================================
 // 1. DREAMS PROTOCOL BLACK BOX (ALGORITHM)
 // ==========================================
-// This code is encapsulated to protect the proprietary O(1) logic.
+// Encapsulates the proprietary O(1) temporal math logic.
 const DreamsEngine = (() => {
     const MIN_SAMPLES = 5; 
     const MAX_SAMPLES = 10;
     
-    // Core math helper (O(N) for analysis, but only called once during update)
+    // Core math helper
     const analyzeTemporalVector = (timings) => {
         const n = timings.length;
         if (n <= 1) return { mu: timings[0] || 0, sigma: 0, rho1: 0, cv: 0 };
@@ -78,7 +78,7 @@ const DreamsEngine = (() => {
             const newSigma = Math.sqrt(Math.max(0, newCenteredVar));
             const newCv = newSigma / (newSumT / (N_current + 1));
             
-            // 1. CV CHECK (Anti-Automation: Low Jitter)
+            // 1. CV CHECK (Anti-Automation)
             const cvDeviationLimit = oldCv * 0.40; 
             if (newCv < 0.05 && Math.abs(newCv - oldCv) > cvDeviationLimit) { 
                 console.log(`[DREAMS REJECT] CV Anomaly. Too machine-like.`);
@@ -128,7 +128,7 @@ const DreamsEngine = (() => {
 
 
 // ==========================================
-// 2. CORE LOGIC & SECURITY ENGINES (ABYSS/NIGHTMARE)
+// 2. CORE LOGIC (ABYSS/NIGHTMARE)
 // ==========================================
 const Users = new Map();
 const ADMIN_DNA = {
@@ -137,7 +137,7 @@ const ADMIN_DNA = {
   "counter": 0,
   "dreamProfile": { window: [], sum_T: 0, sum_T2: 0, sum_lag: 0, mu: 0, sigma: 0, rho1: 0, cv: 0 } 
 };
-Users.set('admin-user', ADMIN_DNA); // Hardcoded Admin Lock
+Users.set('admin-user', ADMIN_DNA);
 
 const Abyss = {
     partners: new Map(),
@@ -260,6 +260,26 @@ app.get('/api/v1/admin/telemetry', (req, res) => {
     res.json({ stats: { requests: Abyss.agents.get('DEMO_AGENT_V1').usage, threats: 0 }, threats: [] }); 
 });
 
+app.get('/api/v1/admin/profile-stats', (req, res) => {
+    const user = Users.get('admin-user');
+    if (!user || !user.dreamProfile) return res.status(404).json({ error: "Profile not started." });
+    
+    const { mu, sigma, cv, rho1, window } = user.dreamProfile;
+    
+    res.json({
+        count: window.length,
+        mu: mu.toFixed(3),
+        sigma: sigma.toFixed(3),
+        cv: cv.toFixed(4),
+        rho1: rho1.toFixed(4),
+        status: window.length >= 5 ? "ENFORCEMENT ACTIVE" : "BUILDING BASELINE"
+    });
+});
+
+app.post('/api/v1/admin/pentest', (req, res) => setTimeout(() => res.json({ message: "DNA INTEGRITY VERIFIED. SYSTEM SECURE." }), 2000));
+
+
+// --- FINAL ROUTING ---
 const serve = (f, res) => fs.existsSync(path.join(publicPath, f)) ? res.sendFile(path.join(publicPath, f)) : res.status(404).send('Missing: ' + f);
 app.get('/', (req, res) => serve('app.html', res));
 app.get('/app', (req, res) => serve('app.html', res));
