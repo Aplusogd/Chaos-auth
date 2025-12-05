@@ -3,8 +3,10 @@ import path from 'path';
 import cors from 'cors';
 import fs from 'fs';
 import crypto from 'crypto';
-import { fileURLToPath } from 'url'; // Required for ESM
-import { dirname } from 'path';     // Required for ESM
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';     
+import bcrypt from 'bcrypt';         // Added for Admin Portal Auth
+import { v4 as uuidv4 } from 'uuid'; // Added for Key Generation
 import { 
     generateRegistrationOptions, 
     verifyRegistrationResponse, 
@@ -43,7 +45,7 @@ const DreamsEngine = {
 };
 
 // ==========================================
-// 2. CORE LOGIC (V41)
+// 2. CORE LOGIC (V42)
 // ==========================================
 const Users = new Map();
 // VITAL: YOUR HARDCODED DNA
@@ -53,8 +55,6 @@ const ADMIN_DNA_JS = {
   "counter": 0,
   "dreamProfile": { window: [], sum_T: 0, sum_T2: 0, sum_lag: 0, mu: 0, sigma: 0, rho1: 0, cv: 0 } 
 };
-
-// LOAD DNA WITH BUFFER CONVERSION
 const ADMIN_DNA = {
     credentialID: jsObjectToBuffer(ADMIN_DNA_JS.credentialID),
     credentialPublicKey: jsObjectToBuffer(ADMIN_DNA_JS.credentialPublicKey),
@@ -68,6 +68,8 @@ const Abyss = {
     agents: new Map(),
     sessions: new Map(),
     hash: (key) => crypto.createHash('sha256').update(key).digest('hex'),
+    auditLedger: [],
+    merkleRoot: '0xINITIAL_ROOT_7890' 
 };
 Abyss.partners.set(Abyss.hash('sk_chaos_demo123'), { company: 'Demo', plan: 'free', usage: 0, limit: 50, active: true });
 Abyss.agents.set('DEMO_AGENT_V1', { id: 'DEMO_AGENT_V1', usage: 0, limit: 500 });
@@ -97,15 +99,36 @@ const getOrigin = (req) => {
 };
 const getRpId = (req) => req.get('host').split(':')[0];
 
+// --- ADMIN PORTAL LOGIC ---
+const ADMIN_PW_HASH = process.env.ADMIN_PW_HASH || bcrypt.hashSync('chaos2025', 12); // Default password: chaos2025
+let adminSession = new Map();
+
+const adminGuard = (req, res, next) => {
+    const session = req.headers['x-admin-session'] || req.cookies.session;
+    if (!adminSession.has(session)) return res.status(401).json({ error: 'Unauthorized' });
+    next();
+};
+
+Abyss.registerPartner = async (key, tier) => {
+    const partnerId = key.replace('sk_chaos_', '');
+    const limits = { Free: { rps: 5, rpm: 100 }, Pro: { rps: 50, rpm: 1000 }, Enterprise: { rps: 999, rpm: 9999 } };
+    const quota = limits[tier] || limits.Free;
+    
+    // In-memory fallback for partner registration
+    const hashedKey = Abyss.hash(key);
+    if (Abyss.partners.has(hashedKey)) throw new Error('Partner exists');
+    
+    Abyss.partners.set(hashedKey, { quota_current: 0, quota_limit: quota.rpm, tier, state: 'unlimited', company: partnerId });
+    return { key, tier, limits: quota };
+};
+
 // --- AUTH ROUTES ---
 app.get('/api/v1/auth/register-options', async (req, res) => {
-    // LOCKED
     res.setHeader('Content-Type', 'application/json');
     res.status(403).send(JSON.stringify({ error: "SYSTEM LOCKED. REGISTRATION CLOSED." }));
 });
 
 app.post('/api/v1/auth/register-verify', async (req, res) => {
-    // LOCKED
     res.setHeader('Content-Type', 'application/json');
     res.status(403).send(JSON.stringify({ error: "SYSTEM LOCKED. REGISTRATION CLOSED." }));
 });
@@ -140,7 +163,6 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
          return res.status(403).json({ verified: false, error: "ERR_TEMPORAL_ANOMALY: Behavioral Check Failed" });
     }
     
-    // WebAuthn Verification
     try {
         const verification = await verifyAuthenticationResponse({
             response: clientResponse,
@@ -166,6 +188,37 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
     }
 });
 
+// --- ADMIN PORTAL ROUTES ---
+app.post('/admin/login', async (req, res) => {
+    const { password } = req.body;
+    // Default password: chaos2025
+    if (await bcrypt.compare(password, ADMIN_PW_HASH)) {
+        const session = crypto.randomBytes(32).toString('hex');
+        adminSession.set(session, { timestamp: Date.now(), ip: req.ip });
+        // NOTE: In production, the client would handle secure cookie setting based on this response
+        return res.json({ success: true, session });
+    }
+    res.status(401).json({ error: 'Invalid Credentials' });
+});
+
+app.post('/admin/generate-key', adminGuard, express.json(), async (req, res) => {
+    try {
+        const { tier } = req.body;
+        const key = `sk_chaos_${uuidv4().replace(/-/g, '').slice(0, 32)}`;
+        const result = await Abyss.registerPartner(key, tier);
+        res.json({ success: true, ...result });
+    } catch (err) {
+        res.status(400).json({ error: err.message });
+    }
+});
+
+app.post('/admin/logout', (req, res) => {
+    const session = req.headers['x-admin-session'] || req.cookies.session;
+    adminSession.delete(session);
+    res.json({ success: true });
+});
+
+
 // --- API & FILE ROUTING ---
 app.post('/api/v1/external/verify', Nightmare.guardSaaS, (req, res) => {
     res.json({ valid: true, user: "Admin User", method: "LEGACY_KEY", quota: { used: req.partner.usage, limit: req.partner.limit } });
@@ -188,28 +241,20 @@ app.get('/api/v1/audit/get-proof', (req, res) => {
     res.json({ verification_status: "READY_FOR_CLIENT_AUDIT" });
 });
 
-// FILE SERVING (Final Routing Lock)
+// FILE SERVING
 const serve = (f, res) => fs.existsSync(path.join(publicPath, f)) ? res.sendFile(path.join(publicPath, f)) : res.status(404).send('Missing: ' + f);
-
-// 1. ROOT PATHS (Login/Marketing)
 app.get('/', (req, res) => serve('index.html', res)); // Marketing Landing Page
 app.get('/app', (req, res) => serve('app.html', res)); // Biometric Gate
-
-// 2. USER DASHBOARD
 app.get('/dashboard', (req, res) => serve('dashboard.html', res)); // Command Center
-
-// 3. ADMIN/TOOLING
 app.get('/admin', (req, res) => serve('admin.html', res)); // Overwatch Terminal
 app.get('/sdk', (req, res) => serve('sdk.html', res)); // SDK Docs
 app.get('/admin/portal', (req, res) => serve('portal.html', res)); // Key Forge Portal
-
-// 4. CATCH-ALL (Redirects unauthorized/unknown requests to Login)
-app.get('*', (req, res) => res.redirect('/app'));
+app.get('*', (req, res) => res.redirect('/'));
 
 app.use((err, req, res, next) => {
     console.error("!!! SERVER ERROR:", err.stack);
     res.status(500).send("<h1>System Critical Error</h1>");
 });
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V41 (ESM STABLE) ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V42 (ADMIN PORTAL LIVE) ONLINE: ${PORT}`));
 
