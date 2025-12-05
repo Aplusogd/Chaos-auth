@@ -22,11 +22,11 @@
 <body class="h-screen flex flex-col items-center justify-center p-6 bg-black">
 
     <div class="w-full max-w-sm text-center mb-10">
-        <div class="text-xs text-gray-600 mb-3">A+ CHAOS CORE // V47</div>
+        <div class="text-xs text-gray-600 mb-3">A+ CHAOS CORE // V47 FORTRESS</div>
         <h1 class="text-4xl font-bold tracking-tighter text-white">BIOMETRIC GATE</h1>
     </div>
 
-    <div id="hud" class="hud-status text-green-500 pulse">INITIALIZING QUANTUM LOCK...</div>
+    <div id="hud" class="hud-status text-green-500 pulse">INITIALIZING...</div>
     
     <div class="text-center mb-10 space-y-3">
         <div id="check-secure" class="status-seal bg-red-900/50 text-red-400 border border-red-900">SECURE CONTEXT: PENDING</div>
@@ -34,9 +34,7 @@
     </div>
 
     <div class="w-full max-w-sm">
-        <button id="main-btn" class="smart-btn" disabled onclick="handleMainAction()">
-            <i class="fas fa-circle-notch fa-spin mr-3"></i> CHECKING...
-        </button>
+        <button id="main-btn" class="smart-btn" disabled onclick="handleMainAction()">CHECKING...</button>
     </div>
 
     <div id="toast" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900/95 text-white px-6 py-3 rounded-lg shadow-2xl opacity-0 transition-opacity duration-500 text-sm backdrop-blur"></div>
@@ -47,14 +45,30 @@
         const HEADERS = { 'Content-Type': 'application/json', 'X-APLUS-SECURE': 'TOTEM_V8_BIO' };
         let isRegistered = false;
 
+        // --- MOBILE PAUSE TRACKING (DREAMS V2) ---
+        let pauseStart = null;
+        let totalPaused = 0;
+        let pauseEvents = 0;
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                pauseStart = Date.now();
+                pauseEvents++;
+            } else if (pauseStart) {
+                totalPaused += (Date.now() - pauseStart);
+                pauseStart = null;
+                showToast(`Connection Resumed. (Paused: ${totalPaused}ms)`);
+            }
+        });
+
+        // UTILS
         function updateHUD(text, color = 'text-green-500') { const h = document.getElementById('hud'); h.innerText = text; h.className = `hud-status ${color} pulse`; }
         function updateSeal(id, success, msg) { const el = document.getElementById(id); el.innerHTML = success ? `<i class="fas fa-check-circle mr-2"></i>${msg}` : `<i class="fas fa-times-circle mr-2"></i>${msg}`; el.className = `status-seal ${success ? 'bg-green-900/50 text-green-400 border border-green-700' : 'bg-red-900/50 text-red-400 border border-red-900'}`; }
-        function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.style.opacity = 1; setTimeout(() => t.style.opacity = 0, 4000); }
+        function showToast(msg, success = false) { const t = document.getElementById('toast'); t.innerText = msg; t.style.opacity = 1; setTimeout(() => t.style.opacity = 0, 4000); }
         function buzz() { if (navigator.vibrate) navigator.vibrate([100, 50, 100]); }
 
         async function checkEnvironment() {
             const btn = document.getElementById('main-btn');
-            
             if (window.isSecureContext) updateSeal('check-secure', true, 'SECURE CONTEXT: ACTIVE');
             else updateSeal('check-secure', false, 'HTTPS REQUIRED');
 
@@ -82,14 +96,29 @@
         }
 
         async function doLogin() {
+            // Reset DREAMS counters
+            totalPaused = 0; 
+            pauseEvents = 0;
+
             updateHUD("SCAN BIOMETRIC NOW", "text-white");
             try {
                 const opts = await (await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS })).json();
-                const asseResp = await startAuthentication({ publicKey: opts }); // Browser handles credential ID logic
                 
-                updateHUD("VERIFYING...", "text-blue-400");
+                // Client-side Attestation Request (For Device Trust)
+                // Note: We can't force 'direct' on login-options easily without re-registering,
+                // but we prepare the flow here.
+                
+                const asseResp = await startAuthentication({ publicKey: opts });
+                
+                // Inject Pause Data for DREAMS Analysis
+                const payload = {
+                    ...asseResp,
+                    pause_summary: { events: pauseEvents, total_paused_ms: totalPaused }
+                };
+
+                updateHUD("ANALYZING BEHAVIOR...", "text-blue-400");
                 const verifyResp = await fetch(`${API_BASE}/auth/login-verify`, {
-                    method: 'POST', headers: HEADERS, body: JSON.stringify(asseResp)
+                    method: 'POST', headers: HEADERS, body: JSON.stringify(payload)
                 });
                 const result = await verifyResp.json();
 
