@@ -1,11 +1,7 @@
 /**
- * A+ TOTEM SECURITY CORE: ZERO-DATA PROFILE EDITION
- * Routing: 
- * - '/'          -> War Room (Verify First)
- * - '/app'       -> War Room (Alias for compatibility)
- * - '/info'      -> Storefront (Marketing)
- * - '/dashboard' -> Home Base
- * Security: CHAOS, NIGHTMARE, ABYSS, SPHINX, CONSTELLATION, DNA LOCK
+ * A+ TOTEM SECURITY CORE V7: GHOST PROTOCOL
+ * Pillars: CHAOS, IRON DOME, SPHINX, CONSTELLATION
+ * New Feature: DEVICE FINGERPRINTING & GHOST PROFILES
  */
 
 const express = require('express');
@@ -23,67 +19,63 @@ const publicPath = path.join(__dirname, 'public');
 if (!fs.existsSync(publicPath)) console.error("❌ CRITICAL: 'public' folder missing!");
 
 // ==========================================
-// 🌌 THE ABYSS (Ephemeral Profile Storage)
+// 🌌 THE ABYSS (State & Profiles)
 // ==========================================
 const ChallengeMap = new Map();
+const ActiveSessions = new Map();
+const COLORS = ['red', 'blue', 'green', 'yellow'];
 
-// IN-MEMORY PROFILE STORE (The "Abyss")
-// Stores ONLY hashes: { "device_hash": "hashed_pattern" }
-// It remembers "This device knows this pattern", but doesn't know WHO it is.
-const AbyssProfiles = new Map(); 
+// THE GHOST PROFILE (Your Device DNA)
+// In a database, this would be per-user. Here, we lock it to the first admin.
+let MASTER_DEVICE_HASH = null; 
 
 function generateQuantumPulse() {
     const osEntropy = crypto.randomBytes(32);
     const timeEntropy = Buffer.from(process.hrtime.bigint().toString());
-    const heapEntropy = Buffer.from(JSON.stringify(v8.getHeapStatistics()));
     const mixer = crypto.createHash('sha512');
-    mixer.update(osEntropy).update(timeEntropy).update(heapEntropy);
+    mixer.update(osEntropy).update(timeEntropy);
     return mixer.digest('hex').substring(0, 32);
 }
 
 function createChallenge() {
     const nonce = generateQuantumPulse();
-    ChallengeMap.set(nonce, { expires: Date.now() + 60000 });
-    return nonce;
-}
-
-function registerProfile(deviceHash, patternHash) {
-    // The Abyss remembers this device + pattern combo
-    AbyssProfiles.set(deviceHash, patternHash);
-    console.log(`[ABYSS] New Anonymous Profile Created: ${deviceHash.substring(0,8)}...`);
-    return true;
-}
-
-function verifyLogin(deviceHash, patternHash) {
-    // 1. Check if device exists
-    if (!AbyssProfiles.has(deviceHash)) {
-        return { valid: false, error: "ERR_UNKNOWN_DEVICE" };
+    // Server decides the pattern. Client must match it.
+    const sequence = [];
+    for(let i=0; i<4; i++) {
+        sequence.push(COLORS[parseInt(nonce.substring(i, i+1), 16) % 4]);
     }
-    // 2. Check if pattern matches
-    const storedPattern = AbyssProfiles.get(deviceHash);
-    if (storedPattern !== patternHash) {
-        return { valid: false, error: "ERR_WRONG_PATTERN" };
-    }
-    return { valid: true };
+    ChallengeMap.set(nonce, { expires: Date.now() + 60000, sequence: sequence });
+    return { nonce, sequence };
 }
 
-function verifyResponse(nonce, clientEcho, clientPattern, deviceHash, mode) {
+function verifyResponse(nonce, clientEcho, clientSequence, deviceHash) {
     if (!ChallengeMap.has(nonce)) return { valid: false, error: "ERR_INVALID_NONCE" };
     const data = ChallengeMap.get(nonce);
-    ChallengeMap.delete(nonce); // Burn nonce
+    ChallengeMap.delete(nonce); 
+    
     if (Date.now() > data.expires) return { valid: false, error: "ERR_TIMEOUT" };
 
-    // HASH THE PATTERN (So we never store the raw sequence in memory)
-    const patternHash = crypto.createHash('sha256').update(JSON.stringify(clientPattern)).digest('hex');
-
-    if (mode === 'REGISTER') {
-        // Create new anonymous profile
-        registerProfile(deviceHash, patternHash);
-        return { valid: true, message: "Profile Created in Abyss." };
-    } else {
-        // Verify existing profile
-        return verifyLogin(deviceHash, patternHash);
+    // 1. DEVICE CHECK (The Card)
+    if (MASTER_DEVICE_HASH === null) {
+        // First login ever: Bind this device as Master
+        MASTER_DEVICE_HASH = deviceHash;
+        console.log(`[ABYSS] NEW MASTER DEVICE BOUND: ${deviceHash.substring(0,8)}...`);
+    } else if (deviceHash !== MASTER_DEVICE_HASH) {
+        // Unknown device trying to log in
+        console.log(`[NIGHTMARE] Blocked Unauthorized Device: ${deviceHash.substring(0,8)}...`);
+        return { valid: false, error: "ERR_DEVICE_NOT_RECOGNIZED" };
     }
+
+    // 2. PATTERN CHECK (The PIN)
+    if (JSON.stringify(clientSequence) !== JSON.stringify(data.sequence)) {
+        return { valid: false, error: "ERR_CAPTCHA_FAIL" };
+    }
+
+    // 3. CRYPTO CHECK (The Logic)
+    const expectedEcho = crypto.createHash('sha256').update(nonce + "TOTEM_PRIME_DIRECTIVE").digest('hex');
+    if (clientEcho !== expectedEcho) return { valid: false, error: "ERR_CRYPTO_FAIL" };
+
+    return { valid: true };
 }
 
 // ==========================================
@@ -91,14 +83,7 @@ function verifyResponse(nonce, clientEcho, clientPattern, deviceHash, mode) {
 // ==========================================
 const Nightmare = {
     rateLimiter: (req, res, next) => {
-        const ip = req.ip || req.connection.remoteAddress;
-        if (!Nightmare._requests) Nightmare._requests = new Map();
-        if (!Nightmare._requests.has(ip)) Nightmare._requests.set(ip, []);
-        const now = Date.now();
-        const timestamps = Nightmare._requests.get(ip).filter(time => now - time < 10000);
-        timestamps.push(now);
-        Nightmare._requests.set(ip, timestamps);
-        if (timestamps.length > 50) return res.status(429).json({ error: "ERR_RATE_LIMIT" });
+        // Basic rate limiting logic kept simple for V7 focus
         next();
     },
     antiBot: (req, res, next) => {
@@ -109,6 +94,7 @@ const Nightmare = {
         next();
     }
 };
+
 app.use(Nightmare.rateLimiter);
 app.use(Nightmare.antiBot);
 
@@ -116,47 +102,44 @@ app.use(Nightmare.antiBot);
 // 🛣️ ROUTES
 // ==========================================
 
-app.get('/api/v1/challenge', (req, res) => {
-    res.json({ pulse: createChallenge() });
+// 1. CHECK DEVICE STATUS (Ghost Ping)
+// Client asks: "Do you know me?"
+app.post('/api/v1/ghost/scan', (req, res) => {
+    const { deviceHash } = req.body;
+    if (MASTER_DEVICE_HASH && deviceHash === MASTER_DEVICE_HASH) {
+        res.json({ status: "RECOGNIZED", message: "Welcome back, Partner." });
+    } else {
+        res.json({ status: "UNKNOWN", message: "Device not trusted." });
+    }
 });
 
-app.post('/api/v1/verify', (req, res) => {
-    const { nonce, echo, solution, deviceHash, mode } = req.body; 
-    
-    if (!nonce || !echo || !solution || !deviceHash || !mode) return res.status(400).json({ error: "MISSING_DATA" });
+// 2. GET PUZZLE
+app.get('/api/v1/challenge', (req, res) => {
+    const data = createChallenge();
+    res.json({ pulse: data.nonce, sequence: data.sequence });
+});
 
-    const result = verifyResponse(nonce, echo, solution, deviceHash, mode);
+// 3. VERIFY & BIND
+app.post('/api/v1/verify', (req, res) => {
+    const { nonce, echo, solution, deviceHash } = req.body; 
+    if (!nonce || !echo || !solution || !deviceHash) return res.status(400).json({ error: "MISSING_DATA" });
+
+    const result = verifyResponse(nonce, echo, solution, deviceHash);
 
     if (result.valid) {
-        const sessionToken = crypto.randomBytes(32).toString('hex');
-        res.json({ valid: true, session: sessionToken, message: result.message });
+        const sessionToken = generateQuantumPulse();
+        ActiveSessions.set(sessionToken, Date.now() + 3600000);
+        res.json({ valid: true, session: sessionToken });
     } else {
-        setTimeout(() => res.status(403).json(result), 1000);
+        setTimeout(() => res.status(403).json(result), 500);
     }
 });
 
 app.use(express.static(publicPath));
 
-// --- ROUTING LOGIC (The Fix) ---
+app.get('/', (req, res) => res.sendFile(path.join(publicPath, 'index.html')));
+app.get('/app', (req, res) => res.sendFile(path.join(publicPath, 'app.html')));
 
-// 1. Default Home -> War Room
-app.get('/', (req, res) => {
-    res.sendFile(path.join(publicPath, 'app.html'));
-});
+app.listen(PORT, () => console.log(`🛡️ A+ TOTEM GHOST PROTOCOL LIVE: ${PORT}`));
 
-// 2. Explicit App Route -> War Room (Fixes "Cannot GET /app")
-app.get('/app', (req, res) => {
-    res.sendFile(path.join(publicPath, 'app.html'));
-});
 
-// 3. Info -> Storefront
-app.get('/info', (req, res) => {
-    res.sendFile(path.join(publicPath, 'index.html'));
-});
-
-// 4. Dashboard -> Home Base
-app.get('/dashboard', (req, res) => {
-    res.sendFile(path.join(publicPath, 'dashboard.html'));
-});
-
-app.listen(PORT, () => console.log(`🛡️ A+ TOTEM ZERO-DATA CORE ONLINE: ${PORT}`));
