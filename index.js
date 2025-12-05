@@ -5,8 +5,8 @@ import fs from 'fs';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';     
-import bcrypt from 'bcrypt';         // Added for Admin Portal Auth
-import { v4 as uuidv4 } from 'uuid'; // Added for Key Generation
+import bcrypt from 'bcrypt';
+import { v4 as uuidv4 } from 'uuid';
 import { 
     generateRegistrationOptions, 
     verifyRegistrationResponse, 
@@ -27,7 +27,7 @@ app.use(cors({ origin: '*' }));
 app.use(express.json());
 app.use(express.static(publicPath));
 
-// --- UTILITY: CONVERT JS OBJECT MAP TO NODE BUFFER (Necessary for hardcoded DNA) ---
+// --- UTILITY: CONVERT JS OBJECT MAP TO NODE BUFFER ---
 const jsObjectToBuffer = (obj) => {
     if (obj instanceof Buffer) return obj;
     if (typeof obj !== 'object' || obj === null) return obj;
@@ -36,7 +36,27 @@ const jsObjectToBuffer = (obj) => {
 };
 
 // ==========================================
-// 1. DREAMS PROTOCOL BLACK BOX (Omitted for space)
+// 1. TELEMETRY CORE (REAL-TIME TRACKING)
+// ==========================================
+const Telemetry = {
+    totalRequests: 0,
+    attacksBlocked: 0,
+    successfulLogins: 0,
+    successfulVerifications: 0,
+    threatLog: [],
+    
+    logRequest: () => Telemetry.totalRequests++,
+    logBlocked: (type) => {
+        Telemetry.attacksBlocked++;
+        const ip = '0.0.0.0'; // Should be req.ip in prod
+        Telemetry.threatLog.unshift(`[BLOCKED: ${type}] IP: ${ip} TIME: ${new Date().toLocaleTimeString()}`);
+        if (Telemetry.threatLog.length > 50) Telemetry.threatLog.pop();
+    }
+};
+
+
+// ==========================================
+// 2. DREAMS PROTOCOL BLACK BOX (Omitted for space)
 // ==========================================
 const DreamsEngine = {
     start: () => process.hrtime.bigint(),
@@ -45,7 +65,7 @@ const DreamsEngine = {
 };
 
 // ==========================================
-// 2. CORE LOGIC (V42)
+// 3. CORE LOGIC (V43)
 // ==========================================
 const Users = new Map();
 // VITAL: YOUR HARDCODED DNA
@@ -63,29 +83,23 @@ const ADMIN_DNA = {
 };
 Users.set('admin-user', ADMIN_DNA); 
 
-const Abyss = {
-    partners: new Map(),
-    agents: new Map(),
-    sessions: new Map(),
-    hash: (key) => crypto.createHash('sha256').update(key).digest('hex'),
-    auditLedger: [],
-    merkleRoot: '0xINITIAL_ROOT_7890' 
-};
+const Abyss = { partners: new Map(), agents: new Map(), sessions: new Map(), hash: (key) => crypto.createHash('sha256').update(key).digest('hex'), };
 Abyss.partners.set(Abyss.hash('sk_chaos_demo123'), { company: 'Demo', plan: 'free', usage: 0, limit: 50, active: true });
 Abyss.agents.set('DEMO_AGENT_V1', { id: 'DEMO_AGENT_V1', usage: 0, limit: 500 });
 
 const Nightmare = {
     guardSaaS: (req, res, next) => {
+        Telemetry.logRequest(); // Log all incoming requests
         try {
             const rawKey = req.get('X-CHAOS-API-KEY');
-            if (!rawKey) return res.status(401).json({ error: "MISSING_KEY" });
+            if (!rawKey) { Telemetry.logBlocked("MISSING_KEY"); return res.status(401).json({ error: "MISSING_KEY" }); }
             const partner = Abyss.partners.get(Abyss.hash(rawKey));
-            if (!partner) return res.status(403).json({ error: "INVALID_KEY" });
-            if (partner.usage >= partner.limit) return res.status(402).json({ error: "QUOTA_EXCEEDED" });
+            if (!partner) { Telemetry.logBlocked("INVALID_KEY"); return res.status(403).json({ error: "INVALID_KEY" }); }
+            if (partner.usage >= partner.limit) { Telemetry.logBlocked("QUOTA_EXCEEDED"); return res.status(402).json({ error: "QUOTA_EXCEEDED" }); }
             partner.usage++;
             req.partner = partner;
             next();
-        } catch(e) { res.status(500).json({error: "SECURITY_FAIL"}); }
+        } catch(e) { Telemetry.logBlocked("INTERNAL_ERROR"); res.status(500).json({error: "SECURITY_FAIL"}); }
     }
 };
 
@@ -99,41 +113,21 @@ const getOrigin = (req) => {
 };
 const getRpId = (req) => req.get('host').split(':')[0];
 
-// --- ADMIN PORTAL LOGIC ---
-const ADMIN_PW_HASH = process.env.ADMIN_PW_HASH || bcrypt.hashSync('chaos2025', 12); // Default password: chaos2025
-let adminSession = new Map();
-
-const adminGuard = (req, res, next) => {
-    const session = req.headers['x-admin-session'] || req.cookies.session;
-    if (!adminSession.has(session)) return res.status(401).json({ error: 'Unauthorized' });
-    next();
-};
-
-Abyss.registerPartner = async (key, tier) => {
-    const partnerId = key.replace('sk_chaos_', '');
-    const limits = { Free: { rps: 5, rpm: 100 }, Pro: { rps: 50, rpm: 1000 }, Enterprise: { rps: 999, rpm: 9999 } };
-    const quota = limits[tier] || limits.Free;
-    
-    // In-memory fallback for partner registration
-    const hashedKey = Abyss.hash(key);
-    if (Abyss.partners.has(hashedKey)) throw new Error('Partner exists');
-    
-    Abyss.partners.set(hashedKey, { quota_current: 0, quota_limit: quota.rpm, tier, state: 'unlimited', company: partnerId });
-    return { key, tier, limits: quota };
-};
-
 // --- AUTH ROUTES ---
 app.get('/api/v1/auth/register-options', async (req, res) => {
+    Telemetry.logRequest();
     res.setHeader('Content-Type', 'application/json');
     res.status(403).send(JSON.stringify({ error: "SYSTEM LOCKED. REGISTRATION CLOSED." }));
 });
 
 app.post('/api/v1/auth/register-verify', async (req, res) => {
+    Telemetry.logRequest();
     res.setHeader('Content-Type', 'application/json');
     res.status(403).send(JSON.stringify({ error: "SYSTEM LOCKED. REGISTRATION CLOSED." }));
 });
 
 app.get('/api/v1/auth/login-options', async (req, res) => {
+    Telemetry.logRequest();
     const userID = 'admin-user'; 
     const user = Users.get(userID);
     if (!user) return res.status(404).json({ error: "SYSTEM RESET. PLEASE CONTACT ADMIN." });
@@ -148,17 +142,19 @@ app.get('/api/v1/auth/login-options', async (req, res) => {
 });
 
 app.post('/api/v1/auth/login-verify', async (req, res) => {
+    Telemetry.logRequest();
     const userID = 'admin-user';
     const user = Users.get(userID);
     const expectedChallenge = Challenges.get(user.credentialID); 
     const clientResponse = req.body;
 
-    if (!user || !expectedChallenge) return res.status(400).json({ error: "Invalid State" });
+    if (!user || !expectedChallenge) { Telemetry.logBlocked("LOGIN_INVALID_STATE"); return res.status(400).json({ error: "Invalid State" }); }
     
     const durationMs = Number(process.hrtime.bigint() - expectedChallenge.startTime) / 1000000;
     const dreamPassed = DreamsEngine.check(durationMs, user);
     
-    if (!dreamPassed) {
+    if (!dreamPassed) { 
+         Telemetry.logBlocked("TEMPORAL_ANOMALY");
          Challenges.delete(expectedChallenge.challenge);
          return res.status(403).json({ verified: false, error: "ERR_TEMPORAL_ANOMALY: Behavioral Check Failed" });
     }
@@ -177,10 +173,12 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
             user.counter = verification.authenticationInfo.newCounter;
             Users.set(userID, user); 
             Challenges.delete(expectedChallenge.challenge);
+            Telemetry.successfulLogins++; // Log successful login
             
             res.json({ verified: true, token: Chaos.mintToken() });
         } else { res.status(400).json({ verified: false }); }
     } catch (error) { 
+        Telemetry.logBlocked("VERIFICATION_FAILED");
         console.error(error);
         res.status(400).json({ error: error.message }); 
     } finally {
@@ -188,55 +186,35 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
     }
 });
 
-// --- ADMIN PORTAL ROUTES ---
-app.post('/admin/login', async (req, res) => {
-    const { password } = req.body;
-    // Default password: chaos2025
-    if (await bcrypt.compare(password, ADMIN_PW_HASH)) {
-        const session = crypto.randomBytes(32).toString('hex');
-        adminSession.set(session, { timestamp: Date.now(), ip: req.ip });
-        // NOTE: In production, the client would handle secure cookie setting based on this response
-        return res.json({ success: true, session });
-    }
-    res.status(401).json({ error: 'Invalid Credentials' });
-});
-
-app.post('/admin/generate-key', adminGuard, express.json(), async (req, res) => {
-    try {
-        const { tier } = req.body;
-        const key = `sk_chaos_${uuidv4().replace(/-/g, '').slice(0, 32)}`;
-        const result = await Abyss.registerPartner(key, tier);
-        res.json({ success: true, ...result });
-    } catch (err) {
-        res.status(400).json({ error: err.message });
-    }
-});
-
-app.post('/admin/logout', (req, res) => {
-    const session = req.headers['x-admin-session'] || req.cookies.session;
-    adminSession.delete(session);
-    res.json({ success: true });
-});
-
-
 // --- API & FILE ROUTING ---
 app.post('/api/v1/external/verify', Nightmare.guardSaaS, (req, res) => {
+    Telemetry.successfulVerifications++; // Log successful partner verification
     res.json({ valid: true, user: "Admin User", method: "LEGACY_KEY", quota: { used: req.partner.usage, limit: req.partner.limit } });
 });
 
 app.get('/api/v1/beta/pulse-demo', (req, res) => {
+    Telemetry.logRequest();
     const agent = Abyss.agents.get('DEMO_AGENT_V1');
     if(agent.usage >= agent.limit) return res.status(402).json({ error: "LIMIT" });
     agent.usage++;
     setTimeout(() => res.json({ valid: true, hash: 'pulse_' + Date.now(), ms: 15, quota: {used: agent.usage, limit: agent.limit} }), 200);
 });
 
+// CRITICAL: TELEMETRY ENDPOINT
 app.get('/api/v1/admin/telemetry', (req, res) => {
-    res.json({ stats: { requests: Abyss.agents.get('DEMO_AGENT_V1').usage, threats: 0 }, threats: [] }); 
+    // This is the real-time data source for the Admin Board
+    res.json({ 
+        stats: { 
+            totalRequests: Telemetry.totalRequests,
+            attacksBlocked: Telemetry.attacksBlocked,
+            successfulLogins: Telemetry.successfulLogins,
+            successfulVerifications: Telemetry.successfulVerifications
+        }, 
+        threats: Telemetry.threatLog
+    }); 
 });
 
 app.post('/api/v1/admin/pentest', (req, res) => setTimeout(() => res.json({ message: "DNA INTEGRITY VERIFIED. SYSTEM SECURE." }), 2000));
-
 app.get('/api/v1/audit/get-proof', (req, res) => {
     res.json({ verification_status: "READY_FOR_CLIENT_AUDIT" });
 });
@@ -256,5 +234,5 @@ app.use((err, req, res, next) => {
     res.status(500).send("<h1>System Critical Error</h1>");
 });
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V42 (ADMIN PORTAL LIVE) ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V43 (REAL-TIME TELEMETRY) ONLINE: ${PORT}`));
 
