@@ -3,108 +3,130 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CHAOS ID | UNIVERSAL PASSPORT</title>
+    <title>CHAOS ID | THE CHOICE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
         body { background-color: #050505; color: #e5e5e5; font-family: 'JetBrains Mono', monospace; }
-        .glass-panel { background: rgba(20, 20, 20, 0.8); backdrop-filter: blur(10px); border: 1px solid #333; }
-        .verified-badge { text-shadow: 0 0 15px #10b981; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { opacity: 0.8; } 50% { opacity: 1; } 100% { opacity: 0.8; } }
+        .glass-panel { background: rgba(20, 20, 20, 0.7); backdrop-filter: blur(8px); border: 1px solid #333; }
+        .pulse-glow { animation: pulse-green 2s infinite; }
+        @keyframes pulse-green { 0% { box-shadow: 0 0 0 0 rgba(0, 255, 65, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(0, 255, 65, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 255, 65, 0); } }
+        .scan-line { width: 100%; height: 2px; background: rgba(0, 255, 65, 0.5); animation: scan 2s linear infinite; }
+        @keyframes scan { 0% { transform: translateY(0); } 100% { transform: translateY(80px); } }
     </style>
 </head>
-<body class="min-h-screen flex flex-col items-center p-4 md:p-8 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
+<body class="min-h-screen flex flex-col items-center p-4 md:p-8 bg-black">
 
-    <nav class="w-full max-w-4xl flex justify-between items-center mb-8 glass-panel p-4 rounded-full">
+    <nav class="w-full max-w-6xl flex justify-between items-center mb-10 glass-panel p-4 rounded-full border-b border-gray-900">
         <div class="font-bold tracking-widest text-white px-4">CHAOS <span class="text-green-500">ID</span></div>
-        <button onclick="logout()" class="text-xs text-red-500 hover:text-white transition px-4">SIGN OUT</button>
+        <div class="text-[10px] text-gray-500">VERSION 15.0 // CLOUD NATIVE</div>
     </nav>
 
-    <div class="w-full max-w-4xl grid md:grid-cols-2 gap-8">
+    <div class="w-full max-w-6xl grid md:grid-cols-2 gap-12 items-start">
         
-        <div class="glass-panel p-8 rounded-2xl flex flex-col items-center text-center relative overflow-hidden">
-            <div class="absolute top-0 w-full h-1 bg-gradient-to-r from-transparent via-green-500 to-transparent"></div>
+        <div class="p-8 rounded-2xl border border-gray-800 bg-gray-900/10 grayscale hover:grayscale-0 transition duration-500 relative">
             
-            <div class="w-24 h-24 rounded-full border-4 border-green-500/30 flex items-center justify-center bg-black mb-4 relative">
-                <i class="fas fa-fingerprint text-4xl text-green-500 verified-badge"></i>
-                <div class="absolute bottom-0 right-0 bg-green-500 text-black text-xs font-bold px-2 py-0.5 rounded-full">V8</div>
+            <div class="absolute top-4 right-4 text-[10px] text-red-500 border border-red-900 px-2 py-1 rounded bg-red-900/10">
+                RESTRICTED TRIAL
             </div>
 
-            <h1 class="text-2xl font-bold text-white mb-1">VERIFIED USER</h1>
-            <p class="text-xs text-gray-400 mb-6 uppercase tracking-widest">Biometric Signature Valid</p>
-
-            <div class="w-full bg-black/50 p-4 rounded-lg border border-gray-800 text-left space-y-3">
-                <div>
-                    <div class="text-[10px] text-gray-500 uppercase">Identity Hash</div>
-                    <div id="dna-display" class="text-xs text-green-400 font-mono break-all">LOADING...</div>
-                </div>
-                <div>
-                    <div class="text-[10px] text-gray-500 uppercase">Session Token</div>
-                    <div id="token-display" class="text-xs text-blue-400 font-mono break-all">LOADING...</div>
-                </div>
-                <div>
-                    <div class="text-[10px] text-gray-500 uppercase">Trust Score</div>
-                    <div class="w-full bg-gray-800 h-1.5 mt-1 rounded-full overflow-hidden">
-                        <div class="bg-green-500 h-full w-[98%]"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="glass-panel p-8 rounded-2xl">
-            <h2 class="text-xl font-bold text-white mb-4 border-b border-gray-700 pb-2"><i class="fas fa-code text-blue-500 mr-2"></i> INTEGRATION</h2>
-            <p class="text-xs text-gray-400 mb-4">Use your CHAOS ID to verify users on your own websites.</p>
-
-            <div class="mb-4">
-                <div class="text-[10px] text-gray-500 mb-1 uppercase">Verification API Endpoint</div>
-                <div class="bg-black p-3 rounded border border-gray-800 font-mono text-xs text-yellow-500 break-all select-all">
-                    POST /api/v1/external/verify
-                </div>
-            </div>
+            <h2 class="text-2xl font-bold text-gray-400 mb-2">LEGACY API</h2>
+            <p class="text-xs text-gray-600 mb-6 h-10">Standard static keys. Secure, but manual. Limited trial capacity.</p>
 
             <div class="mb-6">
-                <div class="text-[10px] text-gray-500 mb-1 uppercase">Universal Login Button</div>
-                <textarea readonly class="w-full bg-black p-3 rounded border border-gray-800 font-mono text-[10px] text-gray-300 h-24 resize-none focus:outline-none focus:border-green-500">
-<script src="https://chaos-core.your-app.com/sdk.js"></script>
-<button onclick="ChaosAuth.verify()">
-  VERIFY WITH CHAOS
-</button>
-                </textarea>
-                <button onclick="copyCode()" class="w-full mt-2 bg-gray-800 hover:bg-gray-700 text-xs py-2 rounded transition">COPY SNIPPET</button>
+                <div class="flex justify-between text-[10px] text-gray-500 mb-1">
+                    <span>MONTHLY QUOTA</span>
+                    <span class="text-red-400">48 / 50 USED</span>
+                </div>
+                <div class="w-full bg-gray-800 h-3 rounded-full overflow-hidden border border-gray-700">
+                    <div class="bg-red-500 h-full w-[96%]"></div>
+                </div>
+                <p class="text-[9px] text-red-500 mt-2">*Upgrade required for continued access.</p>
             </div>
 
-            <button class="w-full border border-blue-500/30 bg-blue-900/10 text-blue-400 py-3 rounded hover:bg-blue-900/30 transition text-xs font-bold tracking-widest">
-                GENERATE NEW API KEY
+            <div class="bg-black p-3 rounded border border-gray-800 mb-4 opacity-50">
+                <div class="text-[10px] text-gray-600 mb-1 uppercase">Static Key</div>
+                <div class="font-mono text-gray-500 text-xs">sk_live_... (HIDDEN)</div>
+            </div>
+
+            <button class="w-full py-3 border border-gray-700 text-gray-500 text-xs font-bold rounded hover:bg-gray-800 transition">
+                USE LEGACY CONNECTION
+            </button>
+        </div>
+
+        <div class="p-8 rounded-2xl bg-black border border-green-500 shadow-[0_0_30px_rgba(0,255,65,0.15)] relative overflow-hidden">
+            
+            <div class="absolute top-0 right-0 bg-green-500 text-black text-[10px] font-extrabold px-4 py-1 rounded-bl-xl z-10 tracking-wider">
+                10X BONUS TRIAL
+            </div>
+
+            <h2 class="text-2xl font-bold text-white mb-2 flex items-center gap-2">
+                CHAOS PULSE <span class="w-2 h-2 bg-green-500 rounded-full animate-ping"></span>
+            </h2>
+            <p class="text-xs text-green-400/80 mb-6 h-10">AI-to-AI Handshake. Zero static keys. Extended trial for Agent Development.</p>
+
+            <div class="mb-6">
+                <div class="flex justify-between text-[10px] text-green-500 mb-1">
+                    <span>DEVELOPER PREVIEW QUOTA</span>
+                    <span id="pulse-counter" class="font-bold">0 / 500 USED</span>
+                </div>
+                <div class="w-full bg-gray-900 h-3 rounded-full overflow-hidden border border-green-900/50">
+                    <div id="pulse-bar" class="bg-green-500 h-full w-[0%] transition-all duration-500"></div>
+                </div>
+                <p class="text-[9px] text-green-600 mt-2">*Includes Auto-Scaling & DDoS Shield.</p>
+            </div>
+
+            <div class="bg-black rounded-lg border border-green-900 p-4 font-mono text-[10px] relative h-32 overflow-hidden mb-4">
+                <div class="scan-line absolute top-0 left-0 w-full opacity-30"></div>
+                <div id="pulse-console" class="text-green-500/90 space-y-1">
+                    > READY FOR AI CONNECTION...<br>
+                </div>
+            </div>
+
+            <button onclick="testPulse()" class="w-full py-4 bg-green-600 hover:bg-green-500 text-black font-bold rounded text-xs transition uppercase tracking-widest pulse-glow">
+                <i class="fas fa-network-wired mr-2"></i> TEST PULSE CONNECTION
             </button>
         </div>
 
     </div>
 
     <script>
-        // --- 1. SESSION CHECK ---
+        // --- AUTH CHECK ---
         const session = sessionStorage.getItem('chaos_session');
-        const dna = sessionStorage.getItem('chaos_dna');
+        if (!session) window.location.href = '/app.html';
 
-        if (!session) {
-            window.location.href = '/app.html';
-        } else {
-            document.getElementById('token-display').innerText = session;
-            document.getElementById('dna-display').innerText = dna || "UNKNOWN-DEVICE";
-        }
+        // --- SIMULATION LOGIC ---
+        let pulseUsage = 0;
+        const pulseLimit = 500;
 
-        // --- 2. LOGOUT ---
-        function logout() {
-            sessionStorage.clear();
-            window.location.href = '/app.html';
-        }
+        async function testPulse() {
+            const c = document.getElementById('pulse-console');
+            const bar = document.getElementById('pulse-bar');
+            const txt = document.getElementById('pulse-counter');
 
-        // --- 3. COPY TOOL ---
-        function copyCode() {
-            const el = document.querySelector('textarea');
-            el.select();
-            document.execCommand('copy');
-            alert("Code copied to clipboard!");
+            // 1. SIMULATE NETWORK HANDSHAKE
+            c.innerHTML += "> <span class='text-yellow-400'>INITIATING HANDSHAKE...</span><br>";
+            c.scrollTop = c.scrollHeight;
+
+            setTimeout(() => {
+                c.innerHTML += "> <span class='text-blue-400'>AI AGENT VERIFIED via ABYSS</span><br>";
+                c.scrollTop = c.scrollHeight;
+            }, 600);
+
+            setTimeout(() => {
+                // 2. INCREMENT USAGE
+                pulseUsage += 5; // Simulates a batch of 5 requests
+                if(pulseUsage > pulseLimit) pulseUsage = pulseLimit;
+                
+                // Update UI
+                const pct = (pulseUsage / pulseLimit) * 100;
+                bar.style.width = pct + "%";
+                txt.innerText = `${pulseUsage} / ${pulseLimit} USED`;
+
+                c.innerHTML += `> <span class='text-white bg-green-900 px-1'>BATCH COMPLETE. 5 CREDITS CONSUMED.</span><br>`;
+                c.scrollTop = c.scrollHeight;
+            }, 1200);
         }
     </script>
 </body>
