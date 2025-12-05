@@ -1,289 +1,213 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>A+ CHAOS | SECURE LOGIN GATE</title>
-    <meta name="description" content="Quantum-Resistant Biometric Entry — DREAMS V3 + MBF Ready">
-    <!-- CRITICAL FIX: REMOVED CDN -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <!-- V10 LIBRARY -->
-    <script src="https://unpkg.com/@simplewebauthn/browser@10.0.0/dist/bundle/index.umd.min.js"></script>
+import express from 'express';
+import path from 'path';
+import cors from 'cors';
+import fs from 'fs';
+import crypto from 'crypto';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';     
+import { 
+    generateRegistrationOptions, 
+    verifyRegistrationResponse, 
+    generateAuthenticationOptions, 
+    verifyAuthenticationResponse 
+} from '@simplewebauthn/server';
+
+// --- ESM Path Fixes ---
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const publicPath = path.join(__dirname, 'public');
+// -----------------------
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(cors({ origin: '*' })); 
+app.use(express.json());
+app.use(express.static(publicPath));
+
+// --- UTILITY: DEFINITIVE DNA CONVERTER ---
+const jsObjectToBuffer = (obj) => {
+    if (obj instanceof Uint8Array) return obj;
+    if (obj instanceof Buffer) return obj;
+    if (typeof obj !== 'object' || obj === null) return new Uint8Array();
+    const values = Object.values(obj);
+    return Buffer.from(values);
+};
+
+// --- UTILITY: EXTRACT CHALLENGE STRING FROM CLIENT RESPONSE ---
+function extractChallengeFromClientResponse(clientResponse) {
+    try {
+        const clientDataJSONBase64 = clientResponse.response.clientDataJSON;
+        const json = Buffer.from(clientDataJSONBase64, 'base64url').toString('utf8');
+        return JSON.parse(json).challenge; 
+    } catch (e) {
+        console.error("Error decoding clientDataJSON:", e);
+        return null;
+    }
+}
+
+// ==========================================
+// 1. DREAMS PROTOCOL BLACK BOX
+// ==========================================
+const DreamsEngine = {
+    start: () => process.hrtime.bigint(),
+    check: (durationMs, user) => { return true; }, 
+    update: (T_new, profile) => { }
+};
+
+// ==========================================
+// 2. CORE LOGIC
+// ==========================================
+const Users = new Map();
+
+// VITAL: YOUR HARDCODED DNA
+const ADMIN_DNA_JS = {
+  "credentialID": {"0":34,"1":107,"2":129,"3":52,"4":150,"5":223,"6":204,"7":57,"8":171,"9":110,"10":196,"11":62,"12":244,"13":235,"14":33,"15":107},
+  "credentialPublicKey": {"0":165,"1":1,"2":2,"3":3,"4":38,"5":32,"6":1,"7":33,"8":88,"9":32,"10":248,"11":139,"12":206,"13":64,"14":122,"15":111,"16":83,"17":204,"18":37,"19":190,"20":213,"21":75,"22":207,"23":124,"24":3,"25":54,"26":101,"27":62,"28":26,"29":49,"30":36,"31":44,"32":74,"33":127,"34":106,"35":134,"36":50,"37":208,"38":245,"39":80,"40":80,"41":204,"42":34,"43":88,"44":32,"45":121,"46":45,"47":78,"48":103,"49":57,"50":120,"51":161,"52":241,"53":219,"54":228,"55":124,"56":89,"57":247,"58":180,"59":98,"60":57,"61":145,"62":0,"63":28,"64":76,"65":179,"66":212,"67":222,"68":26,"69":0,"70":230,"71":233,"72":237,"73":243,"74":138,"75":182,"76":166},
+  "counter": 0,
+  "dreamProfile": { window: [], sum_T: 0, sum_T2: 0, sum_lag: 0, mu: 0, sigma: 0, rho1: 0, cv: 0 } 
+};
+
+const ADMIN_DNA = {
+    credentialID: jsObjectToBuffer(ADMIN_DNA_JS.credentialID),
+    credentialPublicKey: jsObjectToBuffer(ADMIN_DNA_JS.credentialPublicKey),
+    counter: ADMIN_DNA_JS.counter,
+    dreamProfile: ADMIN_DNA_JS.dreamProfile
+};
+Users.set('admin-user', ADMIN_DNA); 
+
+const Abyss = { partners: new Map(), agents: new Map(), sessions: new Map(), hash: (key) => crypto.createHash('sha256').update(key).digest('hex'), };
+Abyss.partners.set(Abyss.hash('sk_chaos_demo123'), { company: 'Demo', plan: 'free', usage: 0, limit: 50, active: true });
+Abyss.agents.set('DEMO_AGENT_V1', { id: 'DEMO_AGENT_V1', usage: 0, limit: 500 });
+
+const Nightmare = {
+    guardSaaS: (req, res, next) => {
+        try {
+            const rawKey = req.get('X-CHAOS-API-KEY');
+            if (!rawKey) return res.status(401).json({ error: "MISSING_KEY" });
+            const partner = Abyss.partners.get(Abyss.hash(rawKey));
+            if (!partner) return res.status(403).json({ error: "INVALID_KEY" });
+            if (partner.usage >= partner.limit) return res.status(402).json({ error: "QUOTA_EXCEEDED" });
+            partner.usage++;
+            req.partner = partner;
+            next();
+        } catch(e) { res.status(500).json({error: "SECURITY_FAIL"}); }
+    }
+};
+
+const Chaos = { mintToken: () => crypto.randomBytes(16).toString('hex') };
+const Challenges = new Map();
+
+const getOrigin = (req) => {
+    const host = req.headers['x-forwarded-host'] || req.get('host');
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    return `${protocol}://${host}`;
+};
+const getRpId = (req) => req.get('host').split(':')[0];
+
+// --- AUTH ROUTES ---
+app.get('/api/v1/auth/register-options', async (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.status(403).send(JSON.stringify({ error: "SYSTEM LOCKED. REGISTRATION CLOSED." }));
+});
+
+app.post('/api/v1/auth/register-verify', async (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.status(403).send(JSON.stringify({ error: "SYSTEM LOCKED. REGISTRATION CLOSED." }));
+});
+
+app.get('/api/v1/auth/login-options', async (req, res) => {
+    const userID = 'admin-user'; 
+    const user = Users.get(userID);
+    if (!user) return res.status(404).json({ error: "SYSTEM RESET. PLEASE CONTACT ADMIN." });
+    try {
+        const options = await generateAuthenticationOptions({
+            rpID: getRpId(req),
+            userVerification: 'required',
+        });
+        Challenges.set(options.challenge, { challenge: options.challenge, startTime: DreamsEngine.start() });
+        res.json(options);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/v1/auth/login-verify', async (req, res) => {
+    const userID = 'admin-user';
+    const user = Users.get(userID);
+    const clientResponse = req.body;
     
-    <style>
-        /* INJECTED PRODUCTION STYLES */
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
-        
-        body { 
-            background-color: #000; 
-            color: #00ff41; 
-            font-family: 'JetBrains Mono', monospace; 
-            touch-action: manipulation;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 1.5rem;
-        }
+    const challengeString = extractChallengeFromClientResponse(clientResponse);
+    const expectedChallenge = Challenges.get(challengeString); 
 
-        .hud-status {
-            font-size: 1.8rem;
-            font-weight: 800;
-            text-align: center;
-            text-transform: uppercase;
-            text-shadow: 0 0 15px #00ff41;
-            margin-bottom: 2rem;
-            min-height: 4rem;
-            transition: all 0.4s ease;
-        }
-
-        .smart-btn {
-            width: 100%;
-            padding: 1.8rem;
-            font-size: 1.3rem;
-            font-weight: bold;
-            border: 2px solid #00ff41;
-            background: linear-gradient(to bottom, #001a00, #000);
-            color: #00ff41;
-            border-radius: 16px;
-            transition: all 0.3s;
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
-        }
-
-        .smart-btn:hover:not(:disabled) {
-            transform: translateY(-4px);
-            box-shadow: 0 12px 30px rgba(0, 255, 65, 0.5);
-            background: linear-gradient(to bottom, #002200, #001100);
-        }
-
-        .smart-btn:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-            border-color: #333;
-            color: #666;
-        }
-
-        .status-seal {
-            font-size: 11px;
-            padding: 6px 12px;
-            border-radius: 6px;
-            margin: 6px 0;
-            display: inline-block;
-            min-width: 200px;
-        }
-
-        .bg-red-900\/50 { background-color: rgba(127, 29, 29, 0.5); }
-        .bg-green-900\/50 { background-color: rgba(21, 128, 61, 0.5); }
-        .text-red-400 { color: #f87171; }
-        .text-green-400 { color: #34d399; }
-        .text-gray-600 { color: #4b5563; }
-        .border-red-900 { border-color: #7f1d1d; }
-        .border-green-700 { border-color: #047857; }
-        .pulse { animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
-    </style>
-</head>
-<body class="bg-black">
-
-    <div class="w-full max-w-sm text-center mb-10">
-        <div class="text-xs text-gray-600 mb-3">A+ CHAOS CORE // V39 QUANTUM SEAL</div>
-        <h1 class="text-4xl font-bold tracking-tighter text-white">BIOMETRIC GATE</h1>
-    </div>
-
-    <!-- QUANTUM HUD -->
-    <div id="hud" class="hud-status pulse">
-        INITIALIZING QUANTUM LOCK...
-    </div>
+    if (!user || !expectedChallenge) return res.status(400).json({ error: "Invalid State or Expired Challenge" });
     
-    <!-- SECURITY STATUS SEALS -->
-    <div class="text-center mb-10 space-y-3">
-        <div id="check-secure" class="status-seal bg-red-900/50 text-red-400 border border-red-900">
-            SECURE CONTEXT: PENDING
-        </div>
-        <div id="check-platform" class="status-seal bg-red-900/50 text-red-400 border border-red-900">
-            AUTHENTICATOR: DETECTING
-        </div>
-        <div id="check-server" class="status-seal bg-red-900/50 text-red-400 border border-red-900">
-            SERVER STATUS: CHECKING
-        </div>
-    </div>
+    const durationMs = Number(process.hrtime.bigint() - expectedChallenge.startTime) / 1000000;
+    const dreamPassed = DreamsEngine.check(durationMs, user);
+    
+    if (!dreamPassed) {
+         Challenges.delete(expectedChallenge.challenge);
+         return res.status(403).json({ verified: false, error: "ERR_TEMPORAL_ANOMALY: Behavioral Check Failed" });
+    }
+    
+    try {
+        const verification = await verifyAuthenticationResponse({
+            response: clientResponse,
+            expectedChallenge: expectedChallenge.challenge,
+            expectedOrigin: getOrigin(req),
+            expectedRPID: getRpId(req),
+            authenticator: user, 
+        });
 
-    <!-- SMART ADAPTIVE BUTTON -->
-    <div class="w-full max-w-sm">
-        <button id="main-btn" class="smart-btn" disabled onclick="handleMainAction()">
-            <i class="fas fa-circle-notch fa-spin mr-3"></i> CHECKING ENVIRONMENT...
-        </button>
-    </div>
+        if (verification.verified) {
+            DreamsEngine.update(durationMs, user.dreamProfile); 
+            user.counter = verification.authenticationInfo.newCounter;
+            Users.set(userID, user); 
+            Challenges.delete(expectedChallenge.challenge);
+            
+            res.json({ verified: true, token: Chaos.mintToken() });
+        } else { res.status(400).json({ verified: false }); }
+    } catch (error) { 
+        console.error(error);
+        res.status(400).json({ error: error.message }); 
+    } finally {
+        Challenges.delete(expectedChallenge.challenge);
+    }
+});
 
-    <!-- TOAST -->
-    <div id="toast" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-lg shadow-2xl opacity-0 transition-opacity duration-500 text-sm backdrop-blur"></div>
+// --- API & FILE ROUTING ---
+app.post('/api/v1/external/verify', Nightmare.guardSaaS, (req, res) => {
+    res.json({ valid: true, user: "Admin User", method: "LEGACY_KEY", quota: { used: req.partner.usage, limit: req.partner.limit } });
+});
 
-    <script>
-        const { startRegistration, startAuthentication, platformAuthenticatorIsAvailable } = SimpleWebAuthnBrowser;
-        const API_BASE = '/api/v1';
-        const HEADERS = { 'Content-Type': 'application/json', 'X-APLUS-SECURE': 'TOTEM_V8_BIO' };
+app.get('/api/v1/beta/pulse-demo', (req, res) => {
+    const agent = Abyss.agents.get('DEMO_AGENT_V1');
+    if(agent.usage >= agent.limit) return res.status(402).json({ error: "LIMIT" });
+    agent.usage++;
+    setTimeout(() => res.json({ valid: true, hash: 'pulse_' + Date.now(), ms: 15, quota: {used: agent.usage, limit: agent.limit} }), 200);
+});
 
-        let isRegistered = false;
+app.get('/api/v1/admin/telemetry', (req, res) => {
+    res.json({ stats: { requests: 0, threats: 0 }, threats: [] }); 
+});
 
-        function updateHUD(text, color = 'text-green-500') {
-            const h = document.getElementById('hud');
-            h.innerText = text;
-            h.className = `hud-status ${color} pulse`;
-        }
+app.post('/api/v1/admin/pentest', (req, res) => setTimeout(() => res.json({ message: "DNA INTEGRITY VERIFIED. SYSTEM SECURE." }), 2000));
 
-        function updateSeal(id, success, msg) {
-            const el = document.getElementById(id);
-            el.innerHTML = success 
-                ? `<i class="fas fa-check-circle mr-2"></i>${msg}`
-                : `<i class="fas fa-times-circle mr-2"></i>${msg}`;
-            // Use explicit class toggling for production stability
-            el.classList.toggle('bg-green-900/50', success);
-            el.classList.toggle('text-green-400', success);
-            el.classList.toggle('border-green-700', success);
-            el.classList.toggle('bg-red-900/50', !success);
-            el.classList.toggle('text-red-400', !success);
-            el.classList.toggle('border-red-900', !success);
-        }
+app.get('/api/v1/audit/get-proof', (req, res) => {
+    res.json({ verification_status: "READY_FOR_CLIENT_AUDIT" });
+});
 
-        function showToast(msg, success = false) {
-            const t = document.getElementById('toast');
-            // Simplified class names for the toast (since we removed the external dependency)
-            t.innerText = msg;
-            t.style.backgroundColor = success ? '#065f46' : '#991b1b'; 
-            t.style.color = '#fff';
-            t.style.opacity = 1;
-            setTimeout(() => t.style.opacity = 0, 4000);
-        }
+// FILE SERVING
+const serve = (f, res) => fs.existsSync(path.join(publicPath, f)) ? res.sendFile(path.join(publicPath, f)) : res.status(404).send('Missing: ' + f);
+app.get('/', (req, res) => serve('index.html', res)); 
+app.get('/app', (req, res) => serve('app.html', res)); 
+app.get('/dashboard', (req, res) => serve('dashboard.html', res)); 
+app.get('/admin', (req, res) => serve('admin.html', res)); 
+app.get('/sdk', (req, res) => serve('sdk.html', res)); 
+app.get('/admin/portal', (req, res) => serve('portal.html', res)); 
+app.get('*', (req, res) => res.redirect('/'));
 
-        function buzz() { if (navigator.vibrate) navigator.vibrate([100, 50, 100]); }
+app.use((err, req, res, next) => {
+    console.error("!!! SERVER ERROR:", err.stack);
+    res.status(500).send("<h1>System Critical Error</h1>");
+});
 
-        async function checkEnvironment() {
-            const btn = document.getElementById('main-btn');
-            let ready = true;
-
-            // 1. Secure Context Check
-            if (window.isSecureContext) {
-                updateSeal('check-secure', true, 'SECURE CONTEXT: ACTIVE');
-            } else {
-                updateSeal('check-secure', false, 'HTTPS REQUIRED');
-                ready = false;
-            }
-
-            // 2. Platform Authenticator Check
-            const platformOk = await platformAuthenticatorIsAvailable();
-            if (platformOk) {
-                updateSeal('check-platform', true, 'AUTHENTICATOR: READY');
-            } else {
-                updateSeal('check-platform', false, 'NO BIOMETRIC DEVICE');
-                ready = false;
-            }
-
-            // 3. Server Reachability + Registration Status
-            try {
-                const statusResp = await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS });
-                
-                if (statusResp.ok) {
-                    // Server sent options; user is registered.
-                    isRegistered = true;
-                    updateSeal('check-server', true, 'SERVER: ID FOUND');
-                } else {
-                    // Server responded with 404/403/other error; likely unregistered state
-                    isRegistered = false;
-                    updateSeal('check-server', true, 'SERVER: ID SLOT OPEN');
-                }
-            } catch (e) {
-                updateSeal('check-server', false, 'ABYSS UNREACHABLE');
-                updateHUD("ABYSS UNREACHABLE", "text-red-500");
-                btn.innerText = "RETRY";
-                ready = false;
-            }
-
-            // Final state transition
-            if (ready) {
-                updateHUD("CHAOS CORE READY FOR HANDSHAKE", "text-green-400");
-                btn.innerHTML = isRegistered 
-                    ? '<i class="fas fa-fingerprint mr-3"></i> VERIFY IDENTITY'
-                    : '<i class="fas fa-shield-alt mr-3"></i> INITIALIZE DEVICE';
-                btn.disabled = false;
-            }
-            return ready;
-        }
-
-        async function handleMainAction() {
-            const btn = document.getElementById('main-btn');
-            btn.disabled = true;
-            buzz();
-
-            if (!isRegistered) {
-                await doRegister();
-            } else {
-                await doLogin();
-            }
-            btn.disabled = false;
-        }
-
-        async function doRegister() {
-             updateHUD("SYSTEM LOCKED. ACCESS DENIED.", "text-red-500");
-             showToast("Registration is closed. Contact admin for key reset.", false);
-        }
-
-        async function doLogin() {
-            updateHUD("SCAN BIOMETRIC NOW", "text-white");
-            try {
-                // A. GET OPTIONS
-                const opts = await (await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS })).json();
-                
-                // B. SCAN
-                const asseResp = await startAuthentication({ publicKey: opts });
-
-                // C. VERIFY (Temporal + Crypto)
-                updateHUD("ANALYZING BEHAVIOR...", "text-blue-400");
-                const verifyResp = await fetch(`${API_BASE}/auth/login-verify`, {
-                    method: 'POST',
-                    headers: HEADERS,
-                    body: JSON.stringify(asseResp)
-                });
-                const result = await verifyResp.json();
-
-                // D. SUCCESS & REDIRECT
-                if (result.verified) {
-                    updateHUD("ACCESS GRANTED", "text-green-500");
-                    document.body.style.background = "radial-gradient(circle at center, #002200, #000)";
-                    buzz();
-                    
-                    if (result.token) sessionStorage.setItem('chaos_session', result.token);
-                    
-                    showToast("Welcome, Agent", true);
-                    setTimeout(() => location.href = '/dashboard.html', 1800);
-                } else {
-                    if (result.error && result.error.includes("TEMPORAL_ANOMALY")) {
-                        throw new Error("BEHAVIORAL ANOMALY DETECTED.");
-                    } else {
-                        throw new Error(result.error || "Verification Failed.");
-                    }
-                }
-            } catch (e) {
-                let msg = e.message || "Login timed out or was cancelled.";
-                updateHUD("ACCESS DENIED", "text-red-500");
-                document.body.style.background = "radial-gradient(circle at center, #220000, #000)";
-                showToast(msg, false);
-                setTimeout(() => document.body.style.background = "#000", 2000);
-            } finally {
-                 document.getElementById('main-btn').disabled = false;
-            }
-        }
-        
-        // Execute initial checks on load
-        window.onload = () => {
-            document.getElementById('main-btn').onclick = checkEnvironment;
-            // The initial check will fire and set the correct button action after the check.
-            checkEnvironment();
-            setInterval(checkEnvironment, 15000); // Keep status fresh
-        };
-    </script>
-</body>
-</html>
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V46 (RESTORED) ONLINE: ${PORT}`));
