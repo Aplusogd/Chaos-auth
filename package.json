@@ -19,24 +19,19 @@
     "cors": "^2.8.5",
     "bcrypt": "^5.1.1",
     "uuid": "^9.0.1",
-    "@noble/bls12-381": "^2.0.0",
-    "@noble/curves": "^1.4.0",
-    "snarkjs": "^0.7.4",
-    "circomlibjs": "^0.1.7",
-    "pg": "^8.12.0",
-    "redis": "^4.6.15",
-    "helmet": "^7.1.0",
-    "rate-limit-redis": "^4.1.0",
-    "express-rate-limit": "^7.1.5"
+    "@noble/bls12-381": "^1.4.0",           
+    "@noble/curves": "^1.2.0",              
+    "snarkjs": "^0.7.4",                    
+    "circomlibjs": "^0.1.7",                
+    "pg": "^8.12.0",                        
+    "redis": "^4.6.15",                     
+    "helmet": "^7.1.0",                     
+    "rate-limit-redis": "^4.1.0",           
+    "express-rate-limit": "^7.1.5"          
   },
   "devDependencies": {
     "esbuild": "^0.21.5",
     "eslint": "^9.0.0"
-  },
-  "overrides": {
-    "@noble/bls12-381": {
-      ".": "$@noble/bls12-381"
-    }
   },
   "private": true
 }
