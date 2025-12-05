@@ -6,7 +6,7 @@
   <title>CHAOS ID · Partner SDK & Integration Docs (v39)</title>
   <meta name="description" content="Quantum-resistant, behavior-aware, ZKP-audited identity. No passwords. No static keys. Only proof.">
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <!-- NOTE: Font Awesome is removed as external dependency for max stability -->
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
     body { background:#000; color:#e5e5e5; font-family:'JetBrains Mono',monospace; }
@@ -80,13 +80,14 @@ fetch("https://chaos-id.com/api/v1/external/verify", {
         <div class="text-4xl">Pro $99/mo · Enterprise $999+</div>
       </div>
 
-      <!-- Live SDK Include -->
+      <!-- Live SDK Include (NOTE: Using local minified file) -->
       <div class="code p-4 rounded text-sm mb-6">
         &lt;script src="https://chaos-id.com/chaos-sdk.min.js"&gt;&lt;/script&gt;
       </div>
 
       <pre class="code p-6 rounded text-xs overflow-x-auto">
 // Chaos SDK v39 — bundled, no external crypto dependencies
+// Run 'npm run build:sdk' to generate chaos-sdk.min.js
 const sdk = new ChaosSDK({
   apiKey: "sk_chaos_your_key_here",
   tier: "Enterprise"   // unlocks MBF + ZKP
@@ -121,7 +122,7 @@ const { audit_proof, tx_id } = verification;
 
 const verified = await ChaosSDK.verifyBillingProof(audit_proof);
 if (verified) {
-  console.log(\`Billing transaction \${tx_id} is mathematically proven\`);
+  console.log(`Billing transaction ${tx_id} is mathematically proven`);
 }
       </pre>
       <p class="text-sm text-purple-400 mt-4">
@@ -143,3 +144,4 @@ if (verified) {
 </main>
 </body>
 </html>
+
