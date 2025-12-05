@@ -1,6 +1,6 @@
 /**
- * A+ CHAOS ID: V33 (GOLD MASTER)
- * STATUS: O(1) DREAMS PROTOCOL + Hardened Security Framework
+ * A+ CHAOS ID: V32 (DREAMS BLACKBOX EDITION)
+ * STATUS: O(1) Temporal Biometrics Enabled + Algorithm Encapsulation
  */
 const express = require('express');
 const path = require('path');
@@ -23,9 +23,9 @@ app.use(express.json());
 app.use(express.static(publicPath));
 
 // ==========================================
-// 1. DREAMS PROTOCOL BLACK BOX (Algorithm Protected)
+// 1. DREAMS PROTOCOL BLACK BOX (ALGORITHM)
 // ==========================================
-// The proprietary logic for temporal biometric analysis.
+// This code is encapsulated to protect the proprietary O(1) logic.
 const DreamsEngine = (() => {
     const MIN_SAMPLES = 5; 
     const MAX_SAMPLES = 10;
@@ -42,18 +42,16 @@ const DreamsEngine = (() => {
         let rho1 = 0;
         if (n >= 3) {
             const m = n - 1; 
-            const T_n = timings[n - 1]; 
             const sum_X = timings.slice(0, m).reduce((a, b) => a + b, 0); 
             const sum_Y = timings.slice(1, n).reduce((a, b) => a + b, 0);
             const sum_X2 = timings.slice(0, m).reduce((a, b) => a + b * b, 0);
             const sum_Y2 = timings.slice(1, n).reduce((a, b) => a + b * b, 0);
 
-            const var_X = (sum_X2 - (sum_X * sum_X / m)) / (m - 1);
-            const var_Y = (sum_Y2 - (sum_Y * sum_Y / m)) / (m - 1);
-            
             let sum_lag = 0;
             for(let i=0; i < n - 1; i++) sum_lag += timings[i] * timings[i+1];
 
+            const var_X = (sum_X2 - (sum_X * sum_X / m)) / (m - 1);
+            const var_Y = (sum_Y2 - (sum_Y * sum_Y / m)) / (m - 1);
             const cov = (sum_lag - (sum_X * sum_Y / m)) / (m - 1);
 
             if (var_X * var_Y > 1e-9) rho1 = cov / Math.sqrt(var_X * var_Y);
@@ -80,7 +78,7 @@ const DreamsEngine = (() => {
             const newSigma = Math.sqrt(Math.max(0, newCenteredVar));
             const newCv = newSigma / (newSumT / (N_current + 1));
             
-            // 1. CV CHECK (Anti-Automation)
+            // 1. CV CHECK (Anti-Automation: Low Jitter)
             const cvDeviationLimit = oldCv * 0.40; 
             if (newCv < 0.05 && Math.abs(newCv - oldCv) > cvDeviationLimit) { 
                 console.log(`[DREAMS REJECT] CV Anomaly. Too machine-like.`);
@@ -100,7 +98,7 @@ const DreamsEngine = (() => {
             const window = profile.window;
             let n = window.length;
 
-            // Discard oldest
+            // Discard oldest (O(1) sum maintenance)
             if (n === MAX_SAMPLES) {
                 const T_old = window[0];
                 if (n > 1) profile.sum_lag -= T_old * window[1];
@@ -111,7 +109,7 @@ const DreamsEngine = (() => {
                 n--;
             }
 
-            // Append new
+            // Append new (O(1) sum maintenance)
             if (n > 0) profile.sum_lag += window[n - 1] * T_new;
             
             profile.sum_T += T_new;
@@ -130,7 +128,7 @@ const DreamsEngine = (() => {
 
 
 // ==========================================
-// 4. CORE LOGIC & SECURITY ENGINES
+// 2. CORE LOGIC & SECURITY ENGINES (ABYSS/NIGHTMARE)
 // ==========================================
 const Users = new Map();
 const ADMIN_DNA = {
@@ -139,7 +137,7 @@ const ADMIN_DNA = {
   "counter": 0,
   "dreamProfile": { window: [], sum_T: 0, sum_T2: 0, sum_lag: 0, mu: 0, sigma: 0, rho1: 0, cv: 0 } 
 };
-Users.set('admin-user', ADMIN_DNA);
+Users.set('admin-user', ADMIN_DNA); // Hardcoded Admin Lock
 
 const Abyss = {
     partners: new Map(),
@@ -206,7 +204,6 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
 
     if (!userCredential || !challengeData) return res.status(400).json({ error: "Invalid State" });
     
-    // Calculate duration
     const durationMs = Number(process.hrtime.bigint() - challengeData.startTime) / 1000000;
     
     // 1. DREAMS CHECK (Temporal Biometrics)
@@ -232,9 +229,8 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
             // Update DREAMS Profile (O(1) Rolling Stats)
             DreamsEngine.update(durationMs, userCredential.dreamProfile); 
             
-            userCredential.counter = verification.authenticationInfo.newCounter; // Update Auth Counter
+            userCredential.counter = verification.authenticationInfo.newCounter;
             
-            // Mint Token & Track Session
             const token = Chaos.mintToken();
             Abyss.sessions.set(token, { user: 'Admin User', level: 'V32-GOLD', expires: Date.now() + 3600000 });
             
@@ -260,12 +256,10 @@ app.get('/api/v1/beta/pulse-demo', (req, res) => {
     setTimeout(() => res.json({ valid: true, hash: 'pulse_' + Date.now(), ms: 15, quota: {used: agent.usage, limit: agent.limit} }), 200);
 });
 
-// Admin Telemetry (Placeholder)
 app.get('/api/v1/admin/telemetry', (req, res) => {
     res.json({ stats: { requests: Abyss.agents.get('DEMO_AGENT_V1').usage, threats: 0 }, threats: [] }); 
 });
 
-// FILE SERVER
 const serve = (f, res) => fs.existsSync(path.join(publicPath, f)) ? res.sendFile(path.join(publicPath, f)) : res.status(404).send('Missing: ' + f);
 app.get('/', (req, res) => serve('app.html', res));
 app.get('/app', (req, res) => serve('app.html', res));
