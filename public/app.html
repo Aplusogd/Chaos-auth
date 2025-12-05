@@ -3,189 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>A+ CHAOS | LOGIN DEBUG</title>
+    <title>A+ CHAOS | SECURE LOGIN GATE</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- V10 LIBRARY -->
     <script src="https://unpkg.com/@simplewebauthn/browser@10.0.0/dist/bundle/index.umd.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
-        body { background-color: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; }
-        .smart-btn {
-            width: 100%; padding: 1.5rem; font-size: 1.2rem; font-weight: bold;
-            border: 2px solid #00ff41; background: #111; color: #fff;
-            border-radius: 12px; text-transform: uppercase; cursor: pointer;
-        }
-        .smart-btn:active { background: #00ff41; color: #000; }
-        .log-box { 
-            width: 100%; height: 150px; overflow-y: scroll; 
-            background: #111; border: 1px solid #333; 
-            font-size: 10px; color: #aaa; padding: 10px; margin-top: 20px;
-        }
+        body { background-color: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; touch-action: manipulation; overflow: hidden; }
+        .hud-status { font-size: 1.8rem; font-weight: 800; text-align: center; text-transform: uppercase; text-shadow: 0 0 15px #00ff41; margin-bottom: 2rem; min-height: 4rem; transition: all 0.4s ease; }
+        .smart-btn { width: 100%; padding: 1.8rem; font-size: 1.3rem; font-weight: bold; border: 2px solid #00ff41; background: linear-gradient(to bottom, #001a00, #000); color: #00ff41; border-radius: 16px; transition: all 0.3s; text-transform: uppercase; letter-spacing: 3px; box-shadow: 0 0 20px rgba(0, 255, 65, 0.3); }
+        .smart-btn:hover:not(:disabled) { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0, 255, 65, 0.5); background: linear-gradient(to bottom, #002200, #001100); }
+        .smart-btn:disabled { opacity: 0.5; cursor: not-allowed; border-color: #333; color: #666; }
+        .status-seal { font-size: 11px; padding: 6px 12px; border-radius: 6px; margin: 6px 0; display: inline-block; min-width: 200px; }
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
     </style>
 </head>
-<body class="h-screen flex flex-col items-center justify-center p-6">
+<body class="h-screen flex flex-col items-center justify-center p-6 bg-black">
 
-    <div class="w-full max-w-sm text-center mb-8">
-        <h1 class="text-2xl font-bold text-white">CHAOS GATE</h1>
-        <div id="status" class="text-sm text-gray-500 mt-2">SYSTEM CHECK...</div>
+    <div class="w-full max-w-sm text-center mb-10">
+        <div class="text-xs text-gray-600 mb-3">A+ CHAOS CORE // V47</div>
+        <h1 class="text-4xl font-bold tracking-tighter text-white">BIOMETRIC GATE</h1>
+    </div>
+
+    <div id="hud" class="hud-status text-green-500 pulse">INITIALIZING QUANTUM LOCK...</div>
+    
+    <div class="text-center mb-10 space-y-3">
+        <div id="check-secure" class="status-seal bg-red-900/50 text-red-400 border border-red-900">SECURE CONTEXT: PENDING</div>
+        <div id="check-server" class="status-seal bg-red-900/50 text-red-400 border border-red-900">SERVER STATUS: CHECKING</div>
     </div>
 
     <div class="w-full max-w-sm">
-        <!-- Hardcoded onclick to ensure it fires -->
-        <button id="main-btn" class="smart-btn" onclick="handleClick()">
-            INITIALIZING...
+        <button id="main-btn" class="smart-btn" disabled onclick="handleMainAction()">
+            <i class="fas fa-circle-notch fa-spin mr-3"></i> CHECKING...
         </button>
     </div>
 
-    <!-- VISIBLE DEBUG LOG -->
-    <div id="debug-log" class="w-full max-w-sm log-box">
-        > Console Initialized...<br>
-    </div>
+    <div id="toast" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900/95 text-white px-6 py-3 rounded-lg shadow-2xl opacity-0 transition-opacity duration-500 text-sm backdrop-blur"></div>
 
     <script>
-        // --- LOGGER ---
-        function log(msg) {
-            const box = document.getElementById('debug-log');
-            box.innerHTML += `> ${msg}<br>`;
-            box.scrollTop = box.scrollHeight;
-            console.log(msg);
-        }
-
-        // --- STATE ---
-        let isRegistered = false;
+        const { startAuthentication } = SimpleWebAuthnBrowser;
         const API_BASE = '/api/v1';
         const HEADERS = { 'Content-Type': 'application/json', 'X-APLUS-SECURE': 'TOTEM_V8_BIO' };
+        let isRegistered = false;
 
-        // --- 1. STARTUP CHECK ---
-        window.onload = async () => {
-            log("Window Loaded.");
-            
-            // Check HTTPS
-            if (!window.isSecureContext) {
-                log("CRITICAL: NOT HTTPS. Biometrics will fail.");
-                document.body.style.background = "#330000";
-                document.getElementById('status').innerText = "NOT SECURE (HTTPS REQUIRED)";
-                return;
-            }
+        function updateHUD(text, color = 'text-green-500') { const h = document.getElementById('hud'); h.innerText = text; h.className = `hud-status ${color} pulse`; }
+        function updateSeal(id, success, msg) { const el = document.getElementById(id); el.innerHTML = success ? `<i class="fas fa-check-circle mr-2"></i>${msg}` : `<i class="fas fa-times-circle mr-2"></i>${msg}`; el.className = `status-seal ${success ? 'bg-green-900/50 text-green-400 border border-green-700' : 'bg-red-900/50 text-red-400 border border-red-900'}`; }
+        function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.style.opacity = 1; setTimeout(() => t.style.opacity = 0, 4000); }
+        function buzz() { if (navigator.vibrate) navigator.vibrate([100, 50, 100]); }
 
-            // Check Library
-            if (typeof SimpleWebAuthnBrowser === 'undefined') {
-                log("CRITICAL: WebAuthn Library failed to load.");
-                alert("Error: Security Library blocked. Check ad-blocker/network.");
-                return;
-            }
-
-            log("Library Loaded. Checking Server...");
-            
-            try {
-                const resp = await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS });
-                if (resp.ok) {
-                    isRegistered = true;
-                    setBtn("VERIFY IDENTITY (LOGIN)");
-                    log("Server: Ready (User Found)");
-                } else {
-                    isRegistered = false;
-                    setBtn("INITIALIZE DEVICE (REGISTER)");
-                    log("Server: Ready (New User)");
-                }
-            } catch (e) {
-                log("Server Connection Failed: " + e.message);
-                setBtn("RETRY CONNECTION");
-            }
-        };
-
-        function setBtn(text) {
+        async function checkEnvironment() {
             const btn = document.getElementById('main-btn');
-            btn.innerText = text;
-            btn.disabled = false;
-        }
-
-        // --- 2. CLICK HANDLER ---
-        async function handleClick() {
-            log("Button Clicked.");
-            const btn = document.getElementById('main-btn');
-            btn.disabled = true;
-            btn.innerText = "PROCESSING...";
+            
+            if (window.isSecureContext) updateSeal('check-secure', true, 'SECURE CONTEXT: ACTIVE');
+            else updateSeal('check-secure', false, 'HTTPS REQUIRED');
 
             try {
-                if (isRegistered) {
-                    await doLogin();
-                } else {
-                    await doRegister();
-                }
+                const statusResp = await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS });
+                if (statusResp.ok || statusResp.status === 404) {
+                    isRegistered = true; 
+                    updateSeal('check-server', true, 'SERVER: ID FOUND');
+                    updateHUD("CHAOS CORE READY", "text-green-400");
+                    btn.innerHTML = '<i class="fas fa-fingerprint mr-3"></i> VERIFY IDENTITY';
+                    btn.disabled = false;
+                    btn.classList.add('hover:text-white');
+                } else { throw new Error('Server Error'); }
             } catch (e) {
-                log("ERROR: " + e.message);
-                alert("Operation Failed: " + e.message);
-            } finally {
+                updateSeal('check-server', false, 'ABYSS UNREACHABLE');
+                btn.innerText = "RETRY";
                 btn.disabled = false;
-                btn.innerText = isRegistered ? "VERIFY IDENTITY" : "INITIALIZE DEVICE";
             }
         }
 
-        // --- 3. REGISTER ---
-        async function doRegister() {
-            log("Starting Registration...");
-            const optsResp = await fetch(`${API_BASE}/auth/register-options`, { headers: HEADERS });
-            const opts = await optsResp.json();
-            
-            if(opts.error) throw new Error(opts.error);
-
-            log("Prompting Fingerprint...");
-            const attResp = await SimpleWebAuthnBrowser.startRegistration(opts);
-            
-            log("Verifying...");
-            const verResp = await fetch(`${API_BASE}/auth/register-verify`, {
-                method: 'POST', headers: HEADERS, body: JSON.stringify(attResp)
-            });
-            const result = await verResp.json();
-
-            if (result.verified) {
-                log("SUCCESS! DNA: " + JSON.stringify(result.adminDNA).substring(0, 20) + "...");
-                alert("DEVICE CLAIMED. Reloading...");
-                location.reload();
-            } else {
-                throw new Error("Verification Failed");
-            }
+        async function handleMainAction() {
+            document.getElementById('main-btn').disabled = true;
+            await doLogin();
+            document.getElementById('main-btn').disabled = false;
         }
 
-        // --- 4. LOGIN ---
         async function doLogin() {
-            log("Starting Login...");
-            
-            // A. Options
-            const optsResp = await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS });
-            const opts = await optsResp.json();
-            if(opts.error) throw new Error(opts.error);
-
-            // B. Browser Scan
-            log("Waiting for Biometrics...");
-            let asseResp;
+            updateHUD("SCAN BIOMETRIC NOW", "text-white");
             try {
-                asseResp = await SimpleWebAuthnBrowser.startAuthentication(opts);
-            } catch(err) {
-                // Catch "NotAllowedError" or "AbortError" specifically
-                log("Scan Failed: " + err.name);
-                throw err; 
-            }
+                const opts = await (await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS })).json();
+                const asseResp = await startAuthentication({ publicKey: opts }); // Browser handles credential ID logic
+                
+                updateHUD("VERIFYING...", "text-blue-400");
+                const verifyResp = await fetch(`${API_BASE}/auth/login-verify`, {
+                    method: 'POST', headers: HEADERS, body: JSON.stringify(asseResp)
+                });
+                const result = await verifyResp.json();
 
-            // C. Verify
-            log("Sending Proof to Abyss...");
-            const verResp = await fetch(`${API_BASE}/auth/login-verify`, {
-                method: 'POST', headers: HEADERS, body: JSON.stringify(asseResp)
-            });
-            const result = await verResp.json();
-
-            if (result.verified) {
-                log("ACCESS GRANTED.");
-                document.body.style.backgroundColor = "#002200";
-                if (result.token) sessionStorage.setItem('chaos_session', result.token);
-                setTimeout(() => window.location.href = '/dashboard.html', 1000);
-            } else {
-                throw new Error(result.error || "Server rejected signature");
+                if (result.verified) {
+                    updateHUD("ACCESS GRANTED", "text-green-500");
+                    document.body.style.background = "radial-gradient(circle at center, #002200, #000)";
+                    buzz();
+                    if (result.token) sessionStorage.setItem('chaos_session', result.token);
+                    showToast("Welcome, Agent");
+                    setTimeout(() => location.href = '/dashboard.html', 1500);
+                } else {
+                    throw new Error(result.error || "Invalid Credentials");
+                }
+            } catch (e) {
+                updateHUD("ACCESS DENIED", "text-red-500");
+                document.body.style.background = "radial-gradient(circle at center, #220000, #000)";
+                showToast(e.message);
+                setTimeout(() => document.body.style.background = "#000", 2000);
             }
         }
+
+        window.onload = checkEnvironment;
     </script>
 </body>
 </html>
+
+
