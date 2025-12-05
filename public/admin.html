@@ -1,27 +1,207 @@
-// Inside public/admin.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A+ CHAOS | OVERWATCH TERMINAL</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* CORE STYLES */
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono:wght@400;700&display=swap');
+        body { background-color: #000; color: #00ff41; font-family: 'Share Tech Mono', monospace; }
+        .grid-bg { background-image: linear-gradient(rgba(0, 50, 0, 0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 50, 0, 0.2) 1px, transparent 1px); background-size: 20px 20px; }
+        .panel { border: 1px solid #1a4d1a; background: rgba(0, 15, 0, 0.9); box-shadow: 0 0 15px rgba(0, 255, 65, 0.1); }
+        .blink { animation: blinker 1s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0; } }
+        .scroll-box { scrollbar-width: none; }
+        .danger-text { color: #ff3333; text-shadow: 0 0 5px #ff0000; }
+        .log-line { border-left: 3px solid transparent; padding-left: 8px; margin-bottom: 2px; }
+    </style>
+</head>
+<body class="h-screen flex flex-col p-4 grid-bg overflow-hidden">
 
-// Find the "SIMULATING XSS ATTACK" line inside runPentest() and add this immediately after:
-term.innerHTML += "<div class='text-gray-500'> > AUDITING TEMPORAL JITTER (DREAMS V2)... [PASS]</div>";
-
-// Inside runPentest(), update the success message:
-setTimeout(() => {
-    term.innerHTML += `<div class="text-green-500 font-bold border border-green-500 p-2 mt-2 text-center">RESULT: DNA INTEGRITY VERIFIED. DREAMS PROTOCOL STABLE.</div>`; // UPDATED MESSAGE
-    // ... (rest of the code) ...
-}, 2000);
-
-// NEW STATIC PANEL: Add this block inside the "System Health" (Right Col) section:
-// This confirms to the admin that the proprietary logic is active.
-// You will need to add this manually into your admin.html HTML structure:
-
-/* <div class="panel h-32">
-    <div class="text-xs text-blue-500 mb-2 border-b border-blue-900 pb-1">DREAMS V2 SYNTHESIS</div>
-    <div class="text-white text-lg flex justify-between">
-        <span>CV Check:</span>
-        <span class="text-green-400 font-bold">ACTIVE</span>
+    <!-- TOP BAR -->
+    <div class="flex justify-between items-center mb-6 border-b border-green-900 pb-2">
+        <h1 class="text-2xl font-bold tracking-widest"><i class="fas fa-eye"></i> OVERWATCH <span class="text-xs align-top opacity-50">V33.3</span></h1>
+        <div class="flex gap-4 text-sm items-center">
+            <div id="status-lock" class="text-green-400">DNA LOCK: <span class="text-white bg-green-800 px-1 rounded">ACTIVE</span></div>
+            <button onclick="logout()" class="text-red-500 hover:text-white transition">LOGOUT</button>
+        </div>
     </div>
-    <div class="text-white text-lg flex justify-between">
-        <span>Rho1 Check:</span>
-        <span class="text-green-400 font-bold">ACTIVE</span>
+
+    <!-- MAIN GRID CONTAINER -->
+    <div class="flex-grow grid grid-cols-12 gap-4">
+        
+        <!-- LEFT COL: SYSTEM & BEHAVIORAL HEALTH (3 cols) -->
+        <div class="col-span-12 md:col-span-3 flex flex-col gap-4">
+            
+            <!-- CORE METRICS -->
+            <div class="panel p-3 text-center border-b border-green-900">
+                <div class="text-xs text-green-600 mb-1">TOTAL API HITS</div>
+                <div id="stat-total" class="text-3xl font-bold">0</div>
+            </div>
+            
+            <!-- DREAMS V3 STATUS -->
+            <div class="panel p-3 flex-grow h-auto">
+                <div class="text-xs text-green-400 mb-2 border-b border-green-800 pb-1">DREAMS V3 SYNTHESIS</div>
+                <div class="space-y-1 text-sm">
+                    <div class="flex justify-between"><span>μ (Avg Time):</span> <span id="dream-mu">N/A</span>ms</div>
+                    <div class="flex justify-between"><span>σ (Jitter):</span> <span id="dream-sigma">N/A</span>ms</div>
+                    <div class="flex justify-between"><span>CV (Risk):</span> <span id="dream-cv" class="text-yellow-400">N/A</span></div>
+                    <div class="flex justify-between pt-1"><span>STATUS:</span> <span id="dream-status" class="text-red-500 blink">BUILDING PROFILE</span></div>
+                </div>
+            </div>
+
+            <!-- QUOTA & THREAT COUNTERS -->
+            <div class="panel p-3">
+                <div class="text-xs text-red-600 mb-1">THREATS NEUTRALIZED</div>
+                <div id="stat-blocked" class="text-3xl font-bold danger-text mb-2">0</div>
+                <div class="text-xs text-blue-500 mb-1">PULSE QUOTA REMAINING</div>
+                <div id="stat-pulse-rem" class="text-xl font-bold text-blue-400">500 / 500</div>
+            </div>
+
+        </div>
+
+        <!-- MID COL: LIVE THREAT FEED & PENTEST (6 cols) -->
+        <div class="col-span-12 md:col-span-6 flex flex-col gap-4">
+            <div class="panel flex-grow flex flex-col relative overflow-hidden">
+                <div class="flex justify-between items-center border-b border-green-900 pb-2 mb-2">
+                    <span><i class="fas fa-terminal mr-2"></i>LIVE NIGHTMARE LOG</span>
+                    <span class="blink text-red-500 text-xs" id="log-signal">● LIVE</span>
+                </div>
+                <!-- THE TERMINAL -->
+                <div id="terminal" class="flex-grow overflow-y-auto font-mono text-xs space-y-1 text-green-500/80 scroll-box h-full">
+                    <div class="log-line text-gray-500">> SYSTEM INITIALIZED.</div>
+                </div>
+            </div>
+            
+            <!-- SECURITY TEST PANEL -->
+            <div class="panel h-20 flex flex-col justify-center items-center">
+                <button onclick="runPentest()" id="pentest-btn" class="w-full h-full bg-red-900/10 text-red-500 hover:bg-red-500 hover:text-black transition uppercase font-bold tracking-widest text-lg">
+                    <i class="fas fa-biohazard mr-2"></i> RUN SELF-DIAGNOSTIC
+                </button>
+            </div>
+        </div>
+
+        <!-- RIGHT COL: AUDIT & CONTROL (3 cols) -->
+        <div class="col-span-12 md:col-span-3 flex flex-col gap-4">
+             
+             <!-- MBF LOCK STATE -->
+             <div class="panel p-3">
+                <div class="text-xs text-blue-400 mb-2 border-b border-blue-900 pb-1">MBF FUSION LOCK</div>
+                <div class="text-sm space-y-1">
+                    <div class="flex justify-between"><span>Aggregate Key:</span> <span class="text-green-400">ACTIVE</span></div>
+                    <div class="flex justify-between"><span>Secondary Creds:</span> <span class="text-yellow-400">INACTIVE (PROMPT)</span></div>
+                    <div class="flex justify-between"><span>Status:</span> <span class="text-red-500 font-bold">SINGLE FACTOR</span></div>
+                </div>
+             </div>
+
+             <!-- ZKP AUDIT CONTROL -->
+             <div class="panel flex-grow p-3">
+                <div class="text-xs text-purple-400 mb-2 border-b border-purple-900 pb-1">ZKP AUDIT LEDGER</div>
+                <div class="space-y-2 text-xs">
+                    <div class="flex justify-between"><span>Merkle Root:</span> <span id="audit-root" class="text-gray-500 truncate">0xINITIAL_ROOT...</span></div>
+                    <div class="flex justify-between"><span>Ledger Size:</span> <span id="audit-count">0 TXNs</span></div>
+                </div>
+                <button onclick="window.location.href='/admin/portal'" class="w-full mt-4 py-2 bg-yellow-600/20 text-yellow-400 border border-yellow-700 rounded text-xs hover:bg-yellow-600/40 transition">
+                    <i class="fas fa-key mr-2"></i> FORGE PARTNER KEYS
+                </button>
+             </div>
+        </div>
     </div>
-</div>
-*/
+
+    <script>
+        const API_BASE = '/api/v1'; // Base API Path
+
+        // --- AUTH/LOGOUT ---
+        function logout() {
+            sessionStorage.clear();
+            window.location.href = '/app.html';
+        }
+        
+        // --- LIVE DATA FEED ---
+        async function fetchTelemetry() {
+            try {
+                // Fetch stats from the server's telemetry endpoint
+                const telemetryRes = await fetch(`${API_BASE}/admin/telemetry`);
+                const { stats, threats } = await telemetryRes.json();
+                
+                // Fetch DREAMS Stats (Profile-stats is now available in index.js V33.3)
+                const dreamRes = await fetch(`${API_BASE}/admin/profile-stats`);
+                const dreamData = await dreamRes.json();
+
+                // Update Numerical Stats
+                document.getElementById('stat-total').innerText = stats.requests || 'N/A';
+                document.getElementById('stat-blocked').innerText = threats.length || '0';
+                
+                // Update DREAMS V3 Panel
+                if (dreamData.status) {
+                    document.getElementById('dream-mu').innerText = dreamData.mu + 'ms';
+                    document.getElementById('dream-sigma').innerText = dreamData.sigma + 'ms';
+                    document.getElementById('dream-cv').innerText = dreamData.cv;
+                    
+                    const statusEl = document.getElementById('dream-status');
+                    statusEl.innerText = dreamData.status;
+                    statusEl.className = dreamData.status.includes('ACTIVE') ? 'text-green-400 font-bold' : 'text-yellow-400';
+                }
+                
+                // Update Audit/Quota Panel (Mock Data)
+                // NOTE: This relies on the server providing these audit counts (Abyss.auditLedger)
+                document.getElementById('audit-count').innerText = `${Abyss.auditLedger.length} TXNs`;
+                document.getElementById('audit-root').innerText = Abyss_merkleRoot.substring(0, 15) + '...';
+
+                // Append new threats to log
+                const term = document.getElementById('terminal');
+                threats.forEach(t => {
+                    // Check if the log line already exists to prevent duplication
+                    if (!term.innerHTML.includes(t)) {
+                        const className = t.includes('BLOCKED') ? 'text-red-400' : 'text-yellow-400';
+                        const div = document.createElement('div');
+                        div.className = `log-line ${className}`;
+                        div.innerText = t;
+                        term.prepend(div);
+                    }
+                });
+
+            } catch(e) { console.error("Telemetry link lost", e); }
+        }
+
+        // --- SECURITY TEST ---
+        async function runPentest() {
+            const btn = document.getElementById('pentest-btn');
+            const term = document.getElementById('terminal');
+
+            btn.disabled = true;
+            btn.innerHTML = "<i class='fas fa-circle-notch fa-spin'></i> RUNNING PENTEST...";
+            
+            term.innerHTML += `<div class='log-line text-yellow-400 mt-2'> > INITIATING SELF-DIAGNOSTIC...</div>`;
+
+            try {
+                const resp = await fetch(`${API_BASE}/admin/pentest`, { method: 'POST' });
+                const data = await resp.json();
+                
+                setTimeout(() => {
+                    term.innerHTML += `<div class='log-line text-green-400 font-bold border border-green-500 p-2 mt-2 text-center'>RESULT: ${data.message}</div>`;
+                    term.scrollTop = term.scrollHeight;
+                    
+                    btn.disabled = false;
+                    btn.innerHTML = `<i class='fas fa-check'></i> SYSTEM SECURE`;
+                    setTimeout(() => btn.innerHTML = `<i class='fas fa-biohazard mr-2'></i> RUN SELF-DIAGNOSTIC`, 3000);
+                }, 2000);
+
+            } catch(e) {
+                btn.innerHTML = "ERROR";
+            }
+        }
+
+        // Initialize polling (Mocked globals for stability)
+        const Abyss = { auditLedger: [] };
+        const Abyss_merkleRoot = '0xINITIAL_ROOT_7890';
+        
+        setInterval(fetchTelemetry, 3000);
+        fetchTelemetry();
+    </script>
+</body>
+</html>
+
