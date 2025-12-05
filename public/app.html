@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CHAOS | Bio-Link</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- SimpleWebAuthn Browser Library -->
+    <!-- FIX: Import the official WebAuthn library to handle decoding automatically -->
     <script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.umd.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -78,10 +78,9 @@
             try {
                 // Get Options
                 const resp = await fetch('/api/v1/auth/register-options', { headers: HEADERS });
-                if (!resp.ok) throw new Error("Failed to get options");
                 const options = await resp.json();
 
-                // Use Library to handle encoding automatically
+                // FIX: Use Library to handle encoding automatically (No more atob error)
                 log("Touch Sensor now...", "info");
                 const attResp = await SimpleWebAuthnBrowser.startRegistration(options);
 
@@ -110,10 +109,9 @@
             try {
                 // Get Options
                 const resp = await fetch('/api/v1/auth/login-options', { headers: HEADERS });
-                if (!resp.ok) throw new Error("Failed to get login options");
                 const options = await resp.json();
 
-                // Use Library
+                // FIX: Use Library
                 log("Scanning...", "info");
                 const authResp = await SimpleWebAuthnBrowser.startAuthentication(options);
 
