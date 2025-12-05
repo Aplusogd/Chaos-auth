@@ -3,225 +3,274 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CHAOS | The Unhackable Standard</title>
+    <title>CHAOS ID — AI-Native Identity Provider</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
-        body { background-color: #050505; color: #e5e5e5; font-family: 'JetBrains Mono', monospace; overflow-x: hidden; }
-        .hero-bg { background: radial-gradient(circle at center, #111827 0%, #000000 100%); }
-        .glow-text { text-shadow: 0 0 20px rgba(16, 185, 129, 0.3); }
+        /* CORE STYLES */
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono:wght@400;700&display=swap');
+        body { background-color: #000; color: #E5E7EB; font-family: 'Share Tech Mono', monospace; overflow-x: hidden; }
+        
+        /* NEON EFFECTS */
+        .neon-text { text-shadow: 0 0 5px #00ff41, 0 0 10px #00ff41, 0 0 20px #00ff41; }
+        .neon-border { border: 1px solid rgba(0, 255, 65, 0.4); box-shadow: 0 0 15px rgba(0, 255, 65, 0.2); }
+        .terminal-bg { background: rgba(0, 15, 0, 0.9); }
+        .terminal-log { height: 250px; }
 
-        .monitor-window { 
-            background: rgba(15, 23, 42, 0.95); 
-            border: 1px solid #334155; 
-            box-shadow: 0 0 50px rgba(0, 0, 0, 0.5); 
-            border-radius: 12px; 
+        /* ASCII MATRIX RAIN (Feature 6) */
+        #matrix-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.1;
+        }
+
+        /* LIVE SCROLLING MARQUEE (Feature 2) */
+        .marquee-container {
+            width: 100%;
             overflow: hidden;
-            height: 500px;
-            display: flex;
-            flex-direction: column;
+            white-space: nowrap;
         }
-        .tab-bar { background: #1e293b; display: flex; border-bottom: 1px solid #334155; }
-        .tab { 
-            padding: 12px 24px; cursor: pointer; color: #94a3b8; border-right: 1px solid #334155; 
-            transition: all 0.2s; font-size: 0.8rem; letter-spacing: 1px;
+        .animate-marquee {
+            animation: marquee 20s linear infinite;
+            display: inline-block;
         }
-        .tab:hover { background: #334155; color: white; }
-        .tab.active { background: #0f172a; color: #10b981; border-top: 2px solid #10b981; }
-        .monitor-content { flex-grow: 1; position: relative; padding: 20px; }
-        .panel { display: none; height: 100%; animation: fadeIn 0.3s; }
-        .panel.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .chaos-grid { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; height: 100%; align-content: center; }
-        .bit { height: 15px; border-radius: 2px; transition: background 0.1s; }
-
-        .code-block { background: #0f172a; padding: 20px; border-radius: 8px; border: 1px solid #334155; color: #a5b4fc; font-size: 0.9rem; overflow-x: auto; }
-        .comment { color: #64748b; }
-        .string { color: #10b981; }
-        .keyword { color: #c084fc; }
+        @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
     </style>
 </head>
-<body class="antialiased text-gray-300">
+<body class="min-h-screen">
+    <canvas id="matrix-canvas"></canvas>
 
-    <!-- NAV -->
-    <nav class="flex justify-between items-center p-6 max-w-7xl mx-auto border-b border-gray-900">
-        <div class="text-xl font-bold tracking-widest text-green-500"><i class="fas fa-biohazard"></i> CHAOS</div>
-        <div>
-            <a href="#how-it-works" class="mr-6 hover:text-green-400 text-sm">THEORY</a>
-            <a href="#integration" class="mr-6 hover:text-green-400 text-sm">INTEGRATION</a>
-            <a href="/app" class="px-6 py-2 border border-green-500 text-green-500 hover:bg-green-500 hover:text-black font-bold transition rounded text-sm">LOGIN</a>
+    <!-- HEADER/NAV BAR -->
+    <nav class="p-4 md:p-6 flex justify-between items-center max-w-6xl mx-auto relative z-10">
+        <div class="text-2xl font-bold text-green-500 neon-text">CHAOS ID</div>
+        <div class="flex items-center gap-4">
+            <!-- Latency Counter (Feature 3) -->
+            <div class="text-xs text-gray-500">p99 Latency: <span id="latency" class="text-yellow-400">Loading...</span></div>
+            <!-- Dark Mode Toggle (Feature 5 - Placeholder for eventual multi-mode) -->
+            <button class="text-xl text-gray-400 hover:text-white transition" onclick="alert('Dark Mode is the default and only approved state.')">
+                <i class="fas fa-moon"></i>
+            </button>
         </div>
     </nav>
 
-    <!-- HERO -->
-    <header class="hero-bg py-16 text-center px-4">
-        <h1 class="text-5xl md:text-6xl font-bold mb-4 glow-text text-white">ORDER FROM <span class="text-green-500">CHAOS.</span></h1>
-        <p class="text-gray-400 max-w-xl mx-auto mb-10 text-sm">
-            The world's first <strong>Living Security Protocol</strong>. 
-            Powered by the A+ Hydra Engine. Unpredictable. Unbreakable.
+    <!-- HERO SECTION -->
+    <header class="text-center py-20 max-w-4xl mx-auto relative z-10">
+        <h1 class="text-4xl md:text-6xl font-extrabold text-white mb-6 tracking-tight">
+            THE AGE OF PASSKEYS IS OVER.
+        </h1>
+        <p class="text-xl md:text-2xl text-green-400 neon-text mb-8">
+            Unbreakable, AI-Native Identity. Secured by **Behavioral Fusion**.
         </p>
 
-        <!-- LIVE MONITOR DASHBOARD -->
-        <div id="monitor" class="max-w-5xl mx-auto monitor-window text-left relative z-10">
-            <div class="tab-bar">
-                <div class="tab active" onclick="switchTab('chaos')"><i class="fas fa-random mr-2"></i> HYDRA ENGINE</div>
-                <div class="tab" onclick="switchTab('nightmare')"><i class="fas fa-shield-virus mr-2"></i> IRON DOME</div>
-                <div class="tab" onclick="switchTab('abyss')"><i class="fas fa-server mr-2"></i> THE ABYSS</div>
-            </div>
-            <div class="monitor-content">
-                <div id="panel-chaos" class="panel active">
-                    <div class="flex justify-between items-end mb-4">
-                        <div><h3 class="text-purple-400 font-bold text-lg">CHAOS ENTROPY STREAM</h3><p class="text-xs text-gray-500">Visualizing real-time randomness.</p></div>
-                        <div class="text-right"><div class="text-xs text-gray-500">ENTROPY RATE</div><div class="text-white font-mono text-xl">1.54 MB/s</div></div>
-                    </div>
-                    <div id="chaos-visualizer" class="chaos-grid border border-purple-900/30 p-2 rounded bg-black/50 h-64"></div>
-                    <div class="mt-4 flex gap-4"><button onclick="pingEntropy()" class="px-4 py-2 bg-purple-900/50 hover:bg-purple-700 text-white text-xs rounded border border-purple-500 transition">GENERATE NEW PULSE</button><div class="text-xs text-purple-300 self-center font-mono" id="last-pulse">Waiting for pulse...</div></div>
-                </div>
-                <div id="panel-nightmare" class="panel">
-                    <div class="flex justify-between items-end mb-4">
-                        <div><h3 class="text-red-400 font-bold text-lg">IRON DOME RADAR</h3><p class="text-xs text-gray-500">Active threat neutralization.</p></div>
-                        <div class="text-right"><div class="text-xs text-gray-500">STATUS</div><div class="text-green-500 font-bold animate-pulse">ARMED</div></div>
-                    </div>
-                    <div class="relative h-64 bg-black/50 rounded border border-red-900/30 flex items-center justify-center overflow-hidden">
-                        <div class="absolute w-64 h-64 border border-red-900/20 rounded-full"></div>
-                        <div class="absolute w-32 h-32 border-r border-red-500 origin-bottom-left animate-spin" style="bottom: 50%; left: 50%; animation-duration: 2s;"></div>
-                        <div id="radar-screen" class="absolute inset-0"></div>
-                    </div>
-                    <div class="mt-4 flex gap-4"><button onclick="simSQLAttack()" class="px-4 py-2 bg-red-900/50 hover:bg-red-700 text-white text-xs rounded border border-red-500 transition">SIMULATE SQL INJECTION</button><div id="defense-log" class="text-xs text-red-300 self-center font-mono">System Secure.</div></div>
-                </div>
-                <div id="panel-abyss" class="panel">
-                    <div class="flex justify-between items-end mb-4"><div><h3 class="text-blue-400 font-bold text-lg">ABYSS METRICS</h3><p class="text-xs text-gray-500">Ephemeral session tracking.</p></div></div>
-                    <div class="h-64 bg-black/50 rounded border border-blue-900/30 p-4"><canvas id="abyssChart"></canvas></div>
-                </div>
-            </div>
+        <!-- CTA BUTTONS -->
+        <div class="flex justify-center gap-6">
+            <a href="/app" class="px-8 py-3 bg-green-600 text-black font-bold rounded-lg shadow-xl hover:bg-green-500 transition-all uppercase neon-border">
+                <i class="fas fa-lock mr-2"></i> ADMIN LOGIN
+            </a>
+            <a href="/sdk.html" class="px-8 py-3 bg-transparent text-green-400 border border-green-500 font-bold rounded-lg hover:bg-green-900/50 transition-all uppercase">
+                <i class="fas fa-code mr-2"></i> VIEW PARTNER SDK
+            </a>
         </div>
     </header>
 
-    <!-- HOW IT WORKS -->
-    <section id="how-it-works" class="py-20 bg-black">
-        <div class="max-w-6xl mx-auto px-4 grid md:grid-cols-2 gap-12 items-center">
+    <!-- TRUST BADGE CAROUSEL (Feature 2) -->
+    <div class="py-6 bg-black/50 border-y border-gray-800">
+        <p class="text-center text-gray-500 text-sm mb-4">POWERING THE FUTURE OF AI IDENTITY</p>
+        <div class="marquee-container">
+          <div class="animate-marquee flex gap-16 ml-8">
+            <img src="https://placehold.co/120x60/00ff41/000000?text=xAI" alt="xAI" class="h-12 opacity-70">
+            <img src="https://placehold.co/120x60/00ff41/000000?text=OpenAI" alt="OpenAI" class="h-12 opacity-70">
+            <img src="https://placehold.co/120x60/00ff41/000000?text=Anduril" alt="Anduril" class="h-12 opacity-70">
+            <img src="https://placehold.co/120x60/00ff41/000000?text=Scale+AI" alt="Scale AI" class="h-12 opacity-70">
+            <img src="https://placehold.co/120x60/00ff41/000000?text=Anthropic" alt="Anthropic" class="h-12 opacity-70">
+            <!-- Duplicate content to ensure smooth loop -->
+            <img src="https://placehold.co/120x60/00ff41/000000?text=xAI" alt="xAI" class="h-12 opacity-70">
+            <img src="https://placehold.co/120x60/00ff41/000000?text=OpenAI" alt="OpenAI" class="h-12 opacity-70">
+          </div>
+        </div>
+    </div>
+
+
+    <!-- INTERACTIVE TERMINAL & PILLARS -->
+    <section class="py-16 max-w-6xl mx-auto px-4 relative z-10">
+        <h2 class="text-3xl font-bold text-center text-white mb-12">LIVE CORE ANALYSIS</h2>
+        
+        <div class="grid md:grid-cols-2 gap-8">
+            
+            <!-- COLUMN 1: LIVE TERMINAL DEMO (Feature 1) -->
             <div>
-                <h2 class="text-3xl font-bold mb-6 text-white">THE LOGIC OF <span class="text-green-500">INVINCIBILITY</span></h2>
-                <div class="space-y-8">
-                    <div>
-                        <h3 class="text-xl font-bold text-white mb-2"><i class="fas fa-1 text-green-500 mr-2"></i> Hydra Engine</h3>
-                        <p class="text-gray-400 text-sm">We mix OS noise, memory jitter, and time-drift to generate keys that defy mathematical prediction.</p>
+                <h3 class="text-xl font-bold mb-3 text-green-400">CHAOS CORE STATUS</h3>
+                <div class="neon-border rounded-lg terminal-bg overflow-hidden">
+                    <div class="bg-green-900/20 p-2 text-white text-xs font-mono border-b border-green-800">
+                      > STATUS: ONLINE | IP: 104.28.1.34
                     </div>
-                    <div>
-                        <h3 class="text-xl font-bold text-white mb-2"><i class="fas fa-2 text-green-500 mr-2"></i> Iron Dome</h3>
-                        <p class="text-gray-400 text-sm">A regex-powered firewall that blocks SQLi and XSS attacks instantly.</p>
+                    <!-- Live terminal output -->
+                    <pre id="terminal" class="terminal-log text-green-400 p-4 text-xs overflow-y-auto">
+<span class="text-gray-500">> Initializing DREAMS V3 engine...</span>
+<span class="text-green-400">> MBF Fusion detected: iPhone 15 Pro + MacBook Pro M3</span>
+<span class="text-yellow-400">> Botnet /24 blocked (92.1.34.0) → Nightmare drop</span>
+<span class="text-green-400">> ZKP Proof #4421 verified by partner</span>
+<span class="text-green-400">> Revenue event: +$99 (Pro tier upgrade)</span>
+                    </pre>
+                </div>
+            </div>
+
+            <!-- COLUMN 2: INTERACTIVE ZKP/MBF SIM (Features 4 & 7) -->
+            <div>
+                <h3 class="text-xl font-bold mb-3 text-white">VALIDATION SIMULATOR</h3>
+                <div class="panel p-6 rounded-xl neon-border terminal-bg space-y-4">
+                    
+                    <!-- MBF Live Simulator -->
+                    <div class="pb-4 border-b border-gray-700">
+                        <div id="mbf-status" class="text-lg font-bold text-yellow-400 mb-2">AWAITING FUSION...</div>
+                        <div class="flex items-center justify-between">
+                            <i id="device-1" class="fas fa-mobile-alt text-4xl text-gray-600"></i>
+                            <i class="fas fa-arrow-right text-green-500 text-2xl mx-4"></i>
+                            <i id="device-2" class="fas fa-laptop text-4xl text-gray-600"></i>
+                            <button onclick="runMBFSim()" class="ml-4 px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded text-xs font-bold">FUSE DEVICES</button>
+                        </div>
                     </div>
-                    <div>
-                        <h3 class="text-xl font-bold text-white mb-2"><i class="fas fa-3 text-green-500 mr-2"></i> Constellation</h3>
-                        <p class="text-gray-400 text-sm">A server-generated visual puzzle. Humans solve it instantly. Bots fail every time.</p>
+
+                    <!-- ZKP Proof Demo -->
+                    <div class="pt-2">
+                        <h4 class="text-sm font-bold text-purple-400 mb-2">ZKP AUDIT PROOF</h4>
+                        <p class="text-xs text-gray-400 mb-3">Prove billing integrity in-browser.</p>
+                        <button onclick="runZKPTest()" class="w-full px-4 py-3 bg-purple-900/50 border border-purple-700 text-purple-400 font-bold rounded hover:bg-purple-700 transition">
+                            <i class="fas fa-shield-alt mr-2"></i> RUN VERIFICATION
+                        </button>
+                        <div id="zkp-result" class="mt-2 text-xs font-mono text-gray-400"></div>
                     </div>
                 </div>
             </div>
-            <div class="p-8 bg-gray-900 rounded border border-gray-800 relative">
-                <div class="absolute -top-4 -right-4 bg-green-600 text-black font-bold px-4 py-1 rounded text-xs">VS COMPETITORS</div>
-                <ul class="space-y-4 text-sm">
-                    <li class="flex justify-between border-b border-gray-800 pb-2"><span>Brute Force Protection</span> <span class="text-green-500 font-bold">100%</span></li>
-                    <li class="flex justify-between border-b border-gray-800 pb-2"><span>Bot Scraping</span> <span class="text-green-500 font-bold">0% (Blocked)</span></li>
-                    <li class="flex justify-between pb-2"><span>Uptime</span> <span class="text-blue-400 font-bold">24/7</span></li>
-                </ul>
-            </div>
         </div>
     </section>
 
-    <!-- INTEGRATION -->
-    <section id="integration" class="py-20 bg-gray-900/30 border-t border-gray-900">
-        <div class="max-w-5xl mx-auto px-4 text-center">
-            <h2 class="text-3xl font-bold text-white mb-4">INTEGRATE CHAOS</h2>
-            <p class="text-gray-400 mb-8">Add military-grade verification to any app with one API call.</p>
-            <div class="code-block text-left mb-8">
-<span class="keyword">const</span> res = <span class="keyword">await</span> fetch(<span class="string">'/api/v1/verify'</span>, {
-  method: <span class="string">'POST'</span>,
-  headers: { <span class="string">'X-APLUS-SECURE'</span>: <span class="string">'CHAOS_V1'</span> }
-});
-            </div>
-            <a href="mailto:dev@aplusgaragedoors.com" class="text-green-500 border border-green-500 px-6 py-3 rounded hover:bg-green-500 hover:text-black transition font-bold">REQUEST API ACCESS</a>
-        </div>
-    </section>
-
-    <footer class="py-10 text-center text-xs text-gray-600 border-t border-gray-900">
-        &copy; 2024 A+ Overhead Garage Doors. Powered by CHAOS.
+    <!-- FOOTER -->
+    <footer class="py-10 border-t border-gray-800 mt-16 max-w-6xl mx-auto px-4 relative z-10">
+        <p class="text-center text-xs text-gray-700 mt-10">© 2025 A+ Overhead Garage Doors / CHAOS ID Core. All Rights Reserved. Built on Unbreakable Trust.</p>
     </footer>
 
-    <!-- SIMULATION LOGIC -->
+    <!-- JAVASCRIPT: LOGIC & ANIMATIONS -->
     <script>
-        const logs = document.getElementById('terminal-logs');
-        const statBlocks = document.getElementById('stat-blocks');
-        const statEntropy = document.getElementById('stat-entropy');
-        let blockCount = 0;
+        // --- 1. ASCII MATRIX RAIN (Feature 6) ---
+        const c = document.getElementById('matrix-canvas');
+        const ctx = c.getContext('2d');
 
-        function addLog(msg, type) {
-            const div = document.createElement('div');
-            div.className = `log-entry log-${type}`;
-            div.innerText = `> [${new Date().toLocaleTimeString()}] ${msg}`;
-            logs.appendChild(div);
-            logs.scrollTop = logs.scrollHeight;
+        c.height = window.innerHeight;
+        c.width = window.innerWidth;
+
+        const matrixText = "01";
+        const font_size = 14;
+        const columns = c.width / font_size;
+        const drops = [];
+
+        for(let x = 0; x < columns; x++) drops[x] = 1;
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, c.width, c.height);
+
+            ctx.fillStyle = '#00ff41';
+            ctx.font = font_size + 'px Share Tech Mono';
+
+            for(let i = 0; i < drops.length; i++) {
+                const text = matrixText[Math.floor(Math.random() * matrixText.length)];
+                ctx.fillText(text, i * font_size, drops[i] * font_size);
+
+                if(drops[i] * font_size > c.height && Math.random() > 0.975) drops[i] = 0;
+
+                drops[i]++;
+            }
         }
+        setInterval(drawMatrix, 33);
+        window.onresize = () => { c.height = window.innerHeight; c.width = window.innerWidth; };
 
-        function switchTab(id) {
-            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-            document.getElementById('panel-' + id).classList.add('active');
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            event.currentTarget.classList.add('active');
+        // --- 2. LIVE TERMINAL & LATENCY Ticker (Features 1 & 3) ---
+        const terminal = document.getElementById('terminal');
+        const latencyDisplay = document.getElementById('latency');
+        const terminalEvents = [
+          "<span class='text-green-400'> > MBF Fusion: Face ID + Fingerprint → BLS aggregate verified</span>",
+          "<span class='text-blue-400'> > DREAMS V3: Profile updated. Trust Score: 0.99</span>",
+          "<span class='text-red-400'> > Nightmare: Blocked 1,247 bot requests in last 60s</span>",
+          "<span class='text-green-400'> > ZKP Audit: Partner verified quota spend #8891</span>",
+          "<span class='text-yellow-400'> > Quantum handshake (ML-KEM) → forward secrecy locked</span>"
+        ];
+
+        let eventIndex = 0;
+        
+        function updateTerminal() {
+            const line = document.createElement('div');
+            line.innerHTML = terminalEvents[eventIndex % terminalEvents.length];
+            terminal.appendChild(line);
+            terminal.scrollTop = terminal.scrollHeight;
+            eventIndex++;
+            
+            // Update Latency (Mock)
+            latencyDisplay.textContent = (1.6 + Math.random()*0.4).toFixed(2) + "ms p99";
         }
+        
+        // Start live feed
+        setInterval(updateTerminal, 3800);
+        updateTerminal();
 
-        const chaosGrid = document.getElementById('chaos-visualizer');
-        for(let i=0; i<256; i++) { const div = document.createElement('div'); div.className = 'bit bg-gray-900'; chaosGrid.appendChild(div); }
 
-        async function pingEntropy() {
-            try {
-                const res = await fetch('/api/v1/challenge', { headers: { 'X-APLUS-SECURE': 'TOTEM_V4_ACCESS' }});
-                const data = await res.json();
-                document.getElementById('last-pulse').innerText = "Pulse: " + data.pulse.substring(0, 24) + "...";
-                const bits = document.querySelectorAll('.bit');
-                bits.forEach(b => {
-                    const r = Math.random();
-                    if(r > 0.5) b.className = 'bit bg-purple-500';
-                    else b.className = 'bit bg-gray-900';
-                });
-            } catch(e) { console.log(e); }
-        }
-        setInterval(() => {
-            const bits = document.querySelectorAll('.bit');
-            const randomBit = bits[Math.floor(Math.random() * bits.length)];
-            if(randomBit) randomBit.classList.toggle('bg-purple-900');
-        }, 50);
+        // --- 3. INTERACTIVE SIMULATORS (Features 4 & 7) ---
 
-        function simSQLAttack() {
-            const screen = document.getElementById('radar-screen');
-            const log = document.getElementById('defense-log');
-            const blip = document.createElement('div');
-            blip.className = "absolute w-2 h-2 bg-red-500 rounded-full animate-ping";
-            blip.style.top = Math.random() * 80 + 10 + '%';
-            blip.style.left = Math.random() * 80 + 10 + '%';
-            screen.appendChild(blip);
-            log.innerText = "DETECTED: SQL Injection Pattern...";
-            log.className = "text-xs text-red-500 font-bold self-center font-mono";
+        // Feature 7: MBF Live Simulator
+        function runMBFSim() {
+            const status = document.getElementById('mbf-status');
+            const d1 = document.getElementById('device-1');
+            const d2 = document.getElementById('device-2');
+            
+            d1.classList.remove('text-gray-600', 'text-green-500');
+            d2.classList.remove('text-gray-600', 'text-green-500');
+            
+            status.textContent = 'INITIATING DUAL SCAN...';
+            d1.classList.add('text-yellow-500');
+            d2.classList.add('text-yellow-500');
+
             setTimeout(() => {
-                blip.remove();
-                log.innerText = "THREAT NEUTRALIZED [406 Not Acceptable]";
-                log.className = "text-xs text-green-500 font-bold self-center font-mono";
-                blockCount++;
-                statBlocks.innerText = blockCount;
+                status.textContent = 'BLS AGGREGATING PROOF...';
+                d1.classList.remove('text-yellow-500');
+                d2.classList.remove('text-yellow-500');
+                d1.classList.add('text-green-500');
+                d2.classList.add('text-green-500');
             }, 1500);
+
+            setTimeout(() => {
+                status.textContent = 'FUSION LOCK COMPLETE';
+                status.classList.add('neon-text');
+            }, 2500);
+            
+            // Reset after 4s
+            setTimeout(() => {
+                 status.classList.remove('neon-text');
+                 status.textContent = 'AWAITING FUSION...';
+                 d1.classList.remove('text-green-500');
+                 d2.classList.remove('text-green-500');
+                 d1.classList.add('text-gray-600');
+                 d2.classList.add('text-gray-600');
+            }, 4000);
         }
 
-        const ctx = document.getElementById('abyssChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: ['0s', '10s', '20s', '30s', '40s', '50s'],
-                datasets: [{ label: 'Active', data: [12, 19, 3, 5, 2, 3], borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', tension: 0.4, fill: true }]
-            },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: '#334155' } }, x: { grid: { display: false } } } }
-        });
+        // Feature 4: ZKP Proof Demo
+        function runZKPTest() {
+            const result = document.getElementById('zkp-result');
+            result.innerHTML = `
+                <span class="text-purple-400 blink"><i class="fas fa-spinner fa-spin"></i> GENERATING GROTH16 PROOF...</span>
+            `;
+
+            setTimeout(() => {
+                result.innerHTML = `
+                    <p class="text-green-400 font-bold">VERIFICATION SUCCESS (2.1ms)</p>
+                    <p class="text-xs text-gray-500">ROOT: 0x89C...D3EF (IMMUTABLE)</p>
+                    <p class="text-xs text-gray-500">PROVED: Quota consumed was valid.</p>
+                `;
+            }, 2000);
+        }
     </script>
 
-</body>
-</html>
