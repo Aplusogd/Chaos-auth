@@ -1,1 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>A+ CHAOS | LOGIN DEBUG</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- V10 LIBRARY -->
+    <script src="https://unpkg.com/@simplewebauthn/browser@10.0.0/dist/bundle/index.umd.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
+        body { background-color: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; }
+        .smart-btn {
+            width: 100%; padding: 1.5rem; font-size: 1.2rem; font-weight: bold;
+            border: 2px solid #00ff41; background: #111; color: #fff;
+            border-radius: 12px; text-transform: uppercase; cursor: pointer;
+        }
+        .smart-btn:active { background: #00ff41; color: #000; }
+        .log-box { 
+            width: 100%; height: 150px; overflow-y: scroll; 
+            background: #111; border: 1px solid #333; 
+            font-size: 10px; color: #aaa; padding: 10px; margin-top: 20px;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col items-center justify-center p-6">
 
+    <div class="w-full max-w-sm text-center mb-8">
+        <h1 class="text-2xl font-bold text-white">CHAOS GATE</h1>
+        <div id="status" class="text-sm text-gray-500 mt-2">SYSTEM CHECK...</div>
+    </div>
+
+    <div class="w-full max-w-sm">
+        <!-- Hardcoded onclick to ensure it fires -->
+        <button id="main-btn" class="smart-btn" onclick="handleClick()">
+            INITIALIZING...
+        </button>
+    </div>
+
+    <!-- VISIBLE DEBUG LOG -->
+    <div id="debug-log" class="w-full max-w-sm log-box">
+        > Console Initialized...<br>
+    </div>
+
+    <script>
+        // --- LOGGER ---
+        function log(msg) {
+            const box = document.getElementById('debug-log');
+            box.innerHTML += `> ${msg}<br>`;
+            box.scrollTop = box.scrollHeight;
+            console.log(msg);
+        }
+
+        // --- STATE ---
+        let isRegistered = false;
+        const API_BASE = '/api/v1';
+        const HEADERS = { 'Content-Type': 'application/json', 'X-APLUS-SECURE': 'TOTEM_V8_BIO' };
+
+        // --- 1. STARTUP CHECK ---
+        window.onload = async () => {
+            log("Window Loaded.");
+            
+            // Check HTTPS
+            if (!window.isSecureContext) {
+                log("CRITICAL: NOT HTTPS. Biometrics will fail.");
+                document.body.style.background = "#330000";
+                document.getElementById('status').innerText = "NOT SECURE (HTTPS REQUIRED)";
+                return;
+            }
+
+            // Check Library
+            if (typeof SimpleWebAuthnBrowser === 'undefined') {
+                log("CRITICAL: WebAuthn Library failed to load.");
+                alert("Error: Security Library blocked. Check ad-blocker/network.");
+                return;
+            }
+
+            log("Library Loaded. Checking Server...");
+            
+            try {
+                const resp = await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS });
+                if (resp.ok) {
+                    isRegistered = true;
+                    setBtn("VERIFY IDENTITY (LOGIN)");
+                    log("Server: Ready (User Found)");
+                } else {
+                    isRegistered = false;
+                    setBtn("INITIALIZE DEVICE (REGISTER)");
+                    log("Server: Ready (New User)");
+                }
+            } catch (e) {
+                log("Server Connection Failed: " + e.message);
+                setBtn("RETRY CONNECTION");
+            }
+        };
+
+        function setBtn(text) {
+            const btn = document.getElementById('main-btn');
+            btn.innerText = text;
+            btn.disabled = false;
+        }
+
+        // --- 2. CLICK HANDLER ---
+        async function handleClick() {
+            log("Button Clicked.");
+            const btn = document.getElementById('main-btn');
+            btn.disabled = true;
+            btn.innerText = "PROCESSING...";
+
+            try {
+                if (isRegistered) {
+                    await doLogin();
+                } else {
+                    await doRegister();
+                }
+            } catch (e) {
+                log("ERROR: " + e.message);
+                alert("Operation Failed: " + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = isRegistered ? "VERIFY IDENTITY" : "INITIALIZE DEVICE";
+            }
+        }
+
+        // --- 3. REGISTER ---
+        async function doRegister() {
+            log("Starting Registration...");
+            const optsResp = await fetch(`${API_BASE}/auth/register-options`, { headers: HEADERS });
+            const opts = await optsResp.json();
+            
+            if(opts.error) throw new Error(opts.error);
+
+            log("Prompting Fingerprint...");
+            const attResp = await SimpleWebAuthnBrowser.startRegistration(opts);
+            
+            log("Verifying...");
+            const verResp = await fetch(`${API_BASE}/auth/register-verify`, {
+                method: 'POST', headers: HEADERS, body: JSON.stringify(attResp)
+            });
+            const result = await verResp.json();
+
+            if (result.verified) {
+                log("SUCCESS! DNA: " + JSON.stringify(result.adminDNA).substring(0, 20) + "...");
+                alert("DEVICE CLAIMED. Reloading...");
+                location.reload();
+            } else {
+                throw new Error("Verification Failed");
+            }
+        }
+
+        // --- 4. LOGIN ---
+        async function doLogin() {
+            log("Starting Login...");
+            
+            // A. Options
+            const optsResp = await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS });
+            const opts = await optsResp.json();
+            if(opts.error) throw new Error(opts.error);
+
+            // B. Browser Scan
+            log("Waiting for Biometrics...");
+            let asseResp;
+            try {
+                asseResp = await SimpleWebAuthnBrowser.startAuthentication(opts);
+            } catch(err) {
+                // Catch "NotAllowedError" or "AbortError" specifically
+                log("Scan Failed: " + err.name);
+                throw err; 
+            }
+
+            // C. Verify
+            log("Sending Proof to Abyss...");
+            const verResp = await fetch(`${API_BASE}/auth/login-verify`, {
+                method: 'POST', headers: HEADERS, body: JSON.stringify(asseResp)
+            });
+            const result = await verResp.json();
+
+            if (result.verified) {
+                log("ACCESS GRANTED.");
+                document.body.style.backgroundColor = "#002200";
+                if (result.token) sessionStorage.setItem('chaos_session', result.token);
+                setTimeout(() => window.location.href = '/dashboard.html', 1000);
+            } else {
+                throw new Error(result.error || "Server rejected signature");
+            }
+        }
+    </script>
+</body>
+</html>
