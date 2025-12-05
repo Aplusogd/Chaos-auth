@@ -1,134 +1,191 @@
 /**
- * A+ TOTEM SECURITY CORE: SAAS EDITION
- * ROUTING DEBUGGER ACTIVE
+ * A+ CHAOS CORE: V8 BIOMETRIC SERVER
+ * STATUS: SYNCED WITH APP.HTML
  */
-
 const express = require('express');
-const crypto = require('crypto');
-const v8 = require('v8');
 const path = require('path');
 const fs = require('fs');
+const cors = require('cors');
+const { 
+    generateRegistrationOptions, 
+    verifyRegistrationResponse, 
+    generateAuthenticationOptions, 
+    verifyAuthenticationResponse 
+} = require('@simplewebauthn/server');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
-const publicPath = path.join(__dirname, 'public');
+app.use(cors());
 
-// --- CRITICAL: LOG FILE EXISTENCE ON START ---
-console.log("--- FILE SYSTEM CHECK ---");
-console.log("Public Folder:", publicPath);
-if (fs.existsSync(path.join(publicPath, 'index.html'))) {
-    console.log("✅ FOUND: public/index.html (Storefront)");
-} else {
-    console.error("❌ MISSING: public/index.html");
-}
+// --- IN-MEMORY DATABASE ---
+// (In a real app, these would be in a database like MongoDB/Postgres)
+const Users = new Map(); 
+const Challenges = new Map(); 
 
-if (fs.existsSync(path.join(publicPath, 'app.html'))) {
-    console.log("✅ FOUND: public/app.html (War Room)");
-} else {
-    console.error("❌ MISSING: public/app.html (Did you rename it?)");
-}
-// ---------------------------------------------
+// --- 1. CONFIGURATION ---
+const rpName = 'A+ Chaos Security';
+const rpID = 'localhost'; // NOTE: On production (Render), this detects automatically below
+const origin = `http://${rpID}:${PORT}`;
 
-// ... (CHAOS / NIGHTMARE / ABYSS Logic remains the same) ...
-// To save space, I am focusing on the ROUTING logic below. 
-// The security logic is assumed to be the same as previous versions.
+// Dynamic Origin Detector (For Render/Replit/Local)
+const getOrigin = (req) => {
+    const host = req.headers['x-forwarded-host'] || req.get('host');
+    const proto = req.headers['x-forwarded-proto'] || 'http';
+    return `${proto}://${host}`;
+};
 
-const ChallengeMap = new Map();
-const COLORS = ['red', 'blue', 'green', 'yellow'];
+const getRpId = (req) => {
+    const host = req.headers['x-forwarded-host'] || req.get('host');
+    return host.split(':')[0];
+};
 
-function generateQuantumPulse() {
-    const osEntropy = crypto.randomBytes(32);
-    const timeEntropy = Buffer.from(process.hrtime.bigint().toString());
-    const mixer = crypto.createHash('sha512');
-    mixer.update(osEntropy).update(timeEntropy);
-    return mixer.digest('hex').substring(0, 32);
-}
-
-function createChallenge() {
-    const nonce = generateQuantumPulse();
-    const sequence = [];
-    for(let i=0; i<4; i++) {
-        sequence.push(COLORS[parseInt(nonce.substring(i, i+1), 16) % 4]);
-    }
-    ChallengeMap.set(nonce, { expires: Date.now() + 60000, sequence: sequence });
-    return { nonce, sequence };
-}
-
-function verifyResponse(nonce, clientEcho, clientSequence) {
-    if (!ChallengeMap.has(nonce)) return { valid: false, error: "ERR_INVALID_NONCE" };
-    const data = ChallengeMap.get(nonce);
-    ChallengeMap.delete(nonce); 
-    if (Date.now() > data.expires) return { valid: false, error: "ERR_TIMEOUT" };
-    if (JSON.stringify(clientSequence) !== JSON.stringify(data.sequence)) return { valid: false, error: "ERR_CAPTCHA_FAIL" };
-    const expectedEcho = crypto.createHash('sha256').update(nonce + "TOTEM_PRIME_DIRECTIVE").digest('hex');
-    if (clientEcho !== expectedEcho) return { valid: false, error: "ERR_CRYPTO_FAIL" };
-    return { valid: true };
-}
-
+// --- 2. SECURITY MIDDLEWARE ---
 const Nightmare = {
-    rateLimiter: (req, res, next) => next(),
-    scanForPoison: (req, res, next) => next(),
-    antiBot: (req, res, next) => {
-        const secretHeader = req.get('X-APLUS-SECURE');
-        if (req.path.startsWith('/api') && secretHeader !== 'TOTEM_V4_ACCESS') {
-            return res.status(403).json({ error: "ERR_MISSING_HEADER" });
+    checkHeader: (req, res, next) => {
+        // This matches the HEADERS const in your app.html
+        const secret = req.get('X-APLUS-SECURE');
+        if (req.path.startsWith('/api') && secret !== 'TOTEM_V8_BIO') {
+            console.log(`[BLOCK] Header Mismatch. Received: ${secret}`);
+            return res.status(403).json({ error: "ERR_SECURE_HEADER_MISSING" });
         }
         next();
     }
 };
 
-app.use(Nightmare.rateLimiter);
-app.use(Nightmare.scanForPoison);
-app.use(Nightmare.antiBot);
+app.use(Nightmare.checkHeader);
 
-// API ROUTES
-app.get('/api/v1/challenge', (req, res) => {
-    const data = createChallenge();
-    res.json({ pulse: data.nonce, sequence: data.sequence });
+// --- 3. BIOMETRIC ROUTES (Matching app.html) ---
+
+// REGISTER: Step 1 (Get Options)
+app.get('/api/v1/auth/register-options', async (req, res) => {
+    const userID = 'admin-user'; 
+    try {
+        const options = await generateRegistrationOptions({
+            rpName,
+            rpID: getRpId(req),
+            userID,
+            userName: 'admin@aplus.com',
+            attestationType: 'none',
+            authenticatorSelection: {
+                residentKey: 'preferred',
+                userVerification: 'preferred',
+            },
+        });
+        
+        // Save challenge to verify later
+        Challenges.set(userID, options.challenge);
+        
+        console.log(`[CHAOS] Register Options Sent to ${getRpId(req)}`);
+        res.json(options);
+    } catch (e) {
+        console.error(e);
+        res.status(400).json({ error: e.message });
+    }
 });
 
-app.post('/api/v1/verify', (req, res) => {
-    const { nonce, echo, solution } = req.body; 
-    const result = verifyResponse(nonce, echo, solution);
-    if (result.valid) {
-        const sessionToken = crypto.randomBytes(32).toString('hex');
-        res.json({ valid: true, session: sessionToken });
-    } else {
-        res.status(403).json(result);
+// REGISTER: Step 2 (Verify)
+app.post('/api/v1/auth/register-verify', async (req, res) => {
+    const userID = 'admin-user';
+    const expectedChallenge = Challenges.get(userID);
+
+    if (!expectedChallenge) return res.status(400).json({ error: "Challenge Expired" });
+
+    try {
+        const verification = await verifyRegistrationResponse({
+            response: req.body,
+            expectedChallenge,
+            expectedOrigin: getOrigin(req),
+            expectedRPID: getRpId(req),
+        });
+
+        if (verification.verified) {
+            const { credentialID, credentialPublicKey, counter } = verification.registrationInfo;
+            // Save user
+            Users.set(userID, { credentialID, credentialPublicKey, counter });
+            Challenges.delete(userID);
+            console.log("[CHAOS] User Registered Successfully");
+            res.json({ verified: true });
+        } else {
+            res.status(400).json({ verified: false });
+        }
+    } catch (e) {
+        console.error(e);
+        res.status(400).json({ error: e.message });
+    }
+});
+
+// LOGIN: Step 1 (Get Options)
+app.get('/api/v1/auth/login-options', async (req, res) => {
+    const userID = 'admin-user';
+    const user = Users.get(userID);
+
+    if (!user) return res.status(404).json({ error: "User Not Found" });
+
+    try {
+        const options = await generateAuthenticationOptions({
+            rpID: getRpId(req),
+            allowCredentials: [{
+                id: user.credentialID,
+                type: 'public-key',
+                transports: ['internal'],
+            }],
+        });
+
+        Challenges.set(userID, options.challenge);
+        res.json(options);
+    } catch (e) {
+        console.error(e);
+        res.status(400).json({ error: e.message });
+    }
+});
+
+// LOGIN: Step 2 (Verify)
+app.post('/api/v1/auth/login-verify', async (req, res) => {
+    const userID = 'admin-user';
+    const user = Users.get(userID);
+    const expectedChallenge = Challenges.get(userID);
+
+    try {
+        const verification = await verifyAuthenticationResponse({
+            response: req.body,
+            expectedChallenge,
+            expectedOrigin: getOrigin(req),
+            expectedRPID: getRpId(req),
+            authenticator: user,
+        });
+
+        if (verification.verified) {
+            user.counter = verification.authenticationInfo.newCounter;
+            Users.set(userID, user); // Update counter
+            Challenges.delete(userID);
+            console.log("[CHAOS] Login Verified");
+            res.json({ verified: true });
+        } else {
+            res.status(400).json({ verified: false });
+        }
+    } catch (e) {
+        console.error(e);
+        res.status(400).json({ error: e.message });
     }
 });
 
 // --- STATIC FILES ---
+const publicPath = path.join(__dirname, 'public');
 app.use(express.static(publicPath));
 
-// --- ROUTING LOGIC (THE FIX) ---
-
-// 1. ROOT ('/') -> Loads Storefront (index.html)
 app.get('/', (req, res) => {
-    const file = path.join(publicPath, 'index.html');
-    if (fs.existsSync(file)) {
-        res.sendFile(file);
-    } else {
-        res.status(404).send("<h1>404 Error</h1><p>Storefront (public/index.html) is missing.</p>");
-    }
+    // Tries to find index.html, defaults to app.html if missing
+    const storefront = path.join(publicPath, 'index.html');
+    if (fs.existsSync(storefront)) res.sendFile(storefront);
+    else res.sendFile(path.join(publicPath, 'app.html'));
 });
 
-// 2. APP ('/app') -> Loads War Room (app.html)
 app.get('/app', (req, res) => {
-    const file = path.join(publicPath, 'app.html');
-    
-    // DEBUG LOGGING
-    console.log(`Request for /app received. Looking for: ${file}`);
-    
-    if (fs.existsSync(file)) {
-        res.sendFile(file);
-    } else {
-        console.error("FAILED: public/app.html not found.");
-        res.status(404).send("<h1>404 Error</h1><p>War Room (public/app.html) is missing.</p>");
-    }
+    res.sendFile(path.join(publicPath, 'app.html'));
 });
 
-app.listen(PORT, () => console.log(`🛡️ A+ TOTEM ONLINE: ${PORT}`));
-
-
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`\n>>> A+ CHAOS V8 ONLINE: PORT ${PORT} <<<`);
+});
