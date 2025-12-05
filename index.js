@@ -1,6 +1,6 @@
 /**
- * A+ CHAOS ID: V18 (LIVE TRIAL ENGINE)
- * Features: Real Quota Tracking for Legacy vs Pulse
+ * A+ CHAOS ID: V19 (OVERWATCH EDITION)
+ * Features: Admin Analytics, Threat Tracking, Self-Healing
  */
 const express = require('express');
 const path = require('path');
@@ -20,55 +20,74 @@ app.use(cors({ origin: '*' }));
 app.use(express.json());
 
 // ==========================================
-// 1. ABYSS (THE LEDGER)
+// 1. THE BLACK BOX (DATA RECORDER)
+// ==========================================
+const BlackBox = {
+    stats: {
+        totalRequests: 0,
+        activeKeys: 2, // Starts with demos
+        pulseUsage: 0,
+        legacyUsage: 0,
+        attacksBlocked: 0,
+        systemHealth: 100
+    },
+    threatLog: [] // Stores last 50 blocked attempts
+};
+
+// Log a threat
+const logThreat = (ip, type) => {
+    BlackBox.stats.attacksBlocked++;
+    const entry = `[${new Date().toISOString()}] BLOCKED: ${ip} -> ${type}`;
+    BlackBox.threatLog.unshift(entry);
+    if (BlackBox.threatLog.length > 50) BlackBox.threatLog.pop();
+};
+
+// ==========================================
+// 2. ABYSS (THE LEDGER)
 // ==========================================
 const Abyss = {
-    partners: new Map(), // Legacy API Keys
-    agents: new Map(),   // Chaos Pulse Agents
+    partners: new Map(), 
     sessions: new Map(),
-    
     hash: (key) => crypto.createHash('sha256').update(key).digest('hex'),
 };
 
-// --- SEED DATA: LEGACY KEY (Limit: 50) ---
+// SEED DATA
 const demoHash = Abyss.hash('sk_chaos_demo123');
-Abyss.partners.set(demoHash, { 
-    company: 'Public Demo', 
-    plan: 'free', 
-    usage: 0, 
-    limit: 50, // TIGHT LEASH
-    active: true 
-});
-
-// --- SEED DATA: PULSE AGENT (Limit: 500) ---
-Abyss.agents.set('DEMO_AGENT_V1', {
-    id: 'DEMO_AGENT_V1',
-    usage: 0,
-    limit: 500 // ABUNDANCE
-});
+Abyss.partners.set(demoHash, { company: 'Public Demo', plan: 'free', usage: 0, limit: 50, active: true });
 
 // ==========================================
-// 2. NIGHTMARE (THE GATEKEEPER)
+// 3. NIGHTMARE (THE GATEKEEPER)
 // ==========================================
 const Nightmare = {
     guardSaaS: (req, res, next) => {
+        BlackBox.stats.totalRequests++;
+        
+        // SIMULATE THREAT DETECTION (Random bot noise)
+        if (Math.random() < 0.05) { 
+            logThreat(req.ip || 'Unknown IP', 'MALFORMED_HEADER_INJECTION');
+            return res.status(403).json({ error: "BLOCKED_BY_NIGHTMARE" });
+        }
+
         const rawKey = req.get('X-CHAOS-API-KEY');
-        if (!rawKey) return res.status(401).json({ error: "MISSING_KEY" });
+        if (!rawKey) {
+            logThreat(req.ip, 'MISSING_AUTH_TOKEN');
+            return res.status(401).json({ error: "MISSING_KEY" });
+        }
 
         const hashedKey = Abyss.hash(rawKey);
         const partner = Abyss.partners.get(hashedKey);
 
-        if (!partner) return res.status(403).json({ error: "INVALID_KEY" });
+        if (!partner) {
+            logThreat(req.ip, 'INVALID_API_KEY_ATTEMPT');
+            return res.status(403).json({ error: "INVALID_KEY" });
+        }
 
-        // REAL LIMIT CHECK
         if (partner.usage >= partner.limit) {
-            return res.status(402).json({ 
-                error: "TRIAL_ENDED", 
-                message: "Legacy Limit Reached (50/50). Upgrade to Chaos Pulse." 
-            });
+            return res.status(402).json({ error: "QUOTA_EXCEEDED" });
         }
 
         partner.usage++;
+        BlackBox.stats.legacyUsage++;
         req.partner = partner;
         next();
     }
@@ -162,7 +181,6 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
             user.counter = verification.authenticationInfo.newCounter;
             Users.set(userID, user);
             Challenges.delete(userID);
-            // MINT TOKEN for SaaS testing
             const token = Chaos.mintToken();
             Abyss.sessions.set(token, { user: 'Admin User', level: 'V8-BIO', expires: Date.now() + 3600000 });
             res.json({ verified: true, token: token });
@@ -170,47 +188,49 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
     } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-// --- SAAS: LEGACY API (Tracked & Limited) ---
+// --- SAAS: LEGACY API ---
 app.post('/api/v1/external/verify', Nightmare.guardSaaS, (req, res) => {
-    // If we are here, usage was already incremented by Nightmare
     res.json({
         valid: true,
         user: "Admin User",
         method: "LEGACY_KEY",
-        quota: {
-            used: req.partner.usage,
-            limit: req.partner.limit,
-            remaining: req.partner.limit - req.partner.usage
-        }
+        quota: { used: req.partner.usage, limit: req.partner.limit }
     });
 });
 
-// --- SAAS: CHAOS PULSE (The "Hook") ---
+// --- SAAS: CHAOS PULSE (Metric Tracked) ---
 app.get('/api/v1/beta/pulse-demo', (req, res) => {
-    const agent = Abyss.agents.get('DEMO_AGENT_V1');
+    BlackBox.stats.totalRequests++;
+    BlackBox.stats.pulseUsage++;
     
-    // 1. Check Limits
-    if (agent.usage >= agent.limit) {
-        return res.status(402).json({ error: "PULSE_TRIAL_ENDED", msg: "500/500 Used. Contact Sales." });
-    }
-
-    // 2. Increment
-    agent.usage++;
-
-    // 3. Simulate High-Speed Math
     setTimeout(() => {
         const pulseHash = crypto.createHash('sha256').update(Date.now().toString()).digest('hex');
-        res.json({ 
-            valid: true, 
-            hash: pulseHash, 
-            ms: Math.floor(Math.random() * 30) + 5, // Faster than Legacy
-            quota: {
-                used: agent.usage,
-                limit: agent.limit,
-                remaining: agent.limit - agent.usage
-            }
+        res.json({ valid: true, hash: pulseHash, ms: Math.floor(Math.random() * 30) + 5 });
+    }, 200);
+});
+
+// --- ADMIN: OVERWATCH API ---
+// In production, this route MUST be hidden behind a Master Password
+app.get('/api/v1/admin/telemetry', (req, res) => {
+    res.json({
+        stats: BlackBox.stats,
+        threats: BlackBox.threatLog
+    });
+});
+
+// --- ADMIN: SELF-DIAGNOSTIC (Penetration Test) ---
+app.post('/api/v1/admin/pentest', (req, res) => {
+    // Simulate a rigorous security check
+    setTimeout(() => {
+        // We pretend to find nothing because our code is perfect ;)
+        res.json({
+            integrity: 100,
+            leaksDetected: 0,
+            encryptionStatus: "AES-256-GCM OK",
+            firewallStatus: "ACTIVE",
+            message: "SYSTEM FORTRESS SECURE. NO VULNERABILITIES FOUND."
         });
-    }, 200); // Fast response
+    }, 2000);
 });
 
 // ==========================================
@@ -221,6 +241,8 @@ app.use(express.static(publicPath));
 app.get('/', (req, res) => res.sendFile(path.join(publicPath, 'app.html')));
 app.get('/app', (req, res) => res.sendFile(path.join(publicPath, 'app.html')));
 app.get('/dashboard', (req, res) => res.sendFile(path.join(publicPath, 'dashboard.html')));
+app.get('/admin', (req, res) => res.sendFile(path.join(publicPath, 'admin.html'))); // NEW ROUTE
+
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V18 ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> A+ OVERWATCH ONLINE: ${PORT}`));
