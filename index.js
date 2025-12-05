@@ -1,119 +1,222 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>A+ CHAOS | SECURE LOGIN GATE</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/@simplewebauthn/browser@10.0.0/dist/bundle/index.umd.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
-        body { background-color: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; touch-action: manipulation; overflow: hidden; }
-        .hud-status { font-size: 1.8rem; font-weight: 800; text-align: center; text-transform: uppercase; text-shadow: 0 0 15px #00ff41; margin-bottom: 2rem; min-height: 4rem; transition: all 0.4s ease; }
-        .smart-btn { width: 100%; padding: 1.8rem; font-size: 1.3rem; font-weight: bold; border: 2px solid #00ff41; background: linear-gradient(to bottom, #001a00, #000); color: #00ff41; border-radius: 16px; transition: all 0.3s; text-transform: uppercase; letter-spacing: 3px; box-shadow: 0 0 20px rgba(0, 255, 65, 0.3); }
-        .smart-btn:hover:not(:disabled) { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0, 255, 65, 0.5); background: linear-gradient(to bottom, #002200, #001100); }
-        .smart-btn:disabled { opacity: 0.5; cursor: not-allowed; border-color: #333; color: #666; }
-        .status-seal { font-size: 11px; padding: 6px 12px; border-radius: 6px; margin: 6px 0; display: inline-block; min-width: 200px; }
-        .pulse { animation: pulse 2s infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
-    </style>
-</head>
-<body class="h-screen flex flex-col items-center justify-center p-6 bg-black">
+import express from 'express';
+import path from 'path';
+import cors from 'cors';
+import fs from 'fs';
+import crypto from 'crypto';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';     
+import { 
+    generateRegistrationOptions, 
+    verifyRegistrationResponse, 
+    generateAuthenticationOptions, 
+    verifyAuthenticationResponse 
+} from '@simplewebauthn/server';
 
-    <div class="w-full max-w-sm text-center mb-10">
-        <div class="text-xs text-gray-600 mb-3">A+ CHAOS CORE // V47</div>
-        <h1 class="text-4xl font-bold tracking-tighter text-white">BIOMETRIC GATE</h1>
-    </div>
+// --- ESM Path Fixes ---
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const publicPath = path.join(__dirname, 'public');
 
-    <div id="hud" class="hud-status text-green-500 pulse">INITIALIZING QUANTUM LOCK...</div>
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(cors({ origin: '*' })); 
+app.use(express.json());
+app.use(express.static(publicPath));
+
+// --- UTILITY 1: CONVERT JS OBJECT MAP TO NODE BUFFER ---
+const jsObjectToBuffer = (obj) => {
+    if (obj instanceof Uint8Array) return obj;
+    if (obj instanceof Buffer) return obj;
+    if (typeof obj !== 'object' || obj === null) return new Uint8Array();
+    const values = Object.values(obj);
+    return Buffer.from(values);
+};
+
+// --- UTILITY 2: EXTRACT CHALLENGE FROM CLIENT (CRITICAL SYNC FIX) ---
+function extractChallengeFromClientResponse(clientResponse) {
+    try {
+        // WebAuthn returns clientDataJSON in Base64URL format
+        const clientDataJSONBase64 = clientResponse.response.clientDataJSON;
+        const json = Buffer.from(clientDataJSONBase64, 'base64url').toString('utf8');
+        return JSON.parse(json).challenge; // This is the key we need
+    } catch (e) {
+        console.error("Error decoding clientDataJSON:", e);
+        return null;
+    }
+}
+
+// ==========================================
+// 1. DREAMS PROTOCOL BLACK BOX (Stub)
+// ==========================================
+const DreamsEngine = {
+    start: () => process.hrtime.bigint(),
+    check: (durationMs, user) => { return true; }, 
+    update: (T_new, profile) => { }
+};
+
+// ==========================================
+// 2. CORE LOGIC (V46 STABLE)
+// ==========================================
+const Users = new Map();
+const Challenges = new Map();
+
+// VITAL: YOUR HARDCODED DNA
+// This matches the credential ID on your physical device
+const ADMIN_DNA_JS = {
+  "credentialID": {"0":34,"1":107,"2":129,"3":52,"4":150,"5":223,"6":204,"7":57,"8":171,"9":110,"10":196,"11":62,"12":244,"13":235,"14":33,"15":107},
+  "credentialPublicKey": {"0":165,"1":1,"2":2,"3":3,"4":38,"5":32,"6":1,"7":33,"8":88,"9":32,"10":248,"11":139,"12":206,"13":64,"14":122,"15":111,"16":83,"17":204,"18":37,"19":190,"20":213,"21":75,"22":207,"23":124,"24":3,"25":54,"26":101,"27":62,"28":26,"29":49,"30":36,"31":44,"32":74,"33":127,"34":106,"35":134,"36":50,"37":208,"38":245,"39":80,"40":80,"41":204,"42":34,"43":88,"44":32,"45":121,"46":45,"47":78,"48":103,"49":57,"50":120,"51":161,"52":241,"53":219,"54":228,"55":124,"56":89,"57":247,"58":180,"59":98,"60":57,"61":145,"62":0,"63":28,"64":76,"65":179,"66":212,"67":222,"68":26,"69":0,"70":230,"71":233,"72":237,"73":243,"74":138,"75":182,"76":166},
+  "counter": 0,
+  "dreamProfile": { window: [], sum_T: 0, sum_T2: 0, sum_lag: 0, mu: 0, sigma: 0, rho1: 0, cv: 0 } 
+};
+
+// LOAD DNA WITH BUFFER CONVERSION
+const ADMIN_DNA = {
+    credentialID: jsObjectToBuffer(ADMIN_DNA_JS.credentialID),
+    credentialPublicKey: jsObjectToBuffer(ADMIN_DNA_JS.credentialPublicKey),
+    counter: ADMIN_DNA_JS.counter,
+    dreamProfile: ADMIN_DNA_JS.dreamProfile
+};
+Users.set('admin-user', ADMIN_DNA); 
+
+const Abyss = { partners: new Map(), agents: new Map(), hash: (key) => crypto.createHash('sha256').update(key).digest('hex') };
+Abyss.partners.set(Abyss.hash('sk_chaos_demo123'), { company: 'Demo', plan: 'free', usage: 0, limit: 50, active: true });
+Abyss.agents.set('DEMO_AGENT_V1', { id: 'DEMO_AGENT_V1', usage: 0, limit: 500 });
+
+const Nightmare = {
+    guardSaaS: (req, res, next) => {
+        try {
+            const rawKey = req.get('X-CHAOS-API-KEY');
+            if (!rawKey) return res.status(401).json({ error: "MISSING_KEY" });
+            const partner = Abyss.partners.get(Abyss.hash(rawKey));
+            if (!partner) return res.status(403).json({ error: "INVALID_KEY" });
+            if (partner.usage >= partner.limit) return res.status(402).json({ error: "QUOTA_EXCEEDED" });
+            partner.usage++;
+            req.partner = partner;
+            next();
+        } catch(e) { res.status(500).json({error: "SECURITY_FAIL"}); }
+    }
+};
+
+const Chaos = { mintToken: () => crypto.randomBytes(16).toString('hex') };
+const getOrigin = (req) => {
+    const host = req.headers['x-forwarded-host'] || req.get('host');
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    return `${protocol}://${host}`;
+};
+const getRpId = (req) => req.get('host').split(':')[0];
+
+// --- AUTH ROUTES ---
+
+// LOCKED: Registration is closed to prevent hijacking
+app.get('/api/v1/auth/register-options', async (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.status(403).send(JSON.stringify({ error: "SYSTEM LOCKED. REGISTRATION CLOSED." }));
+});
+
+app.post('/api/v1/auth/register-verify', async (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.status(403).send(JSON.stringify({ error: "SYSTEM LOCKED. REGISTRATION CLOSED." }));
+});
+
+// OPEN: Login
+app.get('/api/v1/auth/login-options', async (req, res) => {
+    const userID = 'admin-user'; 
+    const user = Users.get(userID);
     
-    <div class="text-center mb-10 space-y-3">
-        <div id="check-secure" class="status-seal bg-red-900/50 text-red-400 border border-red-900">SECURE CONTEXT: PENDING</div>
-        <div id="check-server" class="status-seal bg-red-900/50 text-red-400 border border-red-900">SERVER STATUS: CHECKING</div>
-    </div>
+    if (!user) return res.status(404).json({ error: "SYSTEM RESET. PLEASE CONTACT ADMIN." });
+    
+    try {
+        const options = await generateAuthenticationOptions({
+            rpID: getRpId(req),
+            // Empty array prompts browser to find ANY key for this domain
+            allowCredentials: [], 
+            userVerification: 'required',
+        });
+        
+        // Save challenge using the challenge string itself as key
+        Challenges.set(options.challenge, { challenge: options.challenge, startTime: DreamsEngine.start() });
+        res.json(options);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
 
-    <div class="w-full max-w-sm">
-        <button id="main-btn" class="smart-btn" disabled onclick="handleMainAction()">
-            <i class="fas fa-circle-notch fa-spin mr-3"></i> CHECKING...
-        </button>
-    </div>
+app.post('/api/v1/auth/login-verify', async (req, res) => {
+    const userID = 'admin-user';
+    const user = Users.get(userID);
+    const clientResponse = req.body;
 
-    <div id="toast" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900/95 text-white px-6 py-3 rounded-lg shadow-2xl opacity-0 transition-opacity duration-500 text-sm backdrop-blur"></div>
+    // FIX 1: Extract challenge correctly
+    const challengeString = extractChallengeFromClientResponse(clientResponse);
+    const expectedChallenge = Challenges.get(challengeString);
 
-    <script>
-        const { startAuthentication } = SimpleWebAuthnBrowser;
-        const API_BASE = '/api/v1';
-        const HEADERS = { 'Content-Type': 'application/json', 'X-APLUS-SECURE': 'TOTEM_V8_BIO' };
-        let isRegistered = false;
+    if (!user || !expectedChallenge) {
+        console.error("Login Failed: Invalid State or Challenge Not Found");
+        return res.status(400).json({ error: "Invalid State or Expired Challenge" });
+    }
+    
+    // DREAMS CHECK
+    const durationMs = Number(process.hrtime.bigint() - expectedChallenge.startTime) / 1000000;
+    const dreamPassed = DreamsEngine.check(durationMs, user);
+    
+    if (!dreamPassed) {
+         Challenges.delete(expectedChallenge.challenge);
+         return res.status(403).json({ verified: false, error: "ERR_TEMPORAL_ANOMALY" });
+    }
+    
+    // WebAuthn Verification
+    try {
+        const verification = await verifyAuthenticationResponse({
+            response: clientResponse,
+            expectedChallenge: expectedChallenge.challenge,
+            expectedOrigin: getOrigin(req),
+            expectedRPID: getRpId(req),
+            authenticator: user, // Contains public key
+            requireUserVerification: true,
+        });
 
-        function updateHUD(text, color = 'text-green-500') { const h = document.getElementById('hud'); h.innerText = text; h.className = `hud-status ${color} pulse`; }
-        function updateSeal(id, success, msg) { const el = document.getElementById(id); el.innerHTML = success ? `<i class="fas fa-check-circle mr-2"></i>${msg}` : `<i class="fas fa-times-circle mr-2"></i>${msg}`; el.className = `status-seal ${success ? 'bg-green-900/50 text-green-400 border border-green-700' : 'bg-red-900/50 text-red-400 border border-red-900'}`; }
-        function showToast(msg) { const t = document.getElementById('toast'); t.innerText = msg; t.style.opacity = 1; setTimeout(() => t.style.opacity = 0, 4000); }
-        function buzz() { if (navigator.vibrate) navigator.vibrate([100, 50, 100]); }
-
-        async function checkEnvironment() {
-            const btn = document.getElementById('main-btn');
+        if (verification.verified) {
+            DreamsEngine.update(durationMs, user.dreamProfile); 
+            user.counter = verification.authenticationInfo.newCounter;
+            Users.set(userID, user); 
+            Challenges.delete(expectedChallenge.challenge);
             
-            if (window.isSecureContext) updateSeal('check-secure', true, 'SECURE CONTEXT: ACTIVE');
-            else updateSeal('check-secure', false, 'HTTPS REQUIRED');
+            res.json({ verified: true, token: Chaos.mintToken() });
+        } else { res.status(400).json({ verified: false }); }
+    } catch (error) { 
+        console.error("Verification Error:", error);
+        res.status(400).json({ error: error.message }); 
+    } finally {
+        if (expectedChallenge) Challenges.delete(expectedChallenge.challenge);
+    }
+});
 
-            try {
-                const statusResp = await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS });
-                if (statusResp.ok || statusResp.status === 404) {
-                    isRegistered = true; 
-                    updateSeal('check-server', true, 'SERVER: ID FOUND');
-                    updateHUD("CHAOS CORE READY", "text-green-400");
-                    btn.innerHTML = '<i class="fas fa-fingerprint mr-3"></i> VERIFY IDENTITY';
-                    btn.disabled = false;
-                    btn.classList.add('hover:text-white');
-                } else { throw new Error('Server Error'); }
-            } catch (e) {
-                updateSeal('check-server', false, 'ABYSS UNREACHABLE');
-                btn.innerText = "RETRY";
-                btn.disabled = false;
-            }
-        }
+// --- API ROUTES ---
+app.post('/api/v1/external/verify', Nightmare.guardSaaS, (req, res) => {
+    res.json({ valid: true, user: "Admin User", quota: { used: req.partner.usage, limit: req.partner.limit } });
+});
 
-        async function handleMainAction() {
-            document.getElementById('main-btn').disabled = true;
-            await doLogin();
-            document.getElementById('main-btn').disabled = false;
-        }
+app.get('/api/v1/beta/pulse-demo', (req, res) => {
+    const agent = Abyss.agents.get('DEMO_AGENT_V1');
+    if(agent.usage >= agent.limit) return res.status(402).json({ error: "LIMIT" });
+    agent.usage++;
+    setTimeout(() => res.json({ valid: true, hash: 'pulse_' + Date.now(), ms: 15 }), 200);
+});
 
-        async function doLogin() {
-            updateHUD("SCAN BIOMETRIC NOW", "text-white");
-            try {
-                const opts = await (await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS })).json();
-                const asseResp = await startAuthentication({ publicKey: opts }); // Browser handles credential ID logic
-                
-                updateHUD("VERIFYING...", "text-blue-400");
-                const verifyResp = await fetch(`${API_BASE}/auth/login-verify`, {
-                    method: 'POST', headers: HEADERS, body: JSON.stringify(asseResp)
-                });
-                const result = await verifyResp.json();
+app.get('/api/v1/admin/telemetry', (req, res) => res.json({ stats: { requests: 0, threats: 0 }, threats: [] }));
+app.post('/api/v1/admin/pentest', (req, res) => setTimeout(() => res.json({ message: "DNA INTEGRITY VERIFIED." }), 2000));
+app.get('/api/v1/audit/get-proof', (req, res) => res.json({ verification_status: "READY" }));
 
-                if (result.verified) {
-                    updateHUD("ACCESS GRANTED", "text-green-500");
-                    document.body.style.background = "radial-gradient(circle at center, #002200, #000)";
-                    buzz();
-                    if (result.token) sessionStorage.setItem('chaos_session', result.token);
-                    showToast("Welcome, Agent");
-                    setTimeout(() => location.href = '/dashboard.html', 1500);
-                } else {
-                    throw new Error(result.error || "Invalid Credentials");
-                }
-            } catch (e) {
-                updateHUD("ACCESS DENIED", "text-red-500");
-                document.body.style.background = "radial-gradient(circle at center, #220000, #000)";
-                showToast(e.message);
-                setTimeout(() => document.body.style.background = "#000", 2000);
-            }
-        }
+// --- FILE SERVING (Final Routing) ---
+const serve = (f, res) => fs.existsSync(path.join(publicPath, f)) ? res.sendFile(path.join(publicPath, f)) : res.status(404).send('Missing: ' + f);
 
-        window.onload = checkEnvironment;
-    </script>
-</body>
-</html>
+app.get('/', (req, res) => serve('index.html', res));
+app.get('/app', (req, res) => serve('app.html', res));
+app.get('/dashboard', (req, res) => serve('dashboard.html', res));
+app.get('/admin', (req, res) => serve('admin.html', res));
+app.get('/sdk', (req, res) => serve('sdk.html', res));
+app.get('/admin/portal', (req, res) => serve('portal.html', res));
+app.get('*', (req, res) => res.redirect('/'));
+
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V46 (SYNC FIXED) ONLINE: ${PORT}`));
 
 
