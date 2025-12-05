@@ -121,7 +121,7 @@ const { audit_proof, tx_id } = verification;
 
 const verified = await ChaosSDK.verifyBillingProof(audit_proof);
 if (verified) {
-  console.log(`Billing transaction ${tx_id} is mathematically proven`);
+  console.log(\`Billing transaction \${tx_id} is mathematically proven\`);
 }
       </pre>
       <p class="text-sm text-purple-400 mt-4">
@@ -143,4 +143,3 @@ if (verified) {
 </main>
 </body>
 </html>
-
