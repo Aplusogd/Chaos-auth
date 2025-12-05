@@ -1,6 +1,6 @@
 /**
- * A+ CHAOS ID: V34 (EMERGENCY UNLOCK MODE)
- * STATUS: PQC Hybrid KEM Structure Ready. Registration enabled for immediate key repair.
+ * A+ CHAOS ID: V35 (FINAL GOLD MASTER LOCK)
+ * STATUS: Identity Permanently Locked. DREAMS V2 Active.
  */
 const express = require('express');
 const path = require('path');
@@ -23,13 +23,13 @@ app.use(express.json());
 app.use(express.static(publicPath));
 
 // ==========================================
-// 1. DREAMS PROTOCOL BLACK BOX (O(1) Algorithm)
+// 1. DREAMS PROTOCOL BLACK BOX (Algorithm)
 // ==========================================
 const DreamsEngine = (() => {
     const MIN_SAMPLES = 5; 
     const MAX_SAMPLES = 10;
     
-    // Core math helper (analyzes current state without iteration)
+    // Core math helper
     const analyzeTemporalVector = (timings) => {
         const n = timings.length;
         if (n <= 1) return { mu: timings[0] || 0, sigma: 0, rho1: 0, cv: 0 };
@@ -75,14 +75,12 @@ const DreamsEngine = (() => {
             const newSigma = Math.sqrt(Math.max(0, newCenteredVar));
             const newCv = newSigma / (newSumT / (N_current + 1));
             
-            // 1. CV CHECK
             const cvDeviationLimit = oldCv * 0.40; 
             if (newCv < 0.05 && Math.abs(newCv - oldCv) > cvDeviationLimit) { 
                 console.log(`[DREAMS REJECT] CV Anomaly.`);
                 return false;
             }
 
-            // 2. 3-SIGMA CHECK
             if (oldSigma > 0 && Math.abs(durationMs - oldMu) > (oldSigma * 3)) {
                 console.log(`[DREAMS REJECT] Time outside 3-Sigma range.`);
                 return false;
@@ -95,7 +93,6 @@ const DreamsEngine = (() => {
             const window = profile.window;
             let n = window.length;
 
-            // Discard oldest (O(1) sum maintenance)
             if (n === MAX_SAMPLES) {
                 const T_old = window[0];
                 if (n > 1) profile.sum_lag -= T_old * window[1];
@@ -106,7 +103,6 @@ const DreamsEngine = (() => {
                 n--;
             }
 
-            // Append new (O(1) sum maintenance)
             if (n > 0) profile.sum_lag += window[n - 1] * T_new;
             
             profile.sum_T += T_new;
@@ -124,12 +120,31 @@ const DreamsEngine = (() => {
 
 
 // ==========================================
-// 3. CORE LOGIC (V34)
+// 3. CORE LOGIC (V35)
 // ==========================================
 const Users = new Map();
-// NOTE: Hardcoded DNA is a temporary placeholder for structure during unlock.
-const ADMIN_DNA = { "credentialID": { "0": 251 }, "counter": 0, "dreamProfile": { window: [], sum_T: 0, sum_T2: 0, sum_lag: 0, mu: 0, sigma: 0, rho1: 0, cv: 0 } };
-Users.set('admin-user', ADMIN_DNA); 
+const ADMIN_DNA = {
+  "credentialID": {
+    "0": 34, "1": 107, "2": 129, "3": 52, "4": 150, "5": 223, "6": 204, "7": 57, 
+    "8": 171, "9": 110, "10": 196, "11": 62, "12": 244, "13": 235, "14": 33, "15": 107
+  },
+  "credentialPublicKey": {
+    "0": 165, "1": 1, "2": 2, "3": 3, "4": 38, "5": 32, "6": 1, "7": 33, "8": 88, 
+    "9": 32, "10": 248, "11": 139, "12": 206, "13": 64, "14": 122, "15": 111, 
+    "16": 83, "17": 204, "18": 37, "19": 190, "20": 213, "21": 75, "22": 207, 
+    "23": 124, "24": 3, "25": 54, "26": 101, "27": 62, "28": 26, "29": 49, 
+    "30": 36, "31": 44, "32": 74, "33": 127, "34": 106, "35": 134, "36": 50, 
+    "37": 208, "38": 245, "39": 80, "40": 80, "41": 204, "42": 34, "43": 88, 
+    "44": 32, "45": 121, "46": 45, "47": 78, "48": 103, "49": 57, "50": 120, 
+    "51": 161, "52": 241, "53": 219, "54": 228, "55": 124, "56": 89, "57": 247, 
+    "58": 180, "59": 98, "60": 57, "61": 145, "62": 0, "63": 28, "64": 76, 
+    "65": 179, "66": 212, "67": 222, "68": 26, "69": 0, "70": 230, "71": 233, 
+    "72": 237, "73": 243, "74": 138, "75": 182, "76": 166
+  },
+  "counter": 0,
+  "dreamProfile": { window: [], sum_T: 0, sum_T2: 0, sum_lag: 0, mu: 0, sigma: 0, rho1: 0, cv: 0 } 
+};
+Users.set('admin-user', ADMIN_DNA); // HARDCODED LOCK
 
 const Abyss = {
     partners: new Map(),
@@ -166,97 +181,77 @@ const getOrigin = (req) => {
 const getRpId = (req) => req.get('host').split(':')[0];
 
 // --- AUTH ROUTES ---
-// [UNLOCKED] Registration is open to generate a new key
 app.get('/api/v1/auth/register-options', async (req, res) => {
-    const userID = 'admin-user'; 
-    try {
-        const options = await generateRegistrationOptions({
-            rpName: 'A+ Chaos ID Core', // <<<--- FIX IS HERE: ADDED MISSING NAME
-            rpID: getRpId(req),
-            userID,
-            userName: 'admin@aplus.com',
-            attestationType: 'none',
-            authenticatorSelection: { residentKey: 'preferred', userVerification: 'preferred' },
-        });
-        Challenges.set(userID, options.challenge);
-        res.json(options);
-    } catch (err) { res.status(400).json({ error: err.message }); }
+    // REGISTER LOCK (403 JSON)
+    res.setHeader('Content-Type', 'application/json');
+    res.status(403).send(JSON.stringify({ error: "SYSTEM LOCKED. REGISTRATION CLOSED." }));
 });
 
 app.post('/api/v1/auth/register-verify', async (req, res) => {
-    const userID = 'admin-user';
-    const expectedChallenge = Challenges.get(userID);
-    if (!expectedChallenge) return res.status(400).json({ error: "Expired" });
-    try {
-        const verification = await verifyRegistrationResponse({
-            response: req.body,
-            expectedChallenge,
-            expectedOrigin: getOrigin(req),
-            expectedRPID: getRpId(req),
-        });
-
-        if (verification.verified) {
-            const { credentialID, credentialPublicKey, counter } = verification.registrationInfo;
-            const userData = { credentialID, credentialPublicKey, counter, dreamProfile: { window: [], sum_T: 0, sum_T2: 0, sum_lag: 0, mu: 0, sigma: 0, rho1: 0, cv: 0 } };
-            
-            Users.set(userID, userData);
-            Challenges.delete(userID);
-            
-            // ECHO DNA BACK TO CLIENT FOR NEW HARDCODING
-            res.json({ verified: true, adminDNA: JSON.stringify(userData) });
-        } else { res.status(400).json({ verified: false }); }
-    } catch (e) { 
-        console.error(e);
-        res.status(400).json({ error: e.message }); 
-    }
+    // REGISTER LOCK (403 JSON)
+    res.setHeader('Content-Type', 'application/json');
+    res.status(403).send(JSON.stringify({ error: "SYSTEM LOCKED. REGISTRATION CLOSED." }));
 });
 
 app.get('/api/v1/auth/login-options', async (req, res) => {
-    const userID = 'admin-user';
+    const userID = 'admin-user'; 
     const user = Users.get(userID);
-    if (!user) return res.status(404).json({ error: "SYSTEM RESET. PLEASE REGISTER FIRST." });
+    if (!user) return res.status(404).json({ error: "SYSTEM RESET. PLEASE CONTACT ADMIN." }); // Should never happen now
     try {
         const options = await generateAuthenticationOptions({
             rpID: getRpId(req),
             allowCredentials: [{ id: user.credentialID, type: 'public-key', transports: ['internal'] }],
+            userVerification: 'required',
         });
         Challenges.set(options.challenge, { challenge: options.challenge, startTime: DreamsEngine.start() });
         res.json(options);
-    } catch (e) { res.status(400).json({ error: e.message }); }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/v1/auth/login-verify', async (req, res) => {
     const userID = 'admin-user';
-    const user = Users.get(userID);
-    const expectedChallenge = Challenges.get(userID);
+    const clientResponse = req.body;
+    const challenge = clientResponse.response.clientDataJSON.challenge; 
+    const challengeData = Challenges.get(challenge);
+    const userCredential = Users.get(userID);
+
+    if (!userCredential || !challengeData) return res.status(400).json({ error: "Invalid State" });
+    
+    const durationMs = Number(process.hrtime.bigint() - challengeData.startTime) / 1000000;
+    
+    // 1. DREAMS CHECK (Temporal Biometrics)
+    const dreamPassed = DreamsEngine.check(durationMs, userCredential);
+    
+    if (!dreamPassed) {
+         Challenges.delete(challenge);
+         return res.status(403).json({ verified: false, error: "ERR_TEMPORAL_ANOMALY: Behavioral Check Failed" });
+    }
+    
+    // 2. WebAuthn Verification
     try {
         const verification = await verifyAuthenticationResponse({
-            response: req.body,
-            expectedChallenge,
+            response: clientResponse,
+            expectedChallenge: challengeData.challenge,
             expectedOrigin: getOrigin(req),
             expectedRPID: getRpId(req),
-            authenticator: user,
+            authenticator: userCredential,
+            requireUserCounter: true,
         });
 
         if (verification.verified) {
-            // DREAMS CHECK AND UPDATE
-            const durationMs = Number(process.hrtime.bigint() - challengeData.startTime) / 1000000;
-            const dreamPassed = DreamsEngine.check(durationMs, user);
+            DreamsEngine.update(durationMs, userCredential.dreamProfile); 
+            userCredential.counter = verification.authenticationInfo.newCounter;
             
-            if (!dreamPassed) {
-                 Challenges.delete(challenge);
-                 return res.status(403).json({ verified: false, error: "ERR_TEMPORAL_ANOMALY: Behavioral Check Failed" });
-            }
-            DreamsEngine.update(durationMs, user.dreamProfile); 
+            const token = Chaos.mintToken();
+            Abyss.sessions.set(token, { user: 'Admin User', level: 'V32-GOLD', expires: Date.now() + 3600000 });
             
-            user.counter = verification.authenticationInfo.newCounter;
-            Challenges.delete(expectedChallenge);
-            
-            res.json({ verified: true, token: Chaos.mintToken() });
+            res.json({ verified: true, token: token });
         } else { res.status(400).json({ verified: false }); }
-    } catch (e) { 
-        console.error(e);
-        res.status(400).json({ error: e.message }); 
+    } catch (error) { 
+        console.error(error);
+        res.status(400).json({ error: error.message }); 
+    } finally {
+        Challenges.delete(challenge);
     }
 });
 
@@ -278,6 +273,7 @@ app.get('/api/v1/admin/telemetry', (req, res) => {
 
 app.post('/api/v1/admin/pentest', (req, res) => setTimeout(() => res.json({ message: "DNA INTEGRITY VERIFIED. SYSTEM SECURE." }), 2000));
 
+
 // FILE SERVING
 const serve = (f, res) => fs.existsSync(path.join(publicPath, f)) ? res.sendFile(path.join(publicPath, f)) : res.status(404).send('Missing: ' + f);
 app.get('/', (req, res) => serve('app.html', res));
@@ -291,4 +287,4 @@ app.use((err, req, res, next) => {
     res.status(500).send("<h1>System Critical Error</h1>");
 });
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V34 UNLOCKED: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V35 (FINAL LOCK) ONLINE: ${PORT}`));
