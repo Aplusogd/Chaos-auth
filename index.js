@@ -1,6 +1,10 @@
 /**
  * A+ TOTEM SECURITY CORE: ZERO-DATA PROFILE EDITION
- * Routing: '/' -> War Room (Verify First) | '/dashboard' -> Home Base
+ * Routing: 
+ * - '/'          -> War Room (Verify First)
+ * - '/app'       -> War Room (Alias for compatibility)
+ * - '/info'      -> Storefront (Marketing)
+ * - '/dashboard' -> Home Base
  * Security: CHAOS, NIGHTMARE, ABYSS, SPHINX, CONSTELLATION, DNA LOCK
  */
 
@@ -22,7 +26,6 @@ if (!fs.existsSync(publicPath)) console.error("❌ CRITICAL: 'public' folder mis
 // 🌌 THE ABYSS (Ephemeral Profile Storage)
 // ==========================================
 const ChallengeMap = new Map();
-const COLORS = ['red', 'blue', 'green', 'yellow'];
 
 // IN-MEMORY PROFILE STORE (The "Abyss")
 // Stores ONLY hashes: { "device_hash": "hashed_pattern" }
@@ -119,7 +122,6 @@ app.get('/api/v1/challenge', (req, res) => {
 
 app.post('/api/v1/verify', (req, res) => {
     const { nonce, echo, solution, deviceHash, mode } = req.body; 
-    // Mode: 'REGISTER' (New Profile) or 'LOGIN' (Verify)
     
     if (!nonce || !echo || !solution || !deviceHash || !mode) return res.status(400).json({ error: "MISSING_DATA" });
 
@@ -135,34 +137,26 @@ app.post('/api/v1/verify', (req, res) => {
 
 app.use(express.static(publicPath));
 
-// ROUTING LOGIC - WAR ROOM FIRST
+// --- ROUTING LOGIC (The Fix) ---
+
+// 1. Default Home -> War Room
 app.get('/', (req, res) => {
-    // Default Route: Loads the Secure App (War Room)
-    const appFile = path.join(publicPath, 'app.html');
-    if (fs.existsSync(appFile)) {
-        res.sendFile(appFile);
-    } else {
-        res.status(404).send("Error: public/app.html is missing.");
-    }
+    res.sendFile(path.join(publicPath, 'app.html'));
 });
 
+// 2. Explicit App Route -> War Room (Fixes "Cannot GET /app")
+app.get('/app', (req, res) => {
+    res.sendFile(path.join(publicPath, 'app.html'));
+});
+
+// 3. Info -> Storefront
 app.get('/info', (req, res) => {
-    // Info Route: Loads the Marketing Page
-    const landingFile = path.join(publicPath, 'index.html');
-    if (fs.existsSync(landingFile)) {
-        res.sendFile(landingFile);
-    } else {
-        res.status(404).send("Error: public/index.html is missing.");
-    }
+    res.sendFile(path.join(publicPath, 'index.html'));
 });
 
+// 4. Dashboard -> Home Base
 app.get('/dashboard', (req, res) => {
-    const dashFile = path.join(publicPath, 'dashboard.html');
-    if (fs.existsSync(dashFile)) {
-        res.sendFile(dashFile);
-    } else {
-        res.status(404).send("Error: public/dashboard.html is missing.");
-    }
+    res.sendFile(path.join(publicPath, 'dashboard.html'));
 });
 
 app.listen(PORT, () => console.log(`🛡️ A+ TOTEM ZERO-DATA CORE ONLINE: ${PORT}`));
