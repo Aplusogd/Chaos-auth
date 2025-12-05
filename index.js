@@ -25,16 +25,27 @@ app.use(cors({ origin: '*' }));
 app.use(express.json());
 app.use(express.static(publicPath));
 
-// --- UTILITY: DEFINITIVE DNA CONVERTER (CRITICAL FIX) ---
+// --- UTILITY: DEFINITIVE DNA CONVERTER ---
 const jsObjectToBuffer = (obj) => {
     if (obj instanceof Uint8Array) return obj;
     if (obj instanceof Buffer) return obj;
     if (typeof obj !== 'object' || obj === null) return new Uint8Array();
-    
-    // Convert the object map { "0": 34, "1": 107, ... } to a simple byte array
     const values = Object.values(obj);
     return Buffer.from(values);
 };
+
+// --- UTILITY: EXTRACT CHALLENGE STRING FROM CLIENT RESPONSE (CRITICAL FIX) ---
+function extractChallengeFromClientResponse(clientResponse) {
+    try {
+        const clientDataJSONBase64 = clientResponse.response.clientDataJSON;
+        const json = Buffer.from(clientDataJSONBase64, 'base64url').toString('utf8');
+        return JSON.parse(json).challenge; // This is the raw challenge string used as the map key
+    } catch (e) {
+        console.error("Error decoding clientDataJSON:", e);
+        return null;
+    }
+}
+
 
 // ==========================================
 // 1. DREAMS PROTOCOL BLACK BOX (Omitted for space)
@@ -46,10 +57,10 @@ const DreamsEngine = {
 };
 
 // ==========================================
-// 2. CORE LOGIC (V45)
+// 2. CORE LOGIC (V46)
 // ==========================================
 const Users = new Map();
-// VITAL: YOUR HARDCODED DNA (Loaded as simple JSON map)
+// VITAL: YOUR HARDCODED DNA
 const ADMIN_DNA_JS = {
   "credentialID": {"0":34,"1":107,"2":129,"3":52,"4":150,"5":223,"6":204,"7":57,"8":171,"9":110,"10":196,"11":62,"12":244,"13":235,"14":33,"15":107},
   "credentialPublicKey": {"0":165,"1":1,"2":2,"3":3,"4":38,"5":32,"6":1,"7":33,"8":88,"9":32,"10":248,"11":139,"12":206,"13":64,"14":122,"15":111,"16":83,"17":204,"18":37,"19":190,"20":213,"21":75,"22":207,"23":124,"24":3,"25":54,"26":101,"27":62,"28":26,"29":49,"30":36,"31":44,"32":74,"33":127,"34":106,"35":134,"36":50,"37":208,"38":245,"39":80,"40":80,"41":204,"42":34,"43":88,"44":32,"45":121,"46":45,"47":78,"48":103,"49":57,"50":120,"51":161,"52":241,"53":219,"54":228,"55":124,"56":89,"57":247,"58":180,"59":98,"60":57,"61":145,"62":0,"63":28,"64":76,"65":179,"66":212,"67":222,"68":26,"69":0,"70":230,"71":233,"72":237,"73":243,"74":138,"75":182,"76":166},
@@ -57,7 +68,7 @@ const ADMIN_DNA_JS = {
   "dreamProfile": { window: [], sum_T: 0, sum_T2: 0, sum_lag: 0, mu: 0, sigma: 0, rho1: 0, cv: 0 } 
 };
 
-// --- FINAL DNA LOADING ---
+// LOAD DNA WITH BUFFER CONVERSION
 const ADMIN_DNA = {
     credentialID: jsObjectToBuffer(ADMIN_DNA_JS.credentialID),
     credentialPublicKey: jsObjectToBuffer(ADMIN_DNA_JS.credentialPublicKey),
@@ -97,11 +108,13 @@ const getRpId = (req) => req.get('host').split(':')[0];
 
 // --- AUTH ROUTES ---
 app.get('/api/v1/auth/register-options', async (req, res) => {
+    // LOCKED
     res.setHeader('Content-Type', 'application/json');
     res.status(403).send(JSON.stringify({ error: "SYSTEM LOCKED. REGISTRATION CLOSED." }));
 });
 
 app.post('/api/v1/auth/register-verify', async (req, res) => {
+    // LOCKED
     res.setHeader('Content-Type', 'application/json');
     res.status(403).send(JSON.stringify({ error: "SYSTEM LOCKED. REGISTRATION CLOSED." }));
 });
@@ -115,6 +128,7 @@ app.get('/api/v1/auth/login-options', async (req, res) => {
             rpID: getRpId(req),
             userVerification: 'required',
         });
+        // CRITICAL: Use the challenge string as the key in the map
         Challenges.set(options.challenge, { challenge: options.challenge, startTime: DreamsEngine.start() });
         res.json(options);
     } catch (err) { res.status(500).json({ error: err.message }); }
@@ -123,10 +137,13 @@ app.get('/api/v1/auth/login-options', async (req, res) => {
 app.post('/api/v1/auth/login-verify', async (req, res) => {
     const userID = 'admin-user';
     const user = Users.get(userID);
-    const expectedChallenge = Challenges.get(user.credentialID); 
     const clientResponse = req.body;
+    
+    // CRITICAL FIX: Extract the original challenge string from the client's data
+    const challengeString = extractChallengeFromClientResponse(clientResponse);
+    const expectedChallenge = Challenges.get(challengeString); 
 
-    if (!user || !expectedChallenge) return res.status(400).json({ error: "Invalid State" });
+    if (!user || !expectedChallenge) return res.status(400).json({ error: "Invalid State or Expired Challenge" });
     
     const durationMs = Number(process.hrtime.bigint() - expectedChallenge.startTime) / 1000000;
     const dreamPassed = DreamsEngine.check(durationMs, user);
@@ -162,6 +179,9 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
     }
 });
 
+// --- ADMIN PORTAL LOGIC (Removed for stability) ---
+// Note: Admin portal functionality must be integrated separately.
+
 // --- API & FILE ROUTING ---
 app.post('/api/v1/external/verify', Nightmare.guardSaaS, (req, res) => {
     res.json({ valid: true, user: "Admin User", method: "LEGACY_KEY", quota: { used: req.partner.usage, limit: req.partner.limit } });
@@ -175,7 +195,7 @@ app.get('/api/v1/beta/pulse-demo', (req, res) => {
 });
 
 app.get('/api/v1/admin/telemetry', (req, res) => {
-    res.json({ stats: { requests: Abyss.agents.get('DEMO_AGENT_V1').usage, threats: 0 }, threats: [] }); 
+    res.json({ stats: { requests: 0, threats: 0 }, threats: [] }); 
 });
 
 app.post('/api/v1/admin/pentest', (req, res) => setTimeout(() => res.json({ message: "DNA INTEGRITY VERIFIED. SYSTEM SECURE." }), 2000));
@@ -199,5 +219,5 @@ app.use((err, req, res, next) => {
     res.status(500).send("<h1>System Critical Error</h1>");
 });
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V45 (CRYPTO ISOLATION) ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V46 (SYNCHRONIZATION FIX) ONLINE: ${PORT}`));
 
