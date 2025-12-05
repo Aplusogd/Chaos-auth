@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A+ | OVERWATCH</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+        body { background-color: #000; color: #00ff41; font-family: 'Share Tech Mono', monospace; }
+        .grid-bg { background-image: linear-gradient(rgba(0, 50, 0, 0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 50, 0, 0.2) 1px, transparent 1px); background-size: 20px 20px; }
+        .panel { border: 1px solid #1a4d1a; background: rgba(0, 15, 0, 0.9); padding: 15px; box-shadow: 0 0 15px rgba(0, 255, 65, 0.1); }
+        .blink { animation: blinker 1s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0; } }
+        .danger-text { color: #ff3333; text-shadow: 0 0 5px #ff0000; }
+        .scroll-box { scrollbar-width: none; }
+    </style>
+</head>
+<body class="h-screen flex flex-col p-4 grid-bg overflow-hidden">
+
+    <!-- TOP BAR -->
+    <div class="flex justify-between items-center mb-6 border-b border-green-900 pb-2">
+        <h1 class="text-3xl font-bold tracking-widest"><i class="fas fa-eye"></i> OVERWATCH <span class="text-xs align-top opacity-50">V19</span></h1>
+        <div class="flex gap-6 text-sm">
+            <div>DEFCON: <span class="text-white bg-green-900 px-2 rounded">5 (LOW)</span></div>
+            <div>STATUS: <span class="text-green-400">OPERATIONAL</span></div>
+            <div id="clock">00:00:00</div>
+        </div>
+    </div>
+
+    <!-- MAIN GRID -->
+    <div class="flex-grow grid grid-cols-12 gap-4">
+        
+        <!-- LEFT COL: METRICS (3 cols) -->
+        <div class="col-span-12 md:col-span-3 flex flex-col gap-4">
+            <div class="panel text-center">
+                <div class="text-xs text-green-600 mb-1">TOTAL API HITS</div>
+                <div id="stat-total" class="text-4xl font-bold">0</div>
+            </div>
+            <div class="panel text-center border-red-900/50">
+                <div class="text-xs text-red-600 mb-1">THREATS NEUTRALIZED</div>
+                <div id="stat-blocked" class="text-4xl font-bold danger-text">0</div>
+            </div>
+            <div class="panel text-center">
+                <div class="text-xs text-blue-500 mb-1">CHAOS PULSE USAGE</div>
+                <div id="stat-pulse" class="text-4xl font-bold text-blue-400">0</div>
+            </div>
+            <div class="panel flex-grow">
+                <div class="text-xs text-green-600 mb-2 border-b border-green-900 pb-1">ACTIVE NODES</div>
+                <ul class="space-y-2 text-xs opacity-70">
+                    <li>> AUTH_NODE_01 [OK]</li>
+                    <li>> ABYSS_DB [OK]</li>
+                    <li>> NIGHTMARE_FW [ACTIVE]</li>
+                    <li>> PULSE_GEN [SYNCED]</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- MID COL: LIVE FEED (6 cols) -->
+        <div class="col-span-12 md:col-span-6 flex flex-col gap-4">
+            <div class="panel flex-grow flex flex-col relative overflow-hidden">
+                <div class="flex justify-between items-center border-b border-green-900 pb-2 mb-2">
+                    <span><i class="fas fa-terminal mr-2"></i>LIVE THREAT LOG</span>
+                    <span class="blink text-red-500 text-xs">● LIVE</span>
+                </div>
+                <!-- THE TERMINAL -->
+                <div id="terminal" class="flex-grow overflow-y-auto font-mono text-xs space-y-1 text-green-500/80 scroll-box h-64">
+                    > SYSTEM INITIALIZED...<br>
+                    > NIGHTMARE PROTOCOL ACTIVE...<br>
+                    > LISTENING FOR INTRUSIONS...<br>
+                </div>
+            </div>
+            
+            <!-- SECURITY TEST PANEL -->
+            <div class="panel h-32 flex flex-col justify-center items-center">
+                <button onclick="runPentest()" id="pentest-btn" class="w-full h-full border border-red-900 bg-red-900/10 text-red-500 hover:bg-red-500 hover:text-black transition uppercase font-bold tracking-[0.2em] text-xl">
+                    <i class="fas fa-biohazard mr-2"></i> TEST SECURITY
+                </button>
+            </div>
+        </div>
+
+        <!-- RIGHT COL: SYSTEM HEALTH (3 cols) -->
+        <div class="col-span-12 md:col-span-3 flex flex-col gap-4">
+             <div class="panel h-1/2">
+                <div class="text-xs text-green-600 mb-2">MEMORY INTEGRITY</div>
+                <div class="w-full bg-green-900/30 h-full relative overflow-hidden">
+                    <div class="absolute bottom-0 w-full bg-green-500 opacity-50 animate-pulse" style="height: 12%"></div>
+                </div>
+                <div class="text-center text-xs mt-1">STABLE (12%)</div>
+             </div>
+             <div class="panel h-1/2">
+                <div class="text-xs text-green-600 mb-2">ENCRYPTION LOAD</div>
+                <div class="w-full bg-green-900/30 h-full relative overflow-hidden">
+                    <div id="load-bar" class="absolute bottom-0 w-full bg-blue-500 opacity-50 transition-all duration-500" style="height: 5%"></div>
+                </div>
+                <div class="text-center text-xs mt-1">LOW</div>
+             </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- AUTH CHECK ---
+        const session = sessionStorage.getItem('chaos_session');
+        if (!session) window.location.href = '/app.html';
+
+        // --- CLOCK ---
+        setInterval(() => {
+            document.getElementById('clock').innerText = new Date().toLocaleTimeString();
+        }, 1000);
+
+        // --- LIVE DATA FEED ---
+        async function fetchTelemetry() {
+            try {
+                const resp = await fetch('/api/v1/admin/telemetry');
+                const data = await resp.json();
+                
+                // Update Numbers
+                document.getElementById('stat-total').innerText = data.stats.totalRequests;
+                document.getElementById('stat-blocked').innerText = data.stats.attacksBlocked;
+                document.getElementById('stat-pulse').innerText = data.stats.pulseUsage;
+
+                // Update Encryption Load Visual
+                const load = Math.min((data.stats.pulseUsage / 500) * 100, 100);
+                document.getElementById('load-bar').style.height = load + "%";
+
+                // Update Terminal (Threats)
+                const term = document.getElementById('terminal');
+                const currentLog = term.innerHTML;
+                
+                // Add new logs
+                data.threats.forEach(t => {
+                    if(!currentLog.includes(t)) {
+                        const div = document.createElement('div');
+                        div.className = "text-red-400 border-l-2 border-red-500 pl-2 mb-1";
+                        div.innerText = t;
+                        term.prepend(div);
+                    }
+                });
+
+            } catch(e) { console.error("Telemetry link lost"); }
+        }
+
+        // Poll every 2 seconds
+        setInterval(fetchTelemetry, 2000);
+        fetchTelemetry(); // Run once immediately
+
+        // --- SECURITY TEST ---
+        async function runPentest() {
+            const btn = document.getElementById('pentest-btn');
+            const term = document.getElementById('terminal');
+
+            btn.disabled = true;
+            btn.innerHTML = "<i class='fas fa-circle-notch fa-spin'></i> RUNNING DIAGNOSTICS...";
+            
+            term.innerHTML += "<div class='text-yellow-400 mt-2'> > INITIATING PENETRATION TEST PROTOCOL...</div>";
+            term.innerHTML += "<div class='text-gray-500'> > SIMULATING SQL INJECTION... [BLOCKED]</div>";
+            term.innerHTML += "<div class='text-gray-500'> > SIMULATING XSS ATTACK... [BLOCKED]</div>";
+            term.innerHTML += "<div class='text-gray-500'> > FUZZING API HEADERS... [NO LEAKS]</div>";
+
+            try {
+                const resp = await fetch('/api/v1/admin/pentest', { method: 'POST' });
+                const data = await resp.json();
+                
+                setTimeout(() => {
+                    term.innerHTML += `<div class="text-green-500 font-bold border border-green-500 p-2 mt-2 text-center">RESULT: ${data.message}</div>`;
+                    term.scrollTop = term.scrollHeight;
+                    
+                    btn.disabled = false;
+                    btn.innerHTML = "<i class='fas fa-check'></i> SYSTEM SECURE";
+                    setTimeout(() => btn.innerHTML = "<i class='fas fa-biohazard mr-2'></i> TEST SECURITY", 3000);
+                }, 2000);
+
+            } catch(e) {
+                btn.innerHTML = "ERROR";
+            }
+        }
+    </script>
+</body>
+</html>
