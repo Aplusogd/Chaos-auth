@@ -3,224 +3,287 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>A+ MOBILE CORE | V26</title>
+    <title>A+ CHAOS | SECURE LOGIN GATE</title>
+    <meta name="description" content="Quantum-Resistant Biometric Entry — DREAMS V3 + MBF Ready">
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- V10 LIBRARY -->
     <script src="https://unpkg.com/@simplewebauthn/browser@10.0.0/dist/bundle/index.umd.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
+        /* BASE STYLES */
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
-        
         body { 
             background-color: #000; 
             color: #00ff41; 
             font-family: 'JetBrains Mono', monospace; 
-            touch-action: manipulation; 
+            touch-action: manipulation;
+            overflow: hidden;
         }
 
         .hud-status {
-            font-size: 1.5rem;
+            font-size: 1.8rem;
             font-weight: 800;
             text-align: center;
             text-transform: uppercase;
-            text-shadow: 0 0 10px #00ff41;
+            text-shadow: 0 0 15px #00ff41;
             margin-bottom: 2rem;
-            min-height: 3rem;
-            transition: color 0.3s ease;
+            min-height: 4rem;
+            transition: all 0.4s ease;
         }
 
-        .bio-btn {
+        .smart-btn {
             width: 100%;
-            padding: 1.5rem;
-            font-size: 1.2rem;
+            padding: 1.8rem;
+            font-size: 1.3rem;
             font-weight: bold;
-            border: 2px solid #333;
-            background: #111;
-            color: #fff;
-            border-radius: 12px;
-            margin-bottom: 1rem;
-            transition: all 0.2s;
+            border: 2px solid #00ff41;
+            background: linear-gradient(to bottom, #001a00, #000);
+            color: #00ff41;
+            border-radius: 16px;
+            transition: all 0.3s;
             text-transform: uppercase;
-            letter-spacing: 2px;
+            letter-spacing: 3px;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
         }
 
-        .bio-btn:active {
-            transform: scale(0.95);
-            background: #00ff41;
-            color: #000;
-            border-color: #00ff41;
+        .smart-btn:hover:not(:disabled) {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(0, 255, 65, 0.5);
+            background: linear-gradient(to bottom, #002200, #001100);
         }
 
-        #toast {
-            visibility: hidden;
-            min-width: 250px;
-            background-color: #333;
-            color: #fff;
-            text-align: center;
-            border-radius: 8px;
-            padding: 16px;
-            position: fixed;
-            z-index: 999;
-            left: 50%;
-            bottom: 30px;
-            transform: translateX(-50%);
-            font-size: 14px;
-            border: 1px solid #00ff41;
-            box-shadow: 0 0 20px rgba(0,0,0,0.8);
+        .smart-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            border-color: #333;
+            color: #666;
         }
 
-        #toast.show {
-            visibility: visible;
-            animation: fadein 0.5s, fadeout 0.5s 2.5s;
+        .status-seal {
+            font-size: 11px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            margin: 6px 0;
+            display: inline-block;
+            min-width: 200px;
         }
 
-        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
-        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
     </style>
 </head>
 <body class="h-screen flex flex-col items-center justify-center p-6 bg-black">
 
-    <div class="w-full max-w-sm text-center mb-8">
-        <div class="text-xs text-gray-500 mb-2">A+ OVERHEAD GARAGE DOORS</div>
-        <h1 class="text-3xl font-bold tracking-tighter text-white">CHAOS <span class="text-green-500">MOBILE</span></h1>
+    <div class="w-full max-w-sm text-center mb-10">
+        <div class="text-xs text-gray-600 mb-3">A+ CHAOS CORE // V39 QUANTUM SEAL</div>
+        <h1 class="text-4xl font-bold tracking-tighter text-white">BIOMETRIC GATE</h1>
     </div>
 
-    <div id="hud" class="hud-status text-green-500">SYSTEM READY</div>
+    <!-- QUANTUM HUD -->
+    <div id="hud" class="hud-status text-green-500 pulse">
+        INITIALIZING QUANTUM LOCK...
+    </div>
+    
+    <!-- SECURITY STATUS SEALS -->
+    <div class="text-center mb-10 space-y-3">
+        <div id="check-secure" class="status-seal bg-red-900/50 text-red-400 border border-red-900">
+            SECURE CONTEXT: PENDING
+        </div>
+        <div id="check-platform" class="status-seal bg-red-900/50 text-red-400 border border-red-900">
+            AUTHENTICATOR: DETECTING
+        </div>
+        <div id="check-server" class="status-seal bg-red-900/50 text-red-400 border border-red-900">
+            SERVER STATUS: CHECKING
+        </div>
+    </div>
 
+    <!-- SMART ADAPTIVE BUTTON -->
     <div class="w-full max-w-sm">
-        <button id="btn-reg" class="bio-btn border-yellow-800 text-yellow-500" onclick="doRegister()">
-            <span class="block text-xs opacity-50 mb-1">STEP 1</span>
-            CLAIM DEVICE
-        </button>
-
-        <button id="btn-log" class="bio-btn border-green-800 text-green-500" onclick="doLogin()">
-            <span class="block text-xs opacity-50 mb-1">STEP 2</span>
-            VERIFY ID
+        <button id="main-btn" class="smart-btn" disabled onclick="handleMainAction()">
+            <i class="fas fa-circle-notch fa-spin mr-3"></i> CHECKING ENVIRONMENT...
         </button>
     </div>
 
-    <div id="toast">Notification Area</div>
+    <!-- TOAST -->
+    <div id="toast" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900/95 text-white px-6 py-3 rounded-lg shadow-2xl opacity-0 transition-opacity duration-500 text-sm backdrop-blur"></div>
 
     <script>
-        const { startRegistration, startAuthentication } = SimpleWebAuthnBrowser;
+        const { startRegistration, startAuthentication, platformAuthenticatorIsAvailable } = SimpleWebAuthnBrowser;
+        const API_BASE = '/api/v1';
         const HEADERS = { 'Content-Type': 'application/json', 'X-APLUS-SECURE': 'TOTEM_V8_BIO' };
 
-        // UTILS
+        let isRegistered = false;
+
         function updateHUD(text, color = 'text-green-500') {
             const h = document.getElementById('hud');
             h.innerText = text;
-            h.className = `hud-status ${color}`;
+            h.className = `hud-status ${color} pulse`;
         }
 
-        function showToast(msg) {
-            const x = document.getElementById("toast");
-            x.innerText = msg;
-            x.className = "show";
-            setTimeout(() => { x.className = x.className.replace("show", ""); }, 3000);
+        function updateSeal(id, success, msg) {
+            const el = document.getElementById(id);
+            el.innerHTML = success 
+                ? `<i class="fas fa-check-circle mr-2"></i>${msg}`
+                : `<i class="fas fa-times-circle mr-2"></i>${msg}`;
+            el.className = `status-seal ${success ? 'bg-green-900/50 text-green-400 border border-green-700' : 'bg-red-900/50 text-red-400 border border-red-900'}`;
         }
 
-        function buzz() { if (navigator.vibrate) navigator.vibrate([50]); }
+        function showToast(msg, success = false) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.className = `fixed bottom-6 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-lg shadow-2xl transition-opacity duration-500 text-sm backdrop-blur ${success ? 'bg-green-900/95 text-green-300' : 'bg-red-900/95 text-red-300'}`;
+            t.style.opacity = 1;
+            setTimeout(() => t.style.opacity = 0, 4000);
+        }
 
-        // --- 1. REGISTER ---
-        async function doRegister() {
-            updateHUD("CONNECTING...", "text-yellow-400");
+        function buzz() { if (navigator.vibrate) navigator.vibrate([100, 50, 100]); }
+
+        async function checkEnvironment() {
+            const btn = document.getElementById('main-btn');
+            let ready = true;
+
+            // 1. Secure Context Check
+            if (window.isSecureContext) {
+                updateSeal('check-secure', true, 'SECURE CONTEXT: ACTIVE');
+            } else {
+                updateSeal('check-secure', false, 'HTTPS REQUIRED');
+                ready = false;
+            }
+
+            // 2. Platform Authenticator Check
+            const platformOk = await platformAuthenticatorIsAvailable();
+            if (platformOk) {
+                updateSeal('check-platform', true, 'AUTHENTICATOR: READY');
+            } else {
+                updateSeal('check-platform', false, 'NO BIOMETRIC DEVICE');
+                ready = false;
+            }
+
+            // 3. Server Registration Status Check (Use dummy endpoint for status)
             try {
-                const resp = await fetch('/api/v1/auth/register-options', { headers: HEADERS });
-                if (!resp.ok) throw new Error("System Locked. Admin already registered.");
-                const opts = await resp.json();
+                // Hitting the login options endpoint as a status check. If it fails (404/403), it means not registered.
+                const statusResp = await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS });
+                
+                // If it succeeds, the user is registered (because the server has a credential for them)
+                if (statusResp.ok) {
+                    isRegistered = true;
+                    updateSeal('check-server', true, 'SERVER: ID FOUND');
+                } else {
+                    isRegistered = false;
+                    updateSeal('check-server', true, 'SERVER: ID SLOT OPEN'); // Treat 404 as "slot open"
+                }
+            } catch (e) {
+                updateSeal('check-server', false, 'ABYSS UNREACHABLE');
+                updateHUD("ABYSS UNREACHABLE", "text-red-500");
+                btn.innerText = "RETRY";
+                ready = false;
+            }
 
-                updateHUD("SCAN FINGERPRINT", "text-white animate-pulse");
-                buzz();
-                const attResp = await startRegistration(opts);
+            // Final state transition
+            if (ready) {
+                updateHUD("CHAOS CORE READY FOR HANDSHAKE", "text-green-400");
+                btn.innerHTML = isRegistered 
+                    ? '<i class="fas fa-fingerprint mr-3"></i> VERIFY IDENTITY'
+                    : '<i class="fas fa-shield-alt mr-3"></i> INITIALIZE DEVICE';
+                btn.disabled = false;
+            }
+            return ready;
+        }
 
-                updateHUD("VERIFYING...", "text-blue-400");
-                const verifyResp = await fetch('/api/v1/auth/register-verify', {
+        async function handleMainAction() {
+            const btn = document.getElementById('main-btn');
+            btn.disabled = true;
+            buzz();
+
+            if (!isRegistered) {
+                await doRegister();
+            } else {
+                await doLogin();
+            }
+            btn.disabled = false;
+        }
+
+        async function doRegister() {
+            updateHUD("DEVICE INITIALIZATION...", "text-yellow-400");
+            try {
+                // 1. Get Options
+                const opts = await (await fetch(`${API_BASE}/auth/register-options`, { headers: HEADERS })).json();
+                
+                // 2. Scan
+                const regResp = await startRegistration(opts);
+                
+                // 3. Verify
+                const verifyResp = await fetch(`${API_BASE}/auth/register-verify`, {
                     method: 'POST',
                     headers: HEADERS,
-                    body: JSON.stringify(attResp)
+                    body: JSON.stringify(regResp)
                 });
-
                 const result = await verifyResp.json();
 
                 if (result.verified) {
-                    updateHUD("ACCESS SECURED", "text-green-500");
-                    
-                    if (result.adminDNA) {
-                        const dna = result.adminDNA;
-                        const copyArea = document.createElement('textarea');
-                        copyArea.value = dna;
-                        copyArea.style.position = 'fixed';
-                        copyArea.style.left = '0'; copyArea.style.top = '0';
-                        copyArea.style.width = '100%'; copyArea.style.height = '150px';
-                        copyArea.style.zIndex = '9999';
-                        copyArea.style.background = '#111';
-                        copyArea.style.color = '#0f0';
-                        copyArea.style.fontSize = '12px';
-                        copyArea.style.padding = '20px';
-                        document.body.appendChild(copyArea);
-                        copyArea.select();
-                        try {
-                            document.execCommand('copy');
-                            alert("ADMIN DNA COPIED! Paste into Render Environment Variables.");
-                        } catch (err) {
-                            alert("COPY FAILED. Manually copy the text at the top of the screen.");
-                        }
-                        setTimeout(() => document.body.removeChild(copyArea), 15000);
-                    } else {
-                        showToast("SUCCESS: Device Bound");
-                    }
-                } else { throw new Error("Verification Rejected"); }
-            } catch (e) { updateHUD("FAILED", "text-red-500"); showToast(e.message); }
+                    updateHUD("DEVICE BOUND TO CHAOS CORE", "text-green-500");
+                    showToast("Initialization Complete. Login now.", true);
+                    // Force reload to update the status seals and switch button text
+                    setTimeout(() => location.reload(), 2000); 
+                } else {
+                    throw new Error(result.error || "Registration Failed");
+                }
+            } catch (e) {
+                updateHUD("INITIALIZATION FAILED", "text-red-500");
+                showToast(e.message || "Device setup cancelled.", false);
+            }
         }
 
-        // --- 2. LOGIN ---
         async function doLogin() {
-            updateHUD("CONNECTING...", "text-blue-400");
+            updateHUD("SCAN BIOMETRIC NOW", "text-white");
             try {
-                const resp = await fetch('/api/v1/auth/login-options', { headers: HEADERS });
-                if(!resp.ok) throw new Error("User Not Found. Please Register.");
-                const opts = await resp.json();
+                // A. GET OPTIONS
+                const opts = await (await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS })).json();
+                
+                // B. SCAN
+                const asseResp = await startAuthentication({ publicKey: opts });
 
-                updateHUD("SCAN FINGERPRINT", "text-white animate-pulse");
-                buzz();
-                const asseResp = await startAuthentication(opts);
-
-                updateHUD("CHECKING...", "text-blue-400");
-                const verifyResp = await fetch('/api/v1/auth/login-verify', {
+                // C. VERIFY (Temporal + Crypto)
+                updateHUD("ANALYZING BEHAVIOR...", "text-blue-400");
+                const verifyResp = await fetch(`${API_BASE}/auth/login-verify`, {
                     method: 'POST',
                     headers: HEADERS,
                     body: JSON.stringify(asseResp)
                 });
-
                 const result = await verifyResp.json();
 
+                // D. SUCCESS & REDIRECT
                 if (result.verified) {
-                    updateHUD("UNLOCKED", "text-green-500");
-                    document.body.style.backgroundColor = "#002200"; 
+                    updateHUD("ACCESS GRANTED", "text-green-500");
+                    document.body.style.background = "radial-gradient(circle at center, #002200, #000)";
                     buzz();
                     
-                    if(result.token) {
-                        sessionStorage.setItem('chaos_session', result.token);
-                    }
-
-                    showToast("Redirecting to Command Center...");
-                    setTimeout(() => {
-                        window.location.href = '/dashboard.html';
-                    }, 1500);
-
-                } else { 
+                    if (result.token) sessionStorage.setItem('chaos_session', result.token);
+                    
+                    showToast("Welcome, Agent", true);
+                    setTimeout(() => location.href = '/dashboard.html', 1800);
+                } else {
                     if (result.error && result.error.includes("TEMPORAL_ANOMALY")) {
-                        throw new Error("ACCESS DENIED: Behavioral Anomaly Detected.");
+                        throw new Error("BEHAVIORAL ANOMALY DETECTED.");
                     } else {
-                        throw new Error("Invalid Credentials.");
+                        throw new Error(result.error || "Verification Failed.");
                     }
                 }
             } catch (e) {
-                updateHUD("DENIED", "text-red-500");
-                document.body.style.backgroundColor = "#220000";
-                showToast(e.message);
-                buzz();
-                setTimeout(() => document.body.style.backgroundColor = "#000", 2000);
+                let msg = e.message || "Login timed out or was cancelled.";
+                updateHUD("ACCESS DENIED", "text-red-500");
+                document.body.style.background = "radial-gradient(circle at center, #220000, #000)";
+                showToast(msg, false);
+                setTimeout(() => document.body.style.background = "#000", 2000);
             }
         }
+
+        // INIT
+        window.onload = () => {
+            checkEnvironment();
+            setInterval(checkEnvironment, 15000); // Keep status fresh
+        };
     </script>
 </body>
 </html>
+
