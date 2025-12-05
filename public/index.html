@@ -2,275 +2,288 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CHAOS ID — AI-Native Identity Provider</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>A+ CHAOS | SECURE LOGIN GATE</title>
+    <meta name="description" content="Quantum-Resistant Biometric Entry — DREAMS V3 + MBF Ready">
+    <!-- CRITICAL FIX: REMOVED CDN -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- V10 LIBRARY -->
+    <script src="https://unpkg.com/@simplewebauthn/browser@10.0.0/dist/bundle/index.umd.min.js"></script>
+    
     <style>
-        /* CORE STYLES */
-        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono:wght@400;700&display=swap');
-        body { background-color: #000; color: #E5E7EB; font-family: 'Share Tech Mono', monospace; overflow-x: hidden; }
+        /* INJECTED PRODUCTION STYLES */
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
         
-        /* NEON EFFECTS */
-        .neon-text { text-shadow: 0 0 5px #00ff41, 0 0 10px #00ff41, 0 0 20px #00ff41; }
-        .neon-border { border: 1px solid rgba(0, 255, 65, 0.4); box-shadow: 0 0 15px rgba(0, 255, 65, 0.2); }
-        .terminal-bg { background: rgba(0, 15, 0, 0.9); }
-        .terminal-log { height: 250px; }
-
-        /* ASCII MATRIX RAIN (Feature 6) */
-        #matrix-canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            opacity: 0.1;
-        }
-
-        /* LIVE SCROLLING MARQUEE (Feature 2) */
-        .marquee-container {
-            width: 100%;
+        body { 
+            background-color: #000; 
+            color: #00ff41; 
+            font-family: 'JetBrains Mono', monospace; 
+            touch-action: manipulation;
             overflow: hidden;
-            white-space: nowrap;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 1.5rem;
         }
-        .animate-marquee {
-            animation: marquee 20s linear infinite;
+
+        .hud-status {
+            font-size: 1.8rem;
+            font-weight: 800;
+            text-align: center;
+            text-transform: uppercase;
+            text-shadow: 0 0 15px #00ff41;
+            margin-bottom: 2rem;
+            min-height: 4rem;
+            transition: all 0.4s ease;
+        }
+
+        .smart-btn {
+            width: 100%;
+            padding: 1.8rem;
+            font-size: 1.3rem;
+            font-weight: bold;
+            border: 2px solid #00ff41;
+            background: linear-gradient(to bottom, #001a00, #000);
+            color: #00ff41;
+            border-radius: 16px;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.3);
+        }
+
+        .smart-btn:hover:not(:disabled) {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(0, 255, 65, 0.5);
+            background: linear-gradient(to bottom, #002200, #001100);
+        }
+
+        .smart-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            border-color: #333;
+            color: #666;
+        }
+
+        .status-seal {
+            font-size: 11px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            margin: 6px 0;
             display: inline-block;
+            min-width: 200px;
         }
-        @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+        .bg-red-900\/50 { background-color: rgba(127, 29, 29, 0.5); }
+        .bg-green-900\/50 { background-color: rgba(21, 128, 61, 0.5); }
+        .text-red-400 { color: #f87171; }
+        .text-green-400 { color: #34d399; }
+        .text-gray-600 { color: #4b5563; }
+        .border-red-900 { border-color: #7f1d1d; }
+        .border-green-700 { border-color: #047857; }
+        .pulse { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
     </style>
 </head>
-<body class="min-h-screen">
-    <canvas id="matrix-canvas"></canvas>
+<body class="bg-black">
 
-    <!-- HEADER/NAV BAR -->
-    <nav class="p-4 md:p-6 flex justify-between items-center max-w-6xl mx-auto relative z-10">
-        <div class="text-2xl font-bold text-green-500 neon-text">CHAOS ID</div>
-        <div class="flex items-center gap-4">
-            <!-- Latency Counter (Feature 3) -->
-            <div class="text-xs text-gray-500">p99 Latency: <span id="latency" class="text-yellow-400">Loading...</span></div>
-            <!-- Dark Mode Toggle (Feature 5 - Placeholder for eventual multi-mode) -->
-            <button class="text-xl text-gray-400 hover:text-white transition" onclick="alert('Dark Mode is the default and only approved state.')">
-                <i class="fas fa-moon"></i>
-            </button>
+    <div class="w-full max-w-sm text-center mb-10">
+        <div class="text-xs text-gray-600 mb-3">A+ CHAOS CORE // V39 QUANTUM SEAL</div>
+        <h1 class="text-4xl font-bold tracking-tighter text-white">BIOMETRIC GATE</h1>
+    </div>
+
+    <!-- QUANTUM HUD -->
+    <div id="hud" class="hud-status pulse">
+        INITIALIZING QUANTUM LOCK...
+    </div>
+    
+    <!-- SECURITY STATUS SEALS -->
+    <div class="text-center mb-10 space-y-3">
+        <div id="check-secure" class="status-seal bg-red-900/50 text-red-400 border border-red-900">
+            SECURE CONTEXT: PENDING
         </div>
-    </nav>
-
-    <!-- HERO SECTION -->
-    <header class="text-center py-20 max-w-4xl mx-auto relative z-10">
-        <h1 class="text-4xl md:text-6xl font-extrabold text-white mb-6 tracking-tight">
-            THE AGE OF PASSKEYS IS OVER.
-        </h1>
-        <p class="text-xl md:text-2xl text-green-400 neon-text mb-8">
-            Unbreakable, AI-Native Identity. Secured by **Behavioral Fusion**.
-        </p>
-
-        <!-- CTA BUTTONS -->
-        <div class="flex justify-center gap-6">
-            <a href="/app" class="px-8 py-3 bg-green-600 text-black font-bold rounded-lg shadow-xl hover:bg-green-500 transition-all uppercase neon-border">
-                <i class="fas fa-lock mr-2"></i> ADMIN LOGIN
-            </a>
-            <a href="/sdk.html" class="px-8 py-3 bg-transparent text-green-400 border border-green-500 font-bold rounded-lg hover:bg-green-900/50 transition-all uppercase">
-                <i class="fas fa-code mr-2"></i> VIEW PARTNER SDK
-            </a>
+        <div id="check-platform" class="status-seal bg-red-900/50 text-red-400 border border-red-900">
+            AUTHENTICATOR: DETECTING
         </div>
-    </header>
-
-    <!-- TRUST BADGE CAROUSEL (Feature 2) -->
-    <div class="py-6 bg-black/50 border-y border-gray-800">
-        <p class="text-center text-gray-500 text-sm mb-4">POWERING THE FUTURE OF AI IDENTITY</p>
-        <div class="marquee-container">
-          <div class="animate-marquee flex gap-16 ml-8">
-            <img src="https://placehold.co/120x60/00ff41/000000?text=xAI" alt="xAI" class="h-12 opacity-70">
-            <img src="https://placehold.co/120x60/00ff41/000000?text=OpenAI" alt="OpenAI" class="h-12 opacity-70">
-            <img src="https://placehold.co/120x60/00ff41/000000?text=Anduril" alt="Anduril" class="h-12 opacity-70">
-            <img src="https://placehold.co/120x60/00ff41/000000?text=Scale+AI" alt="Scale AI" class="h-12 opacity-70">
-            <img src="https://placehold.co/120x60/00ff41/000000?text=Anthropic" alt="Anthropic" class="h-12 opacity-70">
-            <!-- Duplicate content to ensure smooth loop -->
-            <img src="https://placehold.co/120x60/00ff41/000000?text=xAI" alt="xAI" class="h-12 opacity-70">
-            <img src="https://placehold.co/120x60/00ff41/000000?text=OpenAI" alt="OpenAI" class="h-12 opacity-70">
-          </div>
+        <div id="check-server" class="status-seal bg-red-900/50 text-red-400 border border-red-900">
+            SERVER STATUS: CHECKING
         </div>
     </div>
 
+    <!-- SMART ADAPTIVE BUTTON -->
+    <div class="w-full max-w-sm">
+        <button id="main-btn" class="smart-btn" disabled onclick="handleMainAction()">
+            <i class="fas fa-circle-notch fa-spin mr-3"></i> CHECKING ENVIRONMENT...
+        </button>
+    </div>
 
-    <!-- INTERACTIVE TERMINAL & PILLARS -->
-    <section class="py-16 max-w-6xl mx-auto px-4 relative z-10">
-        <h2 class="text-3xl font-bold text-center text-white mb-12">LIVE CORE ANALYSIS</h2>
-        
-        <div class="grid md:grid-cols-2 gap-8">
-            
-            <!-- COLUMN 1: LIVE TERMINAL DEMO (Feature 1) -->
-            <div>
-                <h3 class="text-xl font-bold mb-3 text-green-400">CHAOS CORE STATUS</h3>
-                <div class="neon-border rounded-lg terminal-bg overflow-hidden">
-                    <div class="bg-green-900/20 p-2 text-white text-xs font-mono border-b border-green-800">
-                      > STATUS: ONLINE | IP: 104.28.1.34
-                    </div>
-                    <!-- Live terminal output -->
-                    <pre id="terminal" class="terminal-log text-green-400 p-4 text-xs overflow-y-auto">
-<span class="text-gray-500">> Initializing DREAMS V3 engine...</span>
-<span class="text-green-400">> MBF Fusion detected: iPhone 15 Pro + MacBook Pro M3</span>
-<span class="text-yellow-400">> Botnet /24 blocked (92.1.34.0) → Nightmare drop</span>
-<span class="text-green-400">> ZKP Proof #4421 verified by partner</span>
-<span class="text-green-400">> Revenue event: +$99 (Pro tier upgrade)</span>
-                    </pre>
-                </div>
-            </div>
+    <!-- TOAST -->
+    <div id="toast" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-lg shadow-2xl opacity-0 transition-opacity duration-500 text-sm backdrop-blur"></div>
 
-            <!-- COLUMN 2: INTERACTIVE ZKP/MBF SIM (Features 4 & 7) -->
-            <div>
-                <h3 class="text-xl font-bold mb-3 text-white">VALIDATION SIMULATOR</h3>
-                <div class="panel p-6 rounded-xl neon-border terminal-bg space-y-4">
-                    
-                    <!-- MBF Live Simulator -->
-                    <div class="pb-4 border-b border-gray-700">
-                        <div id="mbf-status" class="text-lg font-bold text-yellow-400 mb-2">AWAITING FUSION...</div>
-                        <div class="flex items-center justify-between">
-                            <i id="device-1" class="fas fa-mobile-alt text-4xl text-gray-600"></i>
-                            <i class="fas fa-arrow-right text-green-500 text-2xl mx-4"></i>
-                            <i id="device-2" class="fas fa-laptop text-4xl text-gray-600"></i>
-                            <button onclick="runMBFSim()" class="ml-4 px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded text-xs font-bold">FUSE DEVICES</button>
-                        </div>
-                    </div>
-
-                    <!-- ZKP Proof Demo -->
-                    <div class="pt-2">
-                        <h4 class="text-sm font-bold text-purple-400 mb-2">ZKP AUDIT PROOF</h4>
-                        <p class="text-xs text-gray-400 mb-3">Prove billing integrity in-browser.</p>
-                        <button onclick="runZKPTest()" class="w-full px-4 py-3 bg-purple-900/50 border border-purple-700 text-purple-400 font-bold rounded hover:bg-purple-700 transition">
-                            <i class="fas fa-shield-alt mr-2"></i> RUN VERIFICATION
-                        </button>
-                        <div id="zkp-result" class="mt-2 text-xs font-mono text-gray-400"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- FOOTER -->
-    <footer class="py-10 border-t border-gray-800 mt-16 max-w-6xl mx-auto px-4 relative z-10">
-        <p class="text-center text-xs text-gray-700 mt-10">© 2025 A+ Overhead Garage Doors / CHAOS ID Core. All Rights Reserved. Built on Unbreakable Trust.</p>
-    </footer>
-
-    <!-- JAVASCRIPT: LOGIC & ANIMATIONS -->
     <script>
-        // --- 1. ASCII MATRIX RAIN (Feature 6) ---
-        const c = document.getElementById('matrix-canvas');
-        const ctx = c.getContext('2d');
+        const { startRegistration, startAuthentication, platformAuthenticatorIsAvailable } = SimpleWebAuthnBrowser;
+        const API_BASE = '/api/v1';
+        const HEADERS = { 'Content-Type': 'application/json', 'X-APLUS-SECURE': 'TOTEM_V8_BIO' };
 
-        c.height = window.innerHeight;
-        c.width = window.innerWidth;
+        let isRegistered = false;
 
-        const matrixText = "01";
-        const font_size = 14;
-        const columns = c.width / font_size;
-        const drops = [];
+        function updateHUD(text, color = 'text-green-500') {
+            const h = document.getElementById('hud');
+            h.innerText = text;
+            h.className = `hud-status ${color} pulse`;
+        }
 
-        for(let x = 0; x < columns; x++) drops[x] = 1;
+        function updateSeal(id, success, msg) {
+            const el = document.getElementById(id);
+            el.innerHTML = success 
+                ? `<i class="fas fa-check-circle mr-2"></i>${msg}`
+                : `<i class="fas fa-times-circle mr-2"></i>${msg}`;
+            // Use explicit class toggling for production stability
+            el.classList.toggle('bg-green-900/50', success);
+            el.classList.toggle('text-green-400', success);
+            el.classList.toggle('border-green-700', success);
+            el.classList.toggle('bg-red-900/50', !success);
+            el.classList.toggle('text-red-400', !success);
+            el.classList.toggle('border-red-900', !success);
+        }
 
-        function drawMatrix() {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
-            ctx.fillRect(0, 0, c.width, c.height);
+        function showToast(msg, success = false) {
+            const t = document.getElementById('toast');
+            // Simplified class names for the toast (since we removed the external dependency)
+            t.innerText = msg;
+            t.style.backgroundColor = success ? '#065f46' : '#991b1b'; 
+            t.style.color = '#fff';
+            t.style.opacity = 1;
+            setTimeout(() => t.style.opacity = 0, 4000);
+        }
 
-            ctx.fillStyle = '#00ff41';
-            ctx.font = font_size + 'px Share Tech Mono';
+        function buzz() { if (navigator.vibrate) navigator.vibrate([100, 50, 100]); }
 
-            for(let i = 0; i < drops.length; i++) {
-                const text = matrixText[Math.floor(Math.random() * matrixText.length)];
-                ctx.fillText(text, i * font_size, drops[i] * font_size);
+        async function checkEnvironment() {
+            const btn = document.getElementById('main-btn');
+            let ready = true;
 
-                if(drops[i] * font_size > c.height && Math.random() > 0.975) drops[i] = 0;
+            // 1. Secure Context Check
+            if (window.isSecureContext) {
+                updateSeal('check-secure', true, 'SECURE CONTEXT: ACTIVE');
+            } else {
+                updateSeal('check-secure', false, 'HTTPS REQUIRED');
+                ready = false;
+            }
 
-                drops[i]++;
+            // 2. Platform Authenticator Check
+            const platformOk = await platformAuthenticatorIsAvailable();
+            if (platformOk) {
+                updateSeal('check-platform', true, 'AUTHENTICATOR: READY');
+            } else {
+                updateSeal('check-platform', false, 'NO BIOMETRIC DEVICE');
+                ready = false;
+            }
+
+            // 3. Server Reachability + Registration Status
+            try {
+                const statusResp = await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS });
+                
+                if (statusResp.ok) {
+                    // Server sent options; user is registered.
+                    isRegistered = true;
+                    updateSeal('check-server', true, 'SERVER: ID FOUND');
+                } else {
+                    // Server responded with 404/403/other error; likely unregistered state
+                    isRegistered = false;
+                    updateSeal('check-server', true, 'SERVER: ID SLOT OPEN');
+                }
+            } catch (e) {
+                updateSeal('check-server', false, 'ABYSS UNREACHABLE');
+                updateHUD("ABYSS UNREACHABLE", "text-red-500");
+                btn.innerText = "RETRY";
+                ready = false;
+            }
+
+            // Final state transition
+            if (ready) {
+                updateHUD("CHAOS CORE READY FOR HANDSHAKE", "text-green-400");
+                btn.innerHTML = isRegistered 
+                    ? '<i class="fas fa-fingerprint mr-3"></i> VERIFY IDENTITY'
+                    : '<i class="fas fa-shield-alt mr-3"></i> INITIALIZE DEVICE';
+                btn.disabled = false;
+            }
+            return ready;
+        }
+
+        async function handleMainAction() {
+            const btn = document.getElementById('main-btn');
+            btn.disabled = true;
+            buzz();
+
+            if (!isRegistered) {
+                await doRegister();
+            } else {
+                await doLogin();
+            }
+            btn.disabled = false;
+        }
+
+        async function doRegister() {
+             updateHUD("SYSTEM LOCKED. ACCESS DENIED.", "text-red-500");
+             showToast("Registration is closed. Contact admin for key reset.", false);
+        }
+
+        async function doLogin() {
+            updateHUD("SCAN BIOMETRIC NOW", "text-white");
+            try {
+                // A. GET OPTIONS
+                const opts = await (await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS })).json();
+                
+                // B. SCAN
+                const asseResp = await startAuthentication({ publicKey: opts });
+
+                // C. VERIFY (Temporal + Crypto)
+                updateHUD("ANALYZING BEHAVIOR...", "text-blue-400");
+                const verifyResp = await fetch(`${API_BASE}/auth/login-verify`, {
+                    method: 'POST',
+                    headers: HEADERS,
+                    body: JSON.stringify(asseResp)
+                });
+                const result = await verifyResp.json();
+
+                // D. SUCCESS & REDIRECT
+                if (result.verified) {
+                    updateHUD("ACCESS GRANTED", "text-green-500");
+                    document.body.style.background = "radial-gradient(circle at center, #002200, #000)";
+                    buzz();
+                    
+                    if (result.token) sessionStorage.setItem('chaos_session', result.token);
+                    
+                    showToast("Welcome, Agent", true);
+                    setTimeout(() => location.href = '/dashboard.html', 1800);
+                } else {
+                    if (result.error && result.error.includes("TEMPORAL_ANOMALY")) {
+                        throw new Error("BEHAVIORAL ANOMALY DETECTED.");
+                    } else {
+                        throw new Error(result.error || "Verification Failed.");
+                    }
+                }
+            } catch (e) {
+                let msg = e.message || "Login timed out or was cancelled.";
+                updateHUD("ACCESS DENIED", "text-red-500");
+                document.body.style.background = "radial-gradient(circle at center, #220000, #000)";
+                showToast(msg, false);
+                setTimeout(() => document.body.style.background = "#000", 2000);
+            } finally {
+                 document.getElementById('main-btn').disabled = false;
             }
         }
-        setInterval(drawMatrix, 33);
-        window.onresize = () => { c.height = window.innerHeight; c.width = window.innerWidth; };
-
-        // --- 2. LIVE TERMINAL & LATENCY Ticker (Features 1 & 3) ---
-        const terminal = document.getElementById('terminal');
-        const latencyDisplay = document.getElementById('latency');
-        const terminalEvents = [
-          "<span class='text-green-400'> > MBF Fusion: Face ID + Fingerprint → BLS aggregate verified</span>",
-          "<span class='text-blue-400'> > DREAMS V3: Profile updated. Trust Score: 0.99</span>",
-          "<span class='text-red-400'> > Nightmare: Blocked 1,247 bot requests in last 60s</span>",
-          "<span class='text-green-400'> > ZKP Audit: Partner verified quota spend #8891</span>",
-          "<span class='text-yellow-400'> > Quantum handshake (ML-KEM) → forward secrecy locked</span>"
-        ];
-
-        let eventIndex = 0;
         
-        function updateTerminal() {
-            const line = document.createElement('div');
-            line.innerHTML = terminalEvents[eventIndex % terminalEvents.length];
-            terminal.appendChild(line);
-            terminal.scrollTop = terminal.scrollHeight;
-            eventIndex++;
-            
-            // Update Latency (Mock)
-            latencyDisplay.textContent = (1.6 + Math.random()*0.4).toFixed(2) + "ms p99";
-        }
-        
-        // Start live feed
-        setInterval(updateTerminal, 3800);
-        updateTerminal();
-
-
-        // --- 3. INTERACTIVE SIMULATORS (Features 4 & 7) ---
-
-        // Feature 7: MBF Live Simulator
-        function runMBFSim() {
-            const status = document.getElementById('mbf-status');
-            const d1 = document.getElementById('device-1');
-            const d2 = document.getElementById('device-2');
-            
-            d1.classList.remove('text-gray-600', 'text-green-500');
-            d2.classList.remove('text-gray-600', 'text-green-500');
-            
-            status.textContent = 'INITIATING DUAL SCAN...';
-            d1.classList.add('text-yellow-500');
-            d2.classList.add('text-yellow-500');
-
-            setTimeout(() => {
-                status.textContent = 'BLS AGGREGATING PROOF...';
-                d1.classList.remove('text-yellow-500');
-                d2.classList.remove('text-yellow-500');
-                d1.classList.add('text-green-500');
-                d2.classList.add('text-green-500');
-            }, 1500);
-
-            setTimeout(() => {
-                status.textContent = 'FUSION LOCK COMPLETE';
-                status.classList.add('neon-text');
-            }, 2500);
-            
-            // Reset after 4s
-            setTimeout(() => {
-                 status.classList.remove('neon-text');
-                 status.textContent = 'AWAITING FUSION...';
-                 d1.classList.remove('text-green-500');
-                 d2.classList.remove('text-green-500');
-                 d1.classList.add('text-gray-600');
-                 d2.classList.add('text-gray-600');
-            }, 4000);
-        }
-
-        // Feature 4: ZKP Proof Demo
-        function runZKPTest() {
-            const result = document.getElementById('zkp-result');
-            result.innerHTML = `
-                <span class="text-purple-400 blink"><i class="fas fa-spinner fa-spin"></i> GENERATING GROTH16 PROOF...</span>
-            `;
-
-            setTimeout(() => {
-                result.innerHTML = `
-                    <p class="text-green-400 font-bold">VERIFICATION SUCCESS (2.1ms)</p>
-                    <p class="text-xs text-gray-500">ROOT: 0x89C...D3EF (IMMUTABLE)</p>
-                    <p class="text-xs text-gray-500">PROVED: Quota consumed was valid.</p>
-                `;
-            }, 2000);
-        }
+        // Execute initial checks on load
+        window.onload = () => {
+            document.getElementById('main-btn').onclick = checkEnvironment;
+            // The initial check will fire and set the correct button action after the check.
+            checkEnvironment();
+            setInterval(checkEnvironment, 15000); // Keep status fresh
+        };
     </script>
-
+</body>
+</html>
