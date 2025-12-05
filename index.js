@@ -1,6 +1,7 @@
 /**
- * A+ TOTEM SECURITY CORE: SAAS EDITION (STABLE)
- * Fixes: Dynamic RP_ID detection to prevent WebAuthn failures.
+ * A+ TOTEM SECURITY CORE V8: BIO-LINK
+ * Pillars: CHAOS, IRON DOME, ABYSS, WEBAUTHN
+ * Fix: Auto-detects domain to prevent WebAuthn origin errors.
  */
 
 const express = require('express');
@@ -15,24 +16,20 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 const publicPath = path.join(__dirname, 'public');
 
+if (!fs.existsSync(publicPath)) console.error("❌ CRITICAL: 'public' folder missing!");
+
 // ==========================================
 // 🌌 THE ABYSS (State)
 // ==========================================
 const Users = new Map(); 
 const Challenges = new Map(); 
 
-// DYNAMIC DOMAIN CONFIGURATION
-// This is crucial for WebAuthn to work on both Replit and Render without manual changes.
+// AUTO-DETECT DOMAIN (Fixes Origin Mismatch Errors)
+const getRpId = (req) => req.get('host').split(':')[0];
 const getOrigin = (req) => {
-    const host = req.get('host'); // e.g., 'chaos-auth-iff2.onrender.com'
-    // If localhost, use http. If cloud, use https.
+    const host = req.get('host');
     const protocol = host.includes('localhost') ? 'http' : 'https';
     return `${protocol}://${host}`;
-};
-
-const getRpId = (req) => {
-    // Returns just the domain (e.g., 'chaos-auth-iff2.onrender.com')
-    return req.get('host').split(':')[0]; 
 };
 
 // ==========================================
@@ -56,15 +53,13 @@ app.use(Nightmare.antiBot);
 // 🧬 BIO-LINK ROUTES
 // ==========================================
 
-// 1. REGISTER OPTIONS
+// 1. REGISTER
 app.get('/api/v1/auth/register-options', async (req, res) => {
     const userId = 'admin';
-    const rpID = getRpId(req);
-    
     try {
         const options = await generateRegistrationOptions({
             rpName: 'A+ Totem Core',
-            rpID: rpID,
+            rpID: getRpId(req),
             userID: userId,
             userName: 'admin@aplus.com',
             attestationType: 'none',
@@ -73,30 +68,22 @@ app.get('/api/v1/auth/register-options', async (req, res) => {
                 userVerification: 'required',
             },
         });
-
         Challenges.set(userId, options.challenge);
         res.json(options);
-    } catch (err) {
-        console.error("Reg Options Error:", err);
-        res.status(500).json({ error: err.message });
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 2. REGISTER VERIFY
 app.post('/api/v1/auth/register-verify', async (req, res) => {
     const userId = 'admin';
     const expectedChallenge = Challenges.get(userId);
-    const rpID = getRpId(req);
-    const origin = getOrigin(req);
-
     if (!expectedChallenge) return res.status(400).json({ error: "Challenge expired" });
 
     try {
         const verification = await verifyRegistrationResponse({
             response: req.body,
             expectedChallenge,
-            expectedOrigin: origin,
-            expectedRPID: rpID,
+            expectedOrigin: getOrigin(req),
+            expectedRPID: getRpId(req),
         });
 
         if (verification.verified) {
@@ -107,50 +94,38 @@ app.post('/api/v1/auth/register-verify', async (req, res) => {
         } else {
             res.status(400).json({ verified: false });
         }
-    } catch (error) {
-        console.error("Reg Verify Error:", error);
-        res.status(400).json({ error: error.message });
-    }
+    } catch (error) { res.status(400).json({ error: error.message }); }
 });
 
-// 3. LOGIN OPTIONS
+// 2. LOGIN
 app.get('/api/v1/auth/login-options', async (req, res) => {
     const userId = 'admin';
     const user = Users.get(userId);
-    const rpID = getRpId(req);
-    
     if (!user) return res.status(404).json({ error: "No Admin Registered" });
 
-    const options = await generateAuthenticationOptions({
-        rpID: rpID,
-        allowCredentials: [{
-            id: user.credentialID,
-            type: 'public-key',
-            transports: ['internal'],
-        }],
-        userVerification: 'required',
-    });
-
-    Challenges.set(userId, options.challenge);
-    res.json(options);
+    try {
+        const options = await generateAuthenticationOptions({
+            rpID: getRpId(req),
+            allowCredentials: [{ id: user.credentialID, type: 'public-key', transports: ['internal'] }],
+            userVerification: 'required',
+        });
+        Challenges.set(userId, options.challenge);
+        res.json(options);
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 4. LOGIN VERIFY
 app.post('/api/v1/auth/login-verify', async (req, res) => {
     const userId = 'admin';
     const user = Users.get(userId);
     const expectedChallenge = Challenges.get(userId);
-    const rpID = getRpId(req);
-    const origin = getOrigin(req);
-
     if (!user || !expectedChallenge) return res.status(400).json({ error: "Invalid State" });
 
     try {
         const verification = await verifyAuthenticationResponse({
             response: req.body,
             expectedChallenge,
-            expectedOrigin: origin,
-            expectedRPID: rpID,
+            expectedOrigin: getOrigin(req),
+            expectedRPID: getRpId(req),
             authenticator: user,
         });
 
@@ -163,29 +138,22 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
         } else {
             res.status(400).json({ verified: false });
         }
-    } catch (error) {
-        console.error("Auth Verify Error:", error);
-        res.status(400).json({ error: error.message });
-    }
+    } catch (error) { res.status(400).json({ error: error.message }); }
 });
 
-// 5. STATUS CHECK
 app.get('/api/v1/auth/status', (req, res) => {
     res.json({ registered: Users.has('admin') });
 });
 
-
 // ROUTES
 app.use(express.static(publicPath));
-
 app.get('/', (req, res) => {
-    res.sendFile(path.join(publicPath, 'index.html')); // Landing Page
+    const landing = path.join(publicPath, 'landing.html');
+    if (fs.existsSync(landing)) res.sendFile(landing);
+    else res.sendFile(path.join(publicPath, 'index.html'));
 });
+app.get('/app', (req, res) => res.sendFile(path.join(publicPath, 'index.html')));
 
-app.get('/app', (req, res) => {
-    res.sendFile(path.join(publicPath, 'app.html')); // War Room
-});
-
-app.listen(PORT, () => console.log(`🛡️ A+ TOTEM V8 AUTO-CONFIG LIVE: ${PORT}`));
+app.listen(PORT, () => console.log(`🛡️ A+ TOTEM V8 BIO-LINK ONLINE: ${PORT}`));
 
 
