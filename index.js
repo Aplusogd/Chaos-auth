@@ -25,7 +25,7 @@ app.use(cors({ origin: '*' }));
 app.use(express.json());
 app.use(express.static(publicPath));
 
-// --- UTILITY: DEFINITIVE DNA CONVERTER ---
+// --- UTILITY: DEFINITIVE DNA CONVERTER (CRITICAL FIX) ---
 const jsObjectToBuffer = (obj) => {
     if (obj instanceof Uint8Array) return obj;
     if (obj instanceof Buffer) return obj;
@@ -34,21 +34,21 @@ const jsObjectToBuffer = (obj) => {
     return Buffer.from(values);
 };
 
-// --- UTILITY: EXTRACT CHALLENGE STRING FROM CLIENT RESPONSE (CRITICAL FIX) ---
+// --- UTILITY: EXTRACT CHALLENGE STRING FROM CLIENT RESPONSE (V46 Synchronization Fix) ---
 function extractChallengeFromClientResponse(clientResponse) {
     try {
+        // The WebAuthn library returns clientDataJSON in Base64URL format.
         const clientDataJSONBase64 = clientResponse.response.clientDataJSON;
         const json = Buffer.from(clientDataJSONBase64, 'base64url').toString('utf8');
-        return JSON.parse(json).challenge; // This is the raw challenge string used as the map key
+        return JSON.parse(json).challenge; // This is the raw challenge string (key for the Map)
     } catch (e) {
         console.error("Error decoding clientDataJSON:", e);
         return null;
     }
 }
 
-
 // ==========================================
-// 1. DREAMS PROTOCOL BLACK BOX (Omitted for space)
+// 1. DREAMS PROTOCOL BLACK BOX (Simulated)
 // ==========================================
 const DreamsEngine = {
     start: () => process.hrtime.bigint(),
@@ -128,7 +128,6 @@ app.get('/api/v1/auth/login-options', async (req, res) => {
             rpID: getRpId(req),
             userVerification: 'required',
         });
-        // CRITICAL: Use the challenge string as the key in the map
         Challenges.set(options.challenge, { challenge: options.challenge, startTime: DreamsEngine.start() });
         res.json(options);
     } catch (err) { res.status(500).json({ error: err.message }); }
@@ -139,7 +138,7 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
     const user = Users.get(userID);
     const clientResponse = req.body;
     
-    // CRITICAL FIX: Extract the original challenge string from the client's data
+    // CRITICAL: Extract challenge key correctly from Base64 client payload
     const challengeString = extractChallengeFromClientResponse(clientResponse);
     const expectedChallenge = Challenges.get(challengeString); 
 
@@ -179,9 +178,6 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
     }
 });
 
-// --- ADMIN PORTAL LOGIC (Removed for stability) ---
-// Note: Admin portal functionality must be integrated separately.
-
 // --- API & FILE ROUTING ---
 app.post('/api/v1/external/verify', Nightmare.guardSaaS, (req, res) => {
     res.json({ valid: true, user: "Admin User", method: "LEGACY_KEY", quota: { used: req.partner.usage, limit: req.partner.limit } });
@@ -191,7 +187,7 @@ app.get('/api/v1/beta/pulse-demo', (req, res) => {
     const agent = Abyss.agents.get('DEMO_AGENT_V1');
     if(agent.usage >= agent.limit) return res.status(402).json({ error: "LIMIT" });
     agent.usage++;
-    setTimeout(() => res.json({ valid: true, hash: 'pulse_' + Date.now(), ms: 15, quota: {used: agent.usage, limit: agent.limit} }), 200);
+    setTimeout(() => res.json({ valid: true, hash: 'pulse_' + Date.now(), ms: 15, quota: {used: agent.usage, limit: agent.agent_limit} }), 200);
 });
 
 app.get('/api/v1/admin/telemetry', (req, res) => {
@@ -219,5 +215,5 @@ app.use((err, req, res, next) => {
     res.status(500).send("<h1>System Critical Error</h1>");
 });
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V46 (SYNCHRONIZATION FIX) ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V46 (SYNCHRONIZATION COMPLETE) ONLINE: ${PORT}`));
 
