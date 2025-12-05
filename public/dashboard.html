@@ -94,8 +94,7 @@
         const dna = sessionStorage.getItem('chaos_dna');
 
         if (!session) {
-            // FIX: Use full URL to prevent "invalid URL" errors in some environments
-            window.location.href = window.location.origin + '/app'; 
+            window.location.href = '/app'; // Redirect to Login
         } else {
             // Populate Data
             document.getElementById('token-display').innerText = session;
@@ -104,8 +103,7 @@
 
         function logout() {
             sessionStorage.clear();
-            // FIX: Use full URL
-            window.location.href = window.location.origin + '/';
+            window.location.href = '/';
         }
     </script>
 </body>
