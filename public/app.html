@@ -11,9 +11,6 @@
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
         body { background-color: #050505; color: #e5e5e5; font-family: 'JetBrains Mono', monospace; overflow-x: hidden; user-select: none; }
         .abyss-bg { background-image: linear-gradient(rgba(0, 255, 128, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 128, 0.03) 1px, transparent 1px); background-size: 30px 30px; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: -1; }
-        .status-green { color: #10B981; text-shadow: 0 0 10px rgba(16, 185, 129, 0.5); }
-        .status-red { color: #EF4444; text-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
-        .status-blue { color: #3B82F6; text-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
         .console-box { background: rgba(10, 10, 10, 0.9); border: 1px solid #333; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
         .star { position: absolute; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; transition: all 0.2s; box-shadow: 0 0 20px currentColor; border: 2px solid white; }
         .star:active { transform: scale(0.8); }
@@ -75,6 +72,7 @@
             ].join('||');
             return CryptoJS.SHA256(rawData).toString();
         }
+
         const myDeviceHash = getDeviceFingerprint();
         document.getElementById('device-id-display').innerText = "DEVICE DNA: " + myDeviceHash.substring(0, 16) + "...";
 
@@ -130,19 +128,25 @@
                         nonce: currentNonce, 
                         echo: echo, 
                         solution: userSequence,
-                        deviceHash: myDeviceHash 
+                        deviceHash: myDeviceHash // <--- Sending the "Card"
                     })
                 });
+                
                 const data = await res.json();
+                
                 if (data.valid) {
                     log("✅ DNA MATCH CONFIRMED.", "success");
-                    // STORE TOKEN
+                    log("✅ PIN ACCEPTED.", "success");
+                    
+                    // STORE TOKEN AND REDIRECT
                     sessionStorage.setItem('chaos_session', data.session);
                     sessionStorage.setItem('chaos_dna', myDeviceHash);
-                    // REDIRECT TO DASHBOARD (Using full URL path for safety)
+                    
+                    // Redirect to Dashboard using full URL for safety
                     setTimeout(() => {
                         window.location.href = window.location.origin + '/dashboard';
                     }, 1000);
+
                 } else {
                     log("❌ ACCESS DENIED: " + data.error, "error");
                 }
