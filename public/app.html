@@ -11,6 +11,9 @@
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
         body { background-color: #050505; color: #e5e5e5; font-family: 'JetBrains Mono', monospace; overflow-x: hidden; user-select: none; }
         .abyss-bg { background-image: linear-gradient(rgba(0, 255, 128, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 128, 0.03) 1px, transparent 1px); background-size: 30px 30px; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: -1; }
+        .status-green { color: #10B981; text-shadow: 0 0 10px rgba(16, 185, 129, 0.5); }
+        .status-red { color: #EF4444; text-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
+        .status-blue { color: #3B82F6; text-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
         .console-box { background: rgba(10, 10, 10, 0.9); border: 1px solid #333; box-shadow: 0 0 20px rgba(0,0,0,0.8); }
         .star { position: absolute; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; transition: all 0.2s; box-shadow: 0 0 20px currentColor; border: 2px solid white; }
         .star:active { transform: scale(0.8); }
@@ -61,7 +64,6 @@
 
         // --- 1. DEVICE FINGERPRINTING (THE DNA) ---
         function getDeviceFingerprint() {
-            // We combine screen specs, timezone, and platform to create a unique hardware ID
             const rawData = [
                 navigator.userAgent,
                 navigator.language,
@@ -71,24 +73,18 @@
                 navigator.deviceMemory || 'unknown',
                 screen.width + 'x' + screen.height
             ].join('||');
-            
             return CryptoJS.SHA256(rawData).toString();
         }
-
         const myDeviceHash = getDeviceFingerprint();
         document.getElementById('device-id-display').innerText = "DEVICE DNA: " + myDeviceHash.substring(0, 16) + "...";
 
         // --- 2. INITIATE ---
         document.getElementById('btn-init').addEventListener('click', async () => {
             log("Scanning Device DNA...", "info");
-            log("DNA Hash: " + myDeviceHash.substring(0, 8), "info");
-            
             document.getElementById('captcha-layer').classList.remove('hidden');
-            
             try {
                 const res = await fetch('/api/v1/challenge', { headers: HEADERS });
                 const data = await res.json();
-                
                 if (data.pulse) {
                     currentNonce = data.pulse;
                     log("Pulse Acquired.", "info");
@@ -97,41 +93,33 @@
             } catch(e) { log("Server Offline.", "error"); }
         });
 
-        // --- 3. RENDER STARS (User must know the order) ---
-        // Defined colors. User must click: RED, BLUE, GREEN, RED
+        // --- 3. RENDER STARS ---
         const COLORS = ['red', 'blue', 'green', 'yellow'];
-        
         function renderStars() {
             const field = document.getElementById('star-field');
             field.innerHTML = '';
             userSequence = [];
-            
-            // Spawn 5 random stars of different colors
             for(let i=0; i<5; i++) {
                 const color = COLORS[Math.floor(Math.random() * COLORS.length)];
                 const star = document.createElement('div');
                 star.className = `star bg-${color}-500`;
                 star.style.left = Math.random() * 80 + 10 + '%';
                 star.style.top = Math.random() * 80 + 10 + '%';
-                
                 star.onclick = () => {
                     userSequence.push(color);
                     star.style.opacity = '0';
                     star.style.pointerEvents = 'none';
-                    
-                    // If they clicked 4 stars, send attempt
                     if (userSequence.length === 4) {
                         document.getElementById('captcha-layer').classList.add('hidden');
                         completeHandshake();
                     }
                 };
-                
                 field.appendChild(star);
                 setInterval(() => { star.style.transform = `translate(${Math.random()*4-2}px, ${Math.random()*4-2}px)`; }, 100);
             }
         }
 
-        // --- 4. VERIFY ---
+        // --- 4. VERIFY & REDIRECT ---
         async function completeHandshake() {
             const echo = CryptoJS.SHA256(currentNonce + "TOTEM_PRIME_DIRECTIVE").toString();
             try {
@@ -142,17 +130,19 @@
                         nonce: currentNonce, 
                         echo: echo, 
                         solution: userSequence,
-                        deviceHash: myDeviceHash // <--- Sending the "Card"
+                        deviceHash: myDeviceHash 
                     })
                 });
-                
                 const data = await res.json();
-                
                 if (data.valid) {
                     log("✅ DNA MATCH CONFIRMED.", "success");
-                    log("✅ PIN ACCEPTED.", "success");
-                    document.getElementById('auth-state').innerText = "AUTHENTICATED";
-                    document.getElementById('auth-state').className = "text-xs text-green-500 font-bold mb-6";
+                    // STORE TOKEN
+                    sessionStorage.setItem('chaos_session', data.session);
+                    sessionStorage.setItem('chaos_dna', myDeviceHash);
+                    // REDIRECT TO DASHBOARD (Using full URL path for safety)
+                    setTimeout(() => {
+                        window.location.href = window.location.origin + '/dashboard';
+                    }, 1000);
                 } else {
                     log("❌ ACCESS DENIED: " + data.error, "error");
                 }
