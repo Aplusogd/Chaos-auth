@@ -13,12 +13,12 @@
             background-color: #000; 
             color: #00ff41; 
             font-family: 'JetBrains Mono', monospace; 
-            touch-action: none; /* Critical for drag */
+            touch-action: none; 
             overflow: hidden; 
             user-select: none;
         }
 
-        /* THE GRAVITY WELL (Visual Only - No Touch) */
+        /* U-SHAPED WELL */
         .well-container {
             position: absolute;
             bottom: 40px;
@@ -32,20 +32,20 @@
             border-radius: 0 0 30px 30px;
             border-top: none;
             background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0, 255, 65, 0.05));
-            pointer-events: none; /* CRITICAL FIX: Lets touches pass through to the totem */
+            pointer-events: none; /* Allows click-through */
             z-index: 10;
         }
 
-        /* THE TOTEM (Interactive) */
+        /* TOTEM */
         .totem {
-            width: 90px; /* Bigger touch target */
+            width: 90px;
             height: 90px;
             background: radial-gradient(circle at 30% 30%, #aaffaa, #00ff41);
             border-radius: 50%;
             position: absolute;
             bottom: 30px; 
             left: 50%;
-            transform: translateX(-50%); /* Center horizontally */
+            transform: translateX(-50%);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -53,33 +53,49 @@
             color: #002200;
             box-shadow: 0 0 25px #00ff41;
             cursor: grab;
-            z-index: 50; /* CRITICAL FIX: Higher than well */
+            z-index: 50;
             touch-action: none;
+            transition: opacity 0.5s, filter 0.5s;
         }
 
-        .totem:active { cursor: grabbing; box-shadow: 0 0 50px #00ff41; }
-        
+        /* OFFLINE STATE */
+        .totem.offline {
+            filter: grayscale(100%);
+            opacity: 0.5;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .totem:active:not(.offline) { cursor: grabbing; box-shadow: 0 0 50px #00ff41; }
         .launching { transition: bottom 0.4s cubic-bezier(0.1, 0.7, 0.1, 1), opacity 0.4s; bottom: 120vh !important; opacity: 0; }
         .falling { transition: bottom 0.6s cubic-bezier(0.5, 0, 0.5, 1.5); bottom: 30px !important; }
         .shake { animation: shake 0.5s; }
         @keyframes shake { 0%, 100% { transform: translateX(-50%); } 25% { transform: translateX(-60%); } 75% { transform: translateX(-40%); } }
 
-        .arrow-guide { position: absolute; bottom: 220px; left: 50%; transform: translateX(-50%); color: rgba(0, 255, 65, 0.3); animation: float-up 1.5s infinite; pointer-events: none; }
-        @keyframes float-up { 0% { opacity:0; transform:translate(-50%, 10px);} 50% {opacity:1;} 100% {opacity:0; transform:translate(-50%, -20px);} }
         .hud-status { font-size: 1.5rem; font-weight: 800; text-align: center; margin-top: 20vh; text-shadow: 0 0 10px #00ff41; pointer-events: none; }
+        
+        /* CONNECTION DOT */
+        .status-dot {
+            position: absolute; top: 20px; right: 20px; width: 12px; height: 12px; border-radius: 50%;
+            background: #330000; border: 1px solid #550000;
+            box-shadow: 0 0 5px #ff0000;
+            transition: all 0.5s;
+        }
+        .status-dot.online { background: #00ff41; border-color: #aaffaa; box-shadow: 0 0 10px #00ff41; }
     </style>
 </head>
 <body class="h-screen w-screen">
 
-    <div id="hud" class="hud-status text-yellow-500">INITIALIZING...</div>
-    <div class="arrow-guide"><i class="fas fa-chevron-up text-2xl"></i></div>
+    <div id="status-dot" class="status-dot"></div>
+
+    <div id="hud" class="hud-status text-yellow-500">CONNECTING...</div>
     
     <div class="well-container">
         <div class="text-[10px] text-green-900 text-center mt-28 select-none">SWIPE UP</div>
     </div>
 
-    <!-- Totem Icon -->
-    <div class="totem" id="totem">
+    <!-- Totem Icon (Starts Offline) -->
+    <div class="totem offline" id="totem">
         <i class="fas fa-fingerprint"></i>
     </div>
 
@@ -90,6 +106,7 @@
         
         const totem = document.getElementById('totem');
         const hud = document.getElementById('hud');
+        const dot = document.getElementById('status-dot');
         
         let isDragging = false;
         let startY = 0;
@@ -98,45 +115,55 @@
         let velocityY = 0;
         let authOptions = null;
         let pathData = []; 
-        let accels = [];
 
-        // --- FETCH OPTIONS ---
+        // --- FETCH OPTIONS (AUTO-RETRY) ---
         async function preheat() {
             try {
+                // Check if server is awake
                 const resp = await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS });
+                
                 if(resp.ok) {
                     authOptions = await resp.json();
+                    
+                    // SUCCESS STATE
                     hud.innerText = "CAST TOTEM";
                     hud.className = "hud-status text-green-500";
-                    totem.style.opacity = "1";
+                    totem.classList.remove('offline');
+                    dot.classList.add('online');
                 } else {
-                     throw new Error("Server Error");
+                    // SERVER ERROR (500/404)
+                    throw new Error(`Server ${resp.status}`);
                 }
             } catch(e) { 
-                hud.innerText = "RECONNECTING..."; 
+                // RETRY STATE
+                console.error("Preheat failed:", e);
+                hud.innerText = "WAKING SERVER..."; 
                 hud.className = "hud-status text-red-500";
-                setTimeout(preheat, 2000); // Retry
+                totem.classList.add('offline');
+                dot.classList.remove('online');
+                
+                // Retry in 2 seconds
+                setTimeout(preheat, 2000);
             }
         }
-        preheat();
+        
+        // Start the engine
+        setTimeout(preheat, 100); 
 
-        // --- EVENT LISTENERS (Standard & Passive) ---
+        // --- INTERACTION ---
         totem.addEventListener('touchstart', grab, { passive: false });
         document.addEventListener('touchmove', move, { passive: false });
         document.addEventListener('touchend', release, { passive: false });
-        
-        // Mouse Support
         totem.addEventListener('mousedown', grab);
         document.addEventListener('mousemove', move);
         document.addEventListener('mouseup', release);
 
         function grab(e) {
-            // Safety Check: If server isn't ready, shake the button
-            if(!authOptions) {
-                hud.innerText = "WAITING FOR SIGNAL...";
+            // If offline, reject grab
+            if(!authOptions || totem.classList.contains('offline')) {
+                hud.innerText = "WAITING FOR SERVER...";
                 totem.classList.add('shake');
                 setTimeout(() => totem.classList.remove('shake'), 500);
-                preheat(); // Try fetching again
                 return;
             }
 
@@ -148,41 +175,34 @@
             lastTime = Date.now();
             
             totem.classList.remove('falling', 'launching', 'shake');
-            totem.style.transition = 'none'; // Allow instant drag
+            totem.style.transition = 'none'; 
             pathData = [];
-            accels = [];
             
-            // Visual Pop
             totem.style.transform = 'translateX(-50%) scale(1.1)';
         }
 
         function move(e) {
             if (!isDragging) return;
-            if (e.cancelable) e.preventDefault(); // STOP SCROLLING
+            if (e.cancelable) e.preventDefault(); 
             
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
             const now = Date.now();
-            let deltaY = startY - clientY; // How far up we dragged
+            let deltaY = startY - clientY; 
 
-            // Physics Calc
+            // Physics
             const dt = now - lastTime;
             let currentVel = 0;
-            if (dt > 0) {
-                currentVel = (lastY - clientY) / dt;
-            }
+            if (dt > 0) currentVel = (lastY - clientY) / dt;
             
             pathData.push({ y: deltaY, v: currentVel, t: now });
             lastY = clientY;
             lastTime = now;
             velocityY = currentVel;
 
-            // Rubber Banding at bottom (negative drag)
-            if (deltaY < 0) deltaY = deltaY * 0.2; 
+            if (deltaY < 0) deltaY = deltaY * 0.2; // Rubber band
+            totem.style.bottom = `${30 + deltaY}px`; 
             
-            // Update Position
-            totem.style.bottom = `${30 + deltaY}px`; // 30px is base
-            
-            // Glow Effect at Threshold
+            // Visual Feedback
             if (deltaY > 150) {
                 totem.style.backgroundColor = "#fff";
                 totem.style.color = "#000";
@@ -197,13 +217,12 @@
             isDragging = false;
             
             const currentBottom = parseFloat(totem.style.bottom);
-            totem.style.transform = 'translateX(-50%) scale(1)'; // Reset scale
+            totem.style.transform = 'translateX(-50%) scale(1)';
             
-            // LAUNCH THRESHOLD: > 200px drag OR > 1.2 velocity
+            // THROW THRESHOLD
             if (currentBottom > 230 || (velocityY > 1.2 && currentBottom > 100)) {
                 launch();
             } else {
-                // FALL BACK
                 totem.classList.add('falling');
                 hud.innerText = "THROW HARDER";
                 setTimeout(() => { if(hud.innerText === "THROW HARDER") hud.innerText = "CAST TOTEM"; }, 1500);
@@ -213,7 +232,7 @@
         async function launch() {
             hud.innerText = "OPENING GATE...";
             hud.className = "hud-status text-green-400";
-            totem.classList.add('launching'); // Fly away
+            totem.classList.add('launching');
             
             try {
                 const asseResp = await startAuthentication({ publicKey: authOptions });
@@ -238,7 +257,7 @@
                 hud.className = "hud-status text-red-500";
                 setTimeout(() => {
                     totem.classList.remove('launching');
-                    totem.classList.add('falling'); // Drop back down
+                    totem.classList.add('falling');
                     hud.innerText = "CAST TOTEM";
                     hud.className = "hud-status text-green-500";
                 }, 2000);
