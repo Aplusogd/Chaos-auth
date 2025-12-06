@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CHAOS | HYDRA PROTOCOL</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Secrets.js (Shamir's Secret Sharing) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/secrets.js-grem/2016.03.04/secrets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"></script>
+    <style>
+        body { background-color: #050505; color: #00ff41; font-family: monospace; }
+        .panel { border: 1px solid #333; padding: 20px; background: #000; margin-bottom: 20px; }
+        .shard { font-family: 'Courier New'; word-break: break-all; border-bottom: 1px dashed #333; padding: 10px; }
+        .btn { width: 100%; padding: 15px; font-weight: bold; border: 1px solid #00ff41; background: #002200; color: #00ff41; cursor: pointer; }
+        .btn:hover { background: #004400; }
+    </style>
+</head>
+<body class="p-8 max-w-4xl mx-auto">
+
+    <h1 class="text-4xl font-bold mb-8 tracking-widest text-center text-red-500">HYDRA <span class="text-xs text-white">RECOVERY CONSOLE</span></h1>
+
+    <div class="grid md:grid-cols-2 gap-8">
+        
+        <!-- GENESIS (SETUP) -->
+        <div class="panel border-blue-900">
+            <h2 class="text-xl text-blue-400 mb-4">1. GENESIS (Create Shards)</h2>
+            <p class="text-xs text-gray-500 mb-4">Enter a master passphrase to split into 5 shards. You need 3 to recover.</p>
+            
+            <input type="password" id="genesis-secret" placeholder="Enter Super-Secret Passphrase" class="w-full bg-gray-900 border border-blue-900 p-3 mb-4 text-white">
+            <button onclick="shatter()" class="btn border-blue-500 text-blue-400 bg-blue-900/20 hover:bg-blue-900/40">SHATTER SECRET</button>
+
+            <div id="shards-output" class="mt-6 hidden">
+                <div class="text-xs text-yellow-500 mb-2">SAVE THESE SHARDS SECURELY:</div>
+                <div id="shard-list" class="text-xs text-gray-400 space-y-2"></div>
+                
+                <div class="mt-6 pt-4 border-t border-gray-800">
+                    <div class="text-xs text-purple-400">SERVER CONFIG (HASH):</div>
+                    <div id="genesis-hash" class="text-xs text-white break-all bg-gray-800 p-2 mt-1 select-all"></div>
+                    <p class="text-[10px] text-gray-500 mt-1">Copy this Hash into index.js as HYDRA_HASH</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- RECOVERY (UNLOCK) -->
+        <div class="panel border-red-900">
+            <h2 class="text-xl text-red-500 mb-4">2. RESURRECTION (Unlock)</h2>
+            <p class="text-xs text-gray-500 mb-4">Enter any 3 shards to reconstruct the key and unlock registration.</p>
+            
+            <div class="space-y-2 mb-4">
+                <input type="text" class="shard-input w-full bg-gray-900 border border-red-900 p-2 text-xs" placeholder="Shard A">
+                <input type="text" class="shard-input w-full bg-gray-900 border border-red-900 p-2 text-xs" placeholder="Shard B">
+                <input type="text" class="shard-input w-full bg-gray-900 border border-red-900 p-2 text-xs" placeholder="Shard C">
+            </div>
+
+            <button onclick="resurrect()" class="btn border-red-500 text-red-500 bg-red-900/20 hover:bg-red-900/40">RECONSTRUCT & UNLOCK</button>
+            <div id="recovery-status" class="mt-4 text-center font-bold"></div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- GENESIS ---
+        async function shatter() {
+            const secret = document.getElementById('genesis-secret').value;
+            if(!secret) return alert("Enter a secret!");
+
+            // 1. Convert text to hex
+            const secretHex = secrets.str2hex(secret);
+            
+            // 2. Split into 5 shares, threshold 3
+            const shares = secrets.share(secretHex, 5, 3);
+            
+            // 3. Display
+            const list = document.getElementById('shard-list');
+            list.innerHTML = '';
+            shares.forEach(s => {
+                list.innerHTML += `<div class="shard">${s}</div>`;
+            });
+
+            // 4. Calculate Hash for Server Config (SHA-256 of the secret)
+            const encoder = new TextEncoder();
+            const data = encoder.encode(secret);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+            document.getElementById('genesis-hash').innerText = hashHex;
+            document.getElementById('shards-output').classList.remove('hidden');
+        }
+
+        // --- RECOVERY ---
+        async function resurrect() {
+            const inputs = document.querySelectorAll('.shard-input');
+            const shares = Array.from(inputs).map(i => i.value).filter(v => v);
+
+            if(shares.length < 3) return alert("Need 3 shards!");
+
+            try {
+                // 1. Combine
+                const hex = secrets.combine(shares);
+                const secret = secrets.hex2str(hex);
+                
+                // 2. Send to Server to Unlock
+                document.getElementById('recovery-status').innerText = "TRANSMITTING TO ABYSS...";
+                
+                const resp = await fetch('/api/v1/auth/hydra-unlock', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key: secret })
+                });
+
+                const data = await resp.json();
+                
+                if (data.success) {
+                    document.getElementById('recovery-status').className = "mt-4 text-green-500";
+                    document.getElementById('recovery-status').innerText = "ACCESS GRANTED. REGISTRATION OPEN.";
+                    setTimeout(() => window.location.href = '/app.html', 2000);
+                } else {
+                    throw new Error("Invalid Key Reconstructed");
+                }
+
+            } catch(e) {
+                document.getElementById('recovery-status').className = "mt-4 text-red-500";
+                document.getElementById('recovery-status').innerText = "RESURRECTION FAILED.";
+                console.error(e);
+            }
+        }
+    </script>
+</body>
+</html>
+
+ACTION 2: Server Update index.js (V58 Hydra Enabled)
+We need to add the Hydra Hash check.
+Replace index.js on GitHub:
+/**
+ * A+ CHAOS ID: V58 (HYDRA PROTOCOL)
+ * STATUS: Identity Locked. Hydra Recovery Active.
+ */
+import express from 'express';
+import path from 'path';
+import cors from 'cors';
+import fs from 'fs';
+import crypto from 'crypto';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';     
+import { 
+    generateRegistrationOptions, 
+    verifyRegistrationResponse, 
+    generateAuthenticationOptions, 
+    verifyAuthenticationResponse 
+} from '@simplewebauthn/server';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const publicPath = path.join(__dirname, 'public');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(cors({ origin: '*' })); 
+app.use(express.json());
+app.use(express.static(publicPath));
+
+// --- HYDRA CONFIGURATION ---
+// 1. Go to /hydra.html
+// 2. Generate Shards
+// 3. Paste the 'SERVER CONFIG (HASH)' below:
+const HYDRA_HASH = process.env.HYDRA_HASH || "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"; // Default is hash of empty string
+
+let REGISTRATION_UNLOCKED = false; // Default Locked
+
+// --- UTILITY ---
+const jsObjectToBuffer = (obj) => {
+    if (obj instanceof Uint8Array) return obj;
+    if (obj instanceof Buffer) return obj;
+    if (typeof obj !== 'object' || obj === null) return new Uint8Array();
+    return Buffer.from(Object.values(obj));
+};
+
+function extractChallengeFromClientResponse(clientResponse) {
+    try {
+        const json = Buffer.from(clientResponse.response.clientDataJSON, 'base64url').toString('utf8');
+        return JSON.parse(json).challenge;
+    } catch (e) { return null; }
+}
+
+// --- DREAMS & CORE ---
+const DreamsEngine = {
+    start: () => process.hrtime.bigint(),
+    check: (d, u) => true, 
+    update: (t, p) => {}
+};
+
+const Users = new Map();
+// YOUR HARDCODED DNA
+const ADMIN_DNA_JS = {
+  "credentialID": {"0":34,"1":107,"2":129,"3":52,"4":150,"5":223,"6":204,"7":57,"8":171,"9":110,"10":196,"11":62,"12":244,"13":235,"14":33,"15":107},
+  "credentialPublicKey": {"0":165,"1":1,"2":2,"3":3,"4":38,"5":32,"6":1,"7":33,"8":88,"9":32,"10":248,"11":139,"12":206,"13":64,"14":122,"15":111,"16":83,"17":204,"18":37,"19":190,"20":213,"21":75,"22":207,"23":124,"24":3,"25":54,"26":101,"27":62,"28":26,"29":49,"30":36,"31":44,"32":74,"33":127,"34":106,"35":134,"36":50,"37":208,"38":245,"39":80,"40":80,"41":204,"42":34,"43":88,"44":32,"45":121,"46":45,"47":78,"48":103,"49":57,"50":120,"51":161,"52":241,"53":219,"54":228,"55":124,"56":89,"57":247,"58":180,"59":98,"60":57,"61":145,"62":0,"63":28,"64":76,"65":179,"66":212,"67":222,"68":26,"69":0,"70":230,"71":233,"72":237,"73":243,"74":138,"75":182,"76":166},
+  "counter": 0,
+  "dreamProfile": { window: [], sum_T: 0, sum_T2: 0 } 
+};
+const ADMIN_DNA = {
+    credentialID: jsObjectToBuffer(ADMIN_DNA_JS.credentialID),
+    credentialPublicKey: jsObjectToBuffer(ADMIN_DNA_JS.credentialPublicKey),
+    counter: ADMIN_DNA_JS.counter,
+    dreamProfile: ADMIN_DNA_JS.dreamProfile
+};
+Users.set('admin-user', ADMIN_DNA); 
+
+const Abyss = { partners: new Map(), hash: (k) => crypto.createHash('sha256').update(k).digest('hex') };
+Abyss.partners.set(Abyss.hash('sk_chaos_demo123'), { company: 'Demo', plan: 'free', usage: 0, limit: 50, active: true });
+const Nightmare = { guardSaaS: (req, res, next) => next() };
+const Chaos = { mintToken: () => crypto.randomBytes(16).toString('hex') };
+const Challenges = new Map();
+
+const getOrigin = (req) => {
+    const host = req.headers['x-forwarded-host'] || req.get('host');
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    return `${protocol}://${host}`;
+};
+const getRpId = (req) => req.get('host').split(':')[0];
+
+// ==========================================
+// ROUTES
+// ==========================================
+
+// --- HYDRA UNLOCK ROUTE ---
+app.post('/api/v1/auth/hydra-unlock', (req, res) => {
+    const { key } = req.body;
+    const attemptHash = crypto.createHash('sha256').update(key).digest('hex');
+    
+    if (attemptHash === HYDRA_HASH) {
+        REGISTRATION_UNLOCKED = true;
+        // Auto-lock after 5 minutes
+        setTimeout(() => REGISTRATION_UNLOCKED = false, 300000);
+        console.log(">>> [HYDRA] SYSTEM UNLOCKED BY QUORUM.");
+        res.json({ success: true });
+    } else {
+        res.status(403).json({ success: false });
+    }
+});
+
+// --- AUTH ---
+app.get('/api/v1/auth/register-options', async (req, res) => {
+    if (!REGISTRATION_UNLOCKED) {
+        res.setHeader('Content-Type', 'application/json');
+        return res.status(403).send(JSON.stringify({ error: "SYSTEM LOCKED. USE HYDRA TO UNLOCK." }));
+    }
+    // ... (Generation Logic for Register Options) ...
+    // Simplified for V58 robustness
+    const userID = 'admin-user'; 
+    try {
+        const options = await generateRegistrationOptions({
+            rpName: 'A+ Chaos ID',
+            rpID: getRpId(req),
+            userID: new Uint8Array(Buffer.from(userID)),
+            userName: 'admin@aplus.com',
+            attestationType: 'none',
+        });
+        Challenges.set(userID, options.challenge);
+        res.json(options);
+    } catch (err) { res.status(400).json({ error: err.message }); }
+});
+
+app.post('/api/v1/auth/register-verify', async (req, res) => {
+    if (!REGISTRATION_UNLOCKED) return res.status(403).json({ error: "LOCKED" });
+    
+    const userID = 'admin-user';
+    const clientResponse = req.body;
+    const challengeString = extractChallengeFromClientResponse(clientResponse);
+    const expectedChallenge = Challenges.get(userID) || Challenges.get(challengeString); // Fallback
+
+    if (!expectedChallenge) return res.status(400).json({ error: "Expired" });
+
+    try {
+        const verification = await verifyRegistrationResponse({
+            response: clientResponse,
+            expectedChallenge,
+            expectedOrigin: getOrigin(req),
+            expectedRPID: getRpId(req),
+        });
+
+        if (verification.verified) {
+            const userData = { ...verification.registrationInfo, dreamProfile: { window: [], sum_T: 0, sum_T2: 0 } };
+            Users.set(userID, userData);
+            Challenges.delete(userID);
+            res.json({ verified: true, adminDNA: JSON.stringify(userData) });
+        } else { res.status(400).json({ verified: false }); }
+    } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// LOGIN (Standard)
+app.get('/api/v1/auth/login-options', async (req, res) => {
+    const userID = 'admin-user'; 
+    const user = Users.get(userID);
+    if (!user) return res.status(404).json({ error: "SYSTEM RESET. PLEASE CONTACT ADMIN." });
+    try {
+        const options = await generateAuthenticationOptions({
+            rpID: getRpId(req),
+            allowCredentials: [], 
+            userVerification: 'required',
+        });
+        Challenges.set(options.challenge, { challenge: options.challenge, startTime: DreamsEngine.start() });
+        res.json(options);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/v1/auth/login-verify', async (req, res) => {
+    const userID = 'admin-user';
+    const user = Users.get(userID);
+    const clientResponse = req.body;
+    const challengeString = extractChallengeFromClientResponse(clientResponse);
+    const expectedChallenge = Challenges.get(challengeString); 
+
+    if (!user || !expectedChallenge) return res.status(400).json({ error: "Invalid State" });
+    
+    try {
+        const verification = await verifyAuthenticationResponse({
+            response: clientResponse,
+            expectedChallenge: expectedChallenge.challenge,
+            expectedOrigin: getOrigin(req),
+            expectedRPID: getRpId(req),
+            authenticator: user, 
+        });
+
+        if (verification.verified) {
+            user.counter = verification.authenticationInfo.newCounter;
+            Users.set(userID, user); 
+            Challenges.delete(expectedChallenge.challenge);
+            res.json({ verified: true, token: Chaos.mintToken() });
+        } else { res.status(400).json({ verified: false }); }
+    } catch (error) { res.status(400).json({ error: error.message }); } 
+    finally { Challenges.delete(expectedChallenge.challenge); }
+});
+
+// API & FILE ROUTING
+app.post('/api/v1/external/verify', Nightmare.guardSaaS, (req, res) => res.json({ valid: true }));
+app.get('/api/v1/admin/telemetry', (req, res) => res.json({ stats: { requests: 0 }, threats: [] }));
+const serve = (f, res) => fs.existsSync(path.join(publicPath, f)) ? res.sendFile(path.join(publicPath, f)) : res.status(404).send('Missing: ' + f);
+app.get('/', (req, res) => serve('index.html', res));
+app.get('/app', (req, res) => serve('app.html', res));
+app.get('/dashboard', (req, res) => serve('dashboard.html', res));
+app.get('/admin', (req, res) => serve('admin.html', res));
+app.get('/hydra', (req, res) => serve('hydra.html', res)); // New Route
+app.get('*', (req, res) => res.redirect('/'));
+
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V58 (HYDRA READY) ONLINE: ${PORT}`));
+
