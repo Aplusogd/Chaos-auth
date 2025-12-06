@@ -13,45 +13,75 @@
             background-color: #000; 
             color: #00ff41; 
             font-family: 'JetBrains Mono', monospace; 
-            touch-action: none; 
+            touch-action: none; /* Critical for drag */
             overflow: hidden; 
+            user-select: none;
         }
 
+        /* THE GRAVITY WELL (Visual Only - No Touch) */
         .well-container {
-            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
-            width: 120px; height: 160px;
-            border-left: 2px solid #004400; border-right: 2px solid #004400; border-bottom: 2px solid #004400;
-            border-radius: 0 0 30px 30px; border-top: none;
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 160px;
+            border-left: 2px solid #004400;
+            border-right: 2px solid #004400;
+            border-bottom: 2px solid #004400;
+            border-radius: 0 0 30px 30px;
+            border-top: none;
             background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0, 255, 65, 0.05));
+            pointer-events: none; /* CRITICAL FIX: Lets touches pass through to the totem */
+            z-index: 10;
         }
 
+        /* THE TOTEM (Interactive) */
         .totem {
-            width: 80px; height: 80px;
+            width: 90px; /* Bigger touch target */
+            height: 90px;
             background: radial-gradient(circle at 30% 30%, #aaffaa, #00ff41);
             border-radius: 50%;
-            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 32px; color: #002200;
-            box-shadow: 0 0 20px #00ff41, inset 0 0 10px rgba(255,255,255,0.5);
-            cursor: grab; z-index: 100;
+            position: absolute;
+            bottom: 30px; 
+            left: 50%;
+            transform: translateX(-50%); /* Center horizontally */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            color: #002200;
+            box-shadow: 0 0 25px #00ff41;
+            cursor: grab;
+            z-index: 50; /* CRITICAL FIX: Higher than well */
+            touch-action: none;
         }
 
-        .totem:active { cursor: grabbing; box-shadow: 0 0 40px #00ff41; transform: translateX(-50%) scale(1.05); }
+        .totem:active { cursor: grabbing; box-shadow: 0 0 50px #00ff41; }
+        
+        .launching { transition: bottom 0.4s cubic-bezier(0.1, 0.7, 0.1, 1), opacity 0.4s; bottom: 120vh !important; opacity: 0; }
+        .falling { transition: bottom 0.6s cubic-bezier(0.5, 0, 0.5, 1.5); bottom: 30px !important; }
+        .shake { animation: shake 0.5s; }
+        @keyframes shake { 0%, 100% { transform: translateX(-50%); } 25% { transform: translateX(-60%); } 75% { transform: translateX(-40%); } }
 
-        .launching { transition: bottom 0.5s cubic-bezier(0.1, 0.7, 0.1, 1), opacity 0.5s; bottom: 120vh !important; opacity: 0; }
-        .falling { transition: bottom 0.6s cubic-bezier(0.5, 0, 0.5, 1.5); bottom: 20px !important; }
-
-        .arrow-guide { position: absolute; bottom: 200px; left: 50%; transform: translateX(-50%); color: rgba(0, 255, 65, 0.3); animation: float-up 1.5s infinite; }
+        .arrow-guide { position: absolute; bottom: 220px; left: 50%; transform: translateX(-50%); color: rgba(0, 255, 65, 0.3); animation: float-up 1.5s infinite; pointer-events: none; }
         @keyframes float-up { 0% { opacity:0; transform:translate(-50%, 10px);} 50% {opacity:1;} 100% {opacity:0; transform:translate(-50%, -20px);} }
-        .hud-status { font-size: 1.5rem; font-weight: 800; text-align: center; margin-top: 20vh; text-shadow: 0 0 10px #00ff41; }
+        .hud-status { font-size: 1.5rem; font-weight: 800; text-align: center; margin-top: 20vh; text-shadow: 0 0 10px #00ff41; pointer-events: none; }
     </style>
 </head>
 <body class="h-screen w-screen">
 
-    <div id="hud" class="hud-status text-green-500">SYSTEM READY</div>
+    <div id="hud" class="hud-status text-yellow-500">INITIALIZING...</div>
     <div class="arrow-guide"><i class="fas fa-chevron-up text-2xl"></i></div>
-    <div class="well-container"><div class="text-[10px] text-green-900 text-center mt-24 select-none">SWIPE UP</div></div>
-    <div class="totem" id="totem"><i class="fas fa-fingerprint"></i></div>
+    
+    <div class="well-container">
+        <div class="text-[10px] text-green-900 text-center mt-28 select-none">SWIPE UP</div>
+    </div>
+
+    <!-- Totem Icon -->
+    <div class="totem" id="totem">
+        <i class="fas fa-fingerprint"></i>
+    </div>
 
     <script>
         const { startAuthentication } = SimpleWebAuthnBrowser;
@@ -70,69 +100,94 @@
         let pathData = []; 
         let accels = [];
 
+        // --- FETCH OPTIONS ---
         async function preheat() {
             try {
                 const resp = await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS });
                 if(resp.ok) {
                     authOptions = await resp.json();
                     hud.innerText = "CAST TOTEM";
+                    hud.className = "hud-status text-green-500";
+                    totem.style.opacity = "1";
+                } else {
+                     throw new Error("Server Error");
                 }
-            } catch(e) { hud.innerText = "OFFLINE"; hud.className = "hud-status text-red-500"; }
+            } catch(e) { 
+                hud.innerText = "RECONNECTING..."; 
+                hud.className = "hud-status text-red-500";
+                setTimeout(preheat, 2000); // Retry
+            }
         }
         preheat();
 
-        totem.addEventListener('touchstart', grab);
+        // --- EVENT LISTENERS (Standard & Passive) ---
+        totem.addEventListener('touchstart', grab, { passive: false });
         document.addEventListener('touchmove', move, { passive: false });
-        document.addEventListener('touchend', release);
+        document.addEventListener('touchend', release, { passive: false });
+        
+        // Mouse Support
         totem.addEventListener('mousedown', grab);
         document.addEventListener('mousemove', move);
         document.addEventListener('mouseup', release);
 
         function grab(e) {
-            if(!authOptions) return;
+            // Safety Check: If server isn't ready, shake the button
+            if(!authOptions) {
+                hud.innerText = "WAITING FOR SIGNAL...";
+                totem.classList.add('shake');
+                setTimeout(() => totem.classList.remove('shake'), 500);
+                preheat(); // Try fetching again
+                return;
+            }
+
             isDragging = true;
-            startY = e.touches ? e.touches[0].clientY : e.clientY;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            
+            startY = clientY;
             lastY = startY;
             lastTime = Date.now();
-            totem.classList.remove('falling', 'launching');
-            totem.style.transition = 'none'; 
+            
+            totem.classList.remove('falling', 'launching', 'shake');
+            totem.style.transition = 'none'; // Allow instant drag
             pathData = [];
             accels = [];
+            
+            // Visual Pop
+            totem.style.transform = 'translateX(-50%) scale(1.1)';
         }
 
         function move(e) {
             if (!isDragging) return;
-            e.preventDefault();
+            if (e.cancelable) e.preventDefault(); // STOP SCROLLING
+            
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
             const now = Date.now();
-            let deltaY = startY - clientY; 
+            let deltaY = startY - clientY; // How far up we dragged
 
             // Physics Calc
             const dt = now - lastTime;
             let currentVel = 0;
             if (dt > 0) {
-                currentVel = (lastY - clientY) / dt; 
-                // Calculate Jerk (Change in accel) approx
-                const prevVel = pathData.length > 0 ? pathData[pathData.length-1].v : 0;
-                const accel = (currentVel - prevVel) / dt;
-                accels.push(Math.abs(accel));
+                currentVel = (lastY - clientY) / dt;
             }
             
-            // Log Data
             pathData.push({ y: deltaY, v: currentVel, t: now });
             lastY = clientY;
             lastTime = now;
+            velocityY = currentVel;
 
-            // Visual Update
-            if (deltaY < 0) deltaY = deltaY * 0.2; // Rubber band bottom
-            totem.style.bottom = `${20 + deltaY}px`;
+            // Rubber Banding at bottom (negative drag)
+            if (deltaY < 0) deltaY = deltaY * 0.2; 
             
-            // GRAVITY ASSIST HINT: Glow white if fast/high enough
-            if (deltaY > 150 || currentVel > 1.0) {
+            // Update Position
+            totem.style.bottom = `${30 + deltaY}px`; // 30px is base
+            
+            // Glow Effect at Threshold
+            if (deltaY > 150) {
                 totem.style.backgroundColor = "#fff";
                 totem.style.color = "#000";
             } else {
-                totem.style.backgroundColor = ""; // Reset to gradient
+                totem.style.background = "radial-gradient(circle at 30% 30%, #aaffaa, #00ff41)";
                 totem.style.color = "#002200";
             }
         }
@@ -142,13 +197,13 @@
             isDragging = false;
             
             const currentBottom = parseFloat(totem.style.bottom);
+            totem.style.transform = 'translateX(-50%) scale(1)'; // Reset scale
             
-            // --- GRAVITY ASSIST ALGORITHM ---
-            // If they threw it > 150px OR velocity > 0.8 px/ms, we help them.
-            if (currentBottom > 150 || velocityY > 0.8) {
+            // LAUNCH THRESHOLD: > 200px drag OR > 1.2 velocity
+            if (currentBottom > 230 || (velocityY > 1.2 && currentBottom > 100)) {
                 launch();
             } else {
-                // Gravity Fall
+                // FALL BACK
                 totem.classList.add('falling');
                 hud.innerText = "THROW HARDER";
                 setTimeout(() => { if(hud.innerText === "THROW HARDER") hud.innerText = "CAST TOTEM"; }, 1500);
@@ -158,22 +213,14 @@
         async function launch() {
             hud.innerText = "OPENING GATE...";
             hud.className = "hud-status text-green-400";
-            totem.classList.add('launching'); // Fly away animation
-            
-            // Calculate Jerk (Smoothness)
-            const avgJerk = accels.reduce((a,b) => a+b, 0) / (accels.length || 1);
-            const avgVelocity = pathData.reduce((a,b) => a + b.v, 0) / (pathData.length || 1);
+            totem.classList.add('launching'); // Fly away
             
             try {
                 const asseResp = await startAuthentication({ publicKey: authOptions });
                 
                 const payload = {
                     ...asseResp,
-                    kinetic_data: { 
-                        velocity: avgVelocity,
-                        jerk: avgJerk, // The Biological Signature
-                        assisted: true // Flag that we helped them
-                    }
+                    kinetic_data: { velocity: velocityY, entropy: pathData.length }
                 };
 
                 const verifyResp = await fetch(`${API_BASE}/auth/login-verify`, {
