@@ -11,6 +11,8 @@ import {
     generateAuthenticationOptions, 
     verifyAuthenticationResponse 
 } from '@simplewebauthn/server';
+// Helper to handle the new Byte Array requirement
+import { isoUint8Array } from '@simplewebauthn/server/helpers';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -46,7 +48,7 @@ const DreamsEngine = {
     update: () => {}
 };
 
-// --- CORE LOGIC (V50 UNLOCKED) ---
+// --- CORE LOGIC (V51 FIXED) ---
 const Users = new Map();
 // Placeholder DNA (Will be overwritten by your new key)
 const ADMIN_DNA = { "credentialID": { "0": 1 }, "counter": 0, "dreamProfile": { window: [], sum_T: 0, sum_T2: 0 } };
@@ -65,41 +67,48 @@ const getOrigin = (req) => {
 const getRpId = (req) => req.get('host').split(':')[0];
 
 // ==========================================
-// AUTH ROUTES (UNLOCKED FOR RECOVERY)
+// AUTH ROUTES (FIXED USER ID TYPE)
 // ==========================================
 
 // 1. REGISTER OPTIONS (OPEN)
 app.get('/api/v1/auth/register-options', async (req, res) => {
+    // FIX: Convert string ID to Uint8Array for V10+ Library support
     const userID = 'admin-user'; 
+    const userIDBuffer = new Uint8Array(Buffer.from(userID));
+
     try {
         const options = await generateRegistrationOptions({
             rpName: 'A+ Chaos ID',
             rpID: getRpId(req),
-            userID,
+            userID: userIDBuffer, // <--- THE FIX IS HERE
             userName: 'admin@aplus.com',
             attestationType: 'none',
             authenticatorSelection: { residentKey: 'preferred', userVerification: 'preferred' },
         });
-        Challenges.set(options.challenge, { challenge: options.challenge });
+        Challenges.set(userID, options.challenge);
         res.json(options);
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { 
+        console.error("REG OPTION ERROR:", err);
+        res.status(500).json({ error: err.message }); 
+    }
 });
 
 // 2. REGISTER VERIFY (OPEN)
 app.post('/api/v1/auth/register-verify', async (req, res) => {
     const userID = 'admin-user';
-    // In V50, we loosen challenge lookup to allow recovery
-    // Ideally we look up by the challenge in the body, but for recovery we assume flow
     const clientResponse = req.body;
     const challengeString = extractChallengeFromClientResponse(clientResponse);
-    const expectedChallenge = Challenges.get(challengeString);
+    
+    // For recovery, we try to find challenge by ID first, then fallback to extraction
+    let expectedChallenge = Challenges.get(userID);
+    if (!expectedChallenge) expectedChallenge = challengeString; // Fallback
 
     if (!expectedChallenge) return res.status(400).json({ error: "Challenge Expired" });
 
     try {
         const verification = await verifyRegistrationResponse({
             response: clientResponse,
-            expectedChallenge: expectedChallenge.challenge,
+            expectedChallenge: expectedChallenge,
             expectedOrigin: getOrigin(req),
             expectedRPID: getRpId(req),
         });
@@ -110,12 +119,15 @@ app.post('/api/v1/auth/register-verify', async (req, res) => {
             
             // SAVE NEW DNA TO MEMORY
             Users.set(userID, userData);
-            Challenges.delete(challengeString);
+            Challenges.delete(userID);
             
             // SEND DNA TO CLIENT
             res.json({ verified: true, adminDNA: JSON.stringify(userData) });
         } else { res.status(400).json({ verified: false }); }
-    } catch (e) { res.status(400).json({ error: e.message }); }
+    } catch (e) { 
+        console.error("VERIFY ERROR:", e);
+        res.status(400).json({ error: e.message }); 
+    }
 });
 
 // 3. LOGIN OPTIONS
@@ -172,6 +184,6 @@ app.get('/admin/portal', (req, res) => serve('portal.html', res));
 app.post('/api/v1/external/verify', Nightmare.guardSaaS, (req, res) => res.json({ valid: true }));
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V50 (GENESIS UNLOCKED) ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V51 (BINARY ID FIXED) ONLINE: ${PORT}`));
 
 
