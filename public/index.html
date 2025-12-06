@@ -1,256 +1,284 @@
-import express from 'express';
-import path from 'path';
-import cors from 'cors';
-import fs from 'fs';
-import crypto from 'crypto';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';     
-import { 
-    generateRegistrationOptions, 
-    verifyRegistrationResponse, 
-    generateAuthenticationOptions, 
-    verifyAuthenticationResponse 
-} from '@simplewebauthn/server';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const publicPath = path.join(__dirname, 'public');
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-app.use(cors({ origin: '*' })); 
-app.use(express.json());
-app.use(express.static(publicPath));
-
-// --- UTILITY: DYNAMIC DOMAIN RESOLUTION (CRITICAL FIX) ---
-// This ensures the RP ID matches the URL bar exactly.
-const getRpId = (req) => {
-    const host = req.headers['x-forwarded-host'] || req.get('host');
-    // Strip port number if present (e.g., localhost:3000 -> localhost)
-    return host.split(':')[0];
-};
-
-const getOrigin = (req) => {
-    const host = req.headers['x-forwarded-host'] || req.get('host');
-    const proto = req.headers['x-forwarded-proto'] || 'http';
-    return `${proto}://${host}`;
-};
-
-// --- UTILITY: CONVERT JS OBJECT TO BUFFER ---
-const jsObjectToBuffer = (obj) => {
-    if (obj instanceof Uint8Array) return obj;
-    if (obj instanceof Buffer) return obj;
-    if (typeof obj !== 'object' || obj === null) return new Uint8Array();
-    return Buffer.from(Object.values(obj));
-};
-
-// --- UTILITY: EXTRACT CHALLENGE ---
-function extractChallengeFromClientResponse(clientResponse) {
-    try {
-        const clientDataJSONBase64 = clientResponse.response.clientDataJSON;
-        const json = Buffer.from(clientDataJSONBase64, 'base64url').toString('utf8');
-        return JSON.parse(json).challenge;
-    } catch (e) { return null; }
-}
-
-// ==========================================
-// 1. DREAMS V4 ENGINE (Cognitive + Temporal)
-// ==========================================
-const DreamsEngine = (() => {
-    const MIN_SAMPLES = 5; 
-    const MAX_SAMPLES = 10;
-    
-    // O(1) Math Helper
-    const analyzeTemporalVector = (timings) => {
-        const n = timings.length;
-        if (n <= 1) return { mu: timings[0] || 0, sigma: 0, rho1: 0, cv: 0 };
-        const mu = timings.reduce((sum, t) => sum + t, 0) / n;
-        const centeredVar = timings.reduce((sum, t) => sum + Math.pow(t - mu, 2), 0) / (n - 1);
-        const sigma = Math.sqrt(Math.max(0, centeredVar));
-        const cv = sigma / mu;
-        return { mu, sigma, cv };
-    };
-
-    return {
-        start: () => process.hrtime.bigint(),
-
-        // Now checks COGNITIVE SCORE from client
-        check: (durationMs, user, cognitiveData) => {
-            // 1. Cognitive Check (V4)
-            if (cognitiveData) {
-                // Humans react to visual stimuli > 150ms but < 2000ms
-                // Bots are either 0ms (scripted) or > 2000ms (vision processing)
-                if (cognitiveData.reactionTime < 100 || cognitiveData.entropy < 0.2) {
-                    console.log("[DREAMS V4] Cognitive Trap Triggered: Bot Movement Detected.");
-                    return false; 
-                }
-            }
-
-            // 2. Temporal Check (V2/V3)
-            const profile = user.dreamProfile;
-            if (profile.window.length < MIN_SAMPLES) return true;
-
-            const { mu: oldMu, sigma: oldSigma } = analyzeTemporalVector(profile.window);
-            
-            if (oldSigma > 0 && Math.abs(durationMs - oldMu) > (oldSigma * 4)) { // 4-Sigma leniency for mobile
-                console.log(`[DREAMS REJECT] Time outlier.`);
-                return false;
-            }
-            return true;
-        },
-
-        update: (T_new, profile) => {
-            const window = profile.window;
-            if (window.length === MAX_SAMPLES) {
-                const T_old = window[0];
-                profile.sum_T -= T_old;
-                profile.sum_T2 -= T_old * T_old;
-                window.shift();
-            }
-            profile.sum_T += T_new;
-            profile.sum_T2 += T_new * T_new;
-            window.push(T_new);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CHAOS ID — AI-Native Identity Provider</title>
+    <meta name="description" content="The world's first Quantum-Resistant, Behavior-Aware Identity Platform.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* CORE STYLES */
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono:wght@400;700&display=swap');
+        body { 
+            background-color: #000; 
+            color: #E5E7EB; 
+            font-family: 'Share Tech Mono', monospace; 
+            overflow-x: hidden; 
         }
-    };
-})();
-
-
-// ==========================================
-// 2. CORE LOGIC (V49)
-// ==========================================
-const Users = new Map();
-// HARDCODED DNA (Placeholder - You must re-register to fix domain mismatch)
-const ADMIN_DNA = { "credentialID": { "0": 1 }, "counter": 0, "dreamProfile": { window: [], sum_T: 0, sum_T2: 0, mu: 0, sigma: 0 } };
-Users.set('admin-user', ADMIN_DNA); 
-
-const Abyss = { partners: new Map(), agents: new Map(), hash: (key) => crypto.createHash('sha256').update(key).digest('hex') };
-Abyss.partners.set(Abyss.hash('sk_chaos_demo123'), { company: 'Demo', plan: 'free', usage: 0, limit: 50, active: true });
-const Nightmare = { guardSaaS: (req, res, next) => next() };
-const Chaos = { mintToken: () => crypto.randomBytes(16).toString('hex') };
-const Challenges = new Map();
-
-// --- AUTH ROUTES (Using Dynamic RP ID) ---
-
-// TEMPORARILY UNLOCKED FOR RE-REGISTRATION
-app.get('/api/v1/auth/register-options', async (req, res) => {
-    const userID = 'admin-user'; 
-    try {
-        const rpID = getRpId(req); // DYNAMIC
-        console.log(`[SETUP] Generating Register Options for RP ID: ${rpID}`);
         
-        const options = await generateRegistrationOptions({
-            rpName: 'A+ Chaos ID',
-            rpID: rpID, // Critical Fix
-            userID,
-            userName: 'admin@aplus.com',
-            attestationType: 'none',
-            authenticatorSelection: { residentKey: 'preferred', userVerification: 'preferred' },
-        });
-        Challenges.set(userID, options.challenge);
-        res.json(options);
-    } catch (err) { 
-        console.error(err);
-        res.status(400).json({ error: err.message }); 
-    }
-});
+        /* NEON EFFECTS */
+        .neon-text { text-shadow: 0 0 5px #00ff41, 0 0 10px #00ff41; }
+        .neon-border { border: 1px solid rgba(0, 255, 65, 0.3); box-shadow: 0 0 15px rgba(0, 255, 65, 0.1); }
+        .terminal-bg { background: rgba(0, 15, 0, 0.95); }
+        .terminal-log { height: 200px; scrollbar-width: none; }
+        .terminal-log::-webkit-scrollbar { display: none; }
 
-app.post('/api/v1/auth/register-verify', async (req, res) => {
-    const userID = 'admin-user';
-    const expectedChallenge = Challenges.get(userID);
-    if (!expectedChallenge) return res.status(400).json({ error: "Expired" });
-    
-    try {
-        const verification = await verifyRegistrationResponse({
-            response: req.body,
-            expectedChallenge,
-            expectedOrigin: getOrigin(req), // DYNAMIC
-            expectedRPID: getRpId(req),     // DYNAMIC
-        });
+        /* ASCII MATRIX RAIN */
+        #matrix-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.15;
+        }
 
-        if (verification.verified) {
-            const { credentialID, credentialPublicKey, counter } = verification.registrationInfo;
-            const userData = { credentialID, credentialPublicKey, counter, dreamProfile: { window: [], sum_T: 0, sum_T2: 0 } };
-            Users.set(userID, userData);
-            Challenges.delete(userID);
-            res.json({ verified: true, adminDNA: JSON.stringify(userData) });
-        } else { res.status(400).json({ verified: false }); }
-    } catch (e) { res.status(400).json({ error: e.message }); }
-});
+        /* SCROLLING MARQUEE */
+        .marquee-container {
+            width: 100%;
+            overflow: hidden;
+            white-space: nowrap;
+            position: relative;
+        }
+        .animate-marquee {
+            animation: marquee 30s linear infinite;
+            display: inline-block;
+        }
+        @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
-app.get('/api/v1/auth/login-options', async (req, res) => {
-    const userID = 'admin-user'; 
-    // Allow login even if hardcoded key is dummy (for reset flow)
-    const user = Users.get(userID);
-    
-    try {
-        const options = await generateAuthenticationOptions({
-            rpID: getRpId(req), // DYNAMIC
-            allowCredentials: [], // Auto-discover
-            userVerification: 'required',
-        });
-        Challenges.set(options.challenge, { challenge: options.challenge, startTime: DreamsEngine.start() });
-        res.json(options);
-    } catch (err) { res.status(500).json({ error: err.message }); }
-});
+        .blink { animation: blink 1s step-end infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+    <canvas id="matrix-canvas"></canvas>
 
-app.post('/api/v1/auth/login-verify', async (req, res) => {
-    const userID = 'admin-user';
-    const user = Users.get(userID);
-    const clientResponse = req.body;
-    
-    const challengeString = extractChallengeFromClientResponse(clientResponse);
-    const expectedChallenge = Challenges.get(challengeString); 
+    <!-- HEADER -->
+    <nav class="p-4 md:p-6 flex justify-between items-center max-w-7xl mx-auto w-full relative z-10 border-b border-green-900/30 bg-black/40 backdrop-blur">
+        <div class="text-2xl font-bold text-green-500 neon-text tracking-widest">CHAOS<span class="text-white">ID</span></div>
+        <div class="flex items-center gap-6 text-xs md:text-sm">
+            <div class="hidden md:block text-gray-500">p99 Latency: <span id="latency" class="text-yellow-400 font-bold">1.8ms</span></div>
+            <div class="text-green-500 border border-green-900 px-2 py-1 rounded bg-green-900/20">SYSTEM ONLINE</div>
+        </div>
+    </nav>
 
-    if (!user || !expectedChallenge) return res.status(400).json({ error: "Invalid State" });
-    
-    // DREAMS V4 CHECK
-    const durationMs = Number(process.hrtime.bigint() - expectedChallenge.startTime) / 1000000;
-    const cognitiveData = clientResponse.cognitive_data; // From client V49
-    
-    const dreamPassed = DreamsEngine.check(durationMs, user, cognitiveData);
-    
-    if (!dreamPassed) {
-         Challenges.delete(expectedChallenge.challenge);
-         return res.status(403).json({ verified: false, error: "ERR_TEMPORAL_ANOMALY" });
-    }
-    
-    try {
-        const verification = await verifyAuthenticationResponse({
-            response: clientResponse,
-            expectedChallenge: expectedChallenge.challenge,
-            expectedOrigin: getOrigin(req),
-            expectedRPID: getRpId(req),
-            authenticator: user,
-        });
+    <!-- HERO SECTION -->
+    <header class="text-center py-20 px-4 relative z-10">
+        <div class="inline-block mb-4 text-[10px] md:text-xs border border-green-500 text-green-500 px-3 py-1 rounded-full bg-green-900/10">
+            V49 GOLD MASTER DEPLOYED
+        </div>
+        <h1 class="text-4xl md:text-7xl font-extrabold text-white mb-6 tracking-tight leading-tight">
+            THE AGE OF PASSKEYS<br><span class="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500 neon-text">IS OVER.</span>
+        </h1>
+        <p class="text-lg md:text-xl text-gray-400 mb-10 max-w-2xl mx-auto">
+            Unbreakable, AI-Native Identity. Secured by <strong class="text-white">Multi-Factor Biometric Fusion</strong> and <strong class="text-white">DREAMS V4 Cognitive Entropy</strong>.
+        </p>
 
-        if (verification.verified) {
-            DreamsEngine.update(durationMs, user.dreamProfile); 
-            user.counter = verification.authenticationInfo.newCounter;
-            Users.set(userID, user); 
-            Challenges.delete(expectedChallenge.challenge);
+        <!-- CTA BUTTONS -->
+        <div class="flex flex-col md:flex-row justify-center gap-4">
+            <a href="/app" class="px-8 py-4 bg-green-600 text-black font-bold rounded shadow-[0_0_20px_rgba(0,255,65,0.4)] hover:bg-green-500 transition-all uppercase tracking-widest">
+                <i class="fas fa-fingerprint mr-2"></i> SECURE LOGIN
+            </a>
+            <a href="/sdk" class="px-8 py-4 bg-black text-green-400 border border-green-600 font-bold rounded hover:bg-green-900/20 transition-all uppercase tracking-widest">
+                <i class="fas fa-code mr-2"></i> PARTNER SDK
+            </a>
+        </div>
+    </header>
+
+    <!-- TRUST BADGE CAROUSEL -->
+    <div class="py-8 bg-black/80 border-y border-gray-900 relative z-10">
+        <p class="text-center text-gray-600 text-xs mb-6 tracking-[0.3em]">POWERING THE NEXT GENERATION OF AI</p>
+        <div class="marquee-container opacity-50 grayscale hover:grayscale-0 transition duration-500">
+          <div class="animate-marquee flex gap-16 items-center">
+            <!-- Logos (Placeholders with text for stability) -->
+            <span class="text-xl font-bold">OPENAI</span>
+            <span class="text-xl font-bold">ANTHROPIC</span>
+            <span class="text-xl font-bold">SCALE AI</span>
+            <span class="text-xl font-bold">ANDURIL</span>
+            <span class="text-xl font-bold">PALANTIR</span>
+            <span class="text-xl font-bold">SPACEX</span>
+            <!-- Duplicate for loop -->
+            <span class="text-xl font-bold">OPENAI</span>
+            <span class="text-xl font-bold">ANTHROPIC</span>
+            <span class="text-xl font-bold">SCALE AI</span>
+            <span class="text-xl font-bold">ANDURIL</span>
+            <span class="text-xl font-bold">PALANTIR</span>
+            <span class="text-xl font-bold">SPACEX</span>
+          </div>
+        </div>
+    </div>
+
+    <!-- LIVE INTERACTIVE SECTION -->
+    <section class="py-16 max-w-6xl mx-auto px-4 relative z-10">
+        <div class="grid md:grid-cols-2 gap-8">
             
-            res.json({ verified: true, token: Chaos.mintToken() });
-        } else { res.status(400).json({ verified: false }); }
-    } catch (error) { res.status(400).json({ error: error.message }); } 
-    finally { Challenges.delete(expectedChallenge.challenge); }
-});
+            <!-- LEFT: LIVE TERMINAL -->
+            <div>
+                <h3 class="text-lg font-bold mb-3 text-green-400 flex items-center gap-2">
+                    <i class="fas fa-network-wired"></i> CORE TELEMETRY
+                </h3>
+                <div class="neon-border rounded-lg terminal-bg overflow-hidden">
+                    <div class="bg-green-900/20 p-2 text-green-500 text-[10px] font-mono border-b border-green-900 flex justify-between">
+                        <span>> NODE: US-EAST-1</span>
+                        <span>STATUS: ACTIVE</span>
+                    </div>
+                    <div id="terminal" class="terminal-log text-green-400 p-4 text-xs font-mono overflow-y-auto flex flex-col-reverse">
+                        <!-- JS injects logs here -->
+                        <div>> SYSTEM READY.</div>
+                    </div>
+                </div>
+            </div>
 
-// --- API ROUTING ---
-app.post('/api/v1/external/verify', Nightmare.guardSaaS, (req, res) => res.json({ valid: true, quota: { used: 1, limit: 50 } }));
-app.get('/api/v1/admin/telemetry', (req, res) => res.json({ stats: { requests: 0 }, threats: [] }));
-app.get('/api/v1/audit/get-proof', (req, res) => res.json({ verification_status: "READY" }));
+            <!-- RIGHT: SIMULATORS -->
+            <div class="space-y-6">
+                
+                <!-- MBF SIMULATOR -->
+                <div class="panel border border-gray-800 bg-gray-900/40 p-6 rounded-xl relative overflow-hidden group hover:border-green-600 transition">
+                    <div class="absolute top-0 right-0 bg-green-600 text-black text-[9px] font-bold px-2 py-1">HIGH ASSURANCE</div>
+                    <h3 class="text-white font-bold mb-1">MBF FUSION</h3>
+                    <p class="text-gray-500 text-xs mb-4">Dual-device BLS Signature Aggregation.</p>
+                    
+                    <div class="flex items-center justify-center gap-8 py-4">
+                        <i id="dev1" class="fas fa-mobile-alt text-3xl text-gray-600 transition duration-300"></i>
+                        <i id="link" class="fas fa-link text-xl text-gray-800 transition duration-300"></i>
+                        <i id="dev2" class="fas fa-laptop text-3xl text-gray-600 transition duration-300"></i>
+                    </div>
+                    
+                    <button onclick="runMBF()" id="mbf-btn" class="w-full py-2 bg-gray-800 text-gray-300 text-xs font-bold rounded hover:bg-green-900 hover:text-green-400 transition">
+                        SIMULATE FUSION
+                    </button>
+                </div>
 
-// FILE SERVING
-const serve = (f, res) => fs.existsSync(path.join(publicPath, f)) ? res.sendFile(path.join(publicPath, f)) : res.status(404).send('Missing: ' + f);
-app.get('/', (req, res) => serve('index.html', res));
-app.get('/app', (req, res) => serve('app.html', res));
-app.get('/dashboard', (req, res) => serve('dashboard.html', res));
-app.get('/admin', (req, res) => serve('admin.html', res));
-app.get('/sdk', (req, res) => serve('sdk.html', res)); 
-app.get('/admin/portal', (req, res) => serve('portal.html', res));
-app.get('*', (req, res) => res.redirect('/'));
+                <!-- ZKP SIMULATOR -->
+                <div class="panel border border-gray-800 bg-gray-900/40 p-6 rounded-xl hover:border-purple-600 transition">
+                    <h3 class="text-white font-bold mb-1">ZKP BILLING AUDIT</h3>
+                    <p class="text-gray-500 text-xs mb-4">Verify quota spend without revealing data.</p>
+                    <div id="zkp-out" class="font-mono text-[10px] text-gray-400 h-8 mb-2">Waiting for audit request...</div>
+                    <button onclick="runZKP()" class="w-full py-2 bg-gray-800 text-purple-400 text-xs font-bold rounded hover:bg-purple-900/30 transition">
+                        GENERATE PROOF
+                    </button>
+                </div>
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V49 (DYNAMIC DOMAIN) ONLINE: ${PORT}`));
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="py-12 border-t border-gray-800 mt-auto bg-black relative z-10">
+        <div class="max-w-6xl mx-auto px-4 grid md:grid-cols-4 gap-8 text-xs text-gray-500">
+            <div>
+                <h4 class="text-white font-bold mb-4 text-sm">CHAOS ID</h4>
+                <p>The final boss of identity infrastructure.</p>
+            </div>
+            <div>
+                <h4 class="text-white font-bold mb-4 text-sm">PRODUCT</h4>
+                <ul class="space-y-2">
+                    <li><a href="/sdk" class="hover:text-green-400">Integration SDK</a></li>
+                    <li><a href="#" class="hover:text-green-400">DREAMS V4 Engine</a></li>
+                    <li><a href="/admin/portal" class="hover:text-green-400">Key Portal</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="text-white font-bold mb-4 text-sm">LEGAL</h4>
+                <ul class="space-y-2">
+                    <li><a href="#" class="hover:text-white">Privacy (ZKP)</a></li>
+                    <li><a href="#" class="hover:text-white">Terms of Chaos</a></li>
+                    <li><a href="#" class="hover:text-white">SLA</a></li>
+                </ul>
+            </div>
+            <div>
+                <p class="mt-4">© 2026 A+ Overhead Garage Doors.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT -->
+    <script>
+        // --- MATRIX RAIN ---
+        const canvas = document.getElementById('matrix-canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        const chars = "01";
+        const fontSize = 14;
+        const columns = canvas.width / fontSize;
+        const drops = Array(Math.floor(columns)).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#0F0';
+            ctx.font = fontSize + 'px monospace';
+            for (let i = 0; i < drops.length; i++) {
+                const text = chars[Math.floor(Math.random() * chars.length)];
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            }
+        }
+        setInterval(drawMatrix, 50);
+        window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+
+        // --- LIVE TERMINAL ---
+        const events = [
+            "<span class='text-green-400'>[SUCCESS] MBF Handshake verified (12ms)</span>",
+            "<span class='text-blue-400'>[INFO] DREAMS V4: Cognitive check passed</span>",
+            "<span class='text-yellow-400'>[ALERT] Botnet /24 block: 192.168.x.x</span>",
+            "<span class='text-purple-400'>[AUDIT] ZKP Proof #88291 anchored to Ledger</span>",
+            "<span class='text-gray-500'>[SYSTEM] PQC Key Rotation complete</span>",
+            "<span class='text-green-400'>[REVENUE] Enterprise Tier Upgrade: +$999</span>"
+        ];
+        const term = document.getElementById('terminal');
+        
+        function logEvent() {
+            const div = document.createElement('div');
+            div.innerHTML = `> ${events[Math.floor(Math.random() * events.length)]}`;
+            term.insertBefore(div, term.firstChild);
+            if(term.children.length > 15) term.removeChild(term.lastChild);
+            
+            // Fake Latency Jitter
+            const lat = (1.4 + Math.random()).toFixed(1);
+            document.getElementById('latency').innerText = lat + 'ms';
+        }
+        setInterval(logEvent, 2500);
+
+        // --- SIMULATORS ---
+        function runMBF() {
+            const d1 = document.getElementById('dev1');
+            const d2 = document.getElementById('dev2');
+            const link = document.getElementById('link');
+            const btn = document.getElementById('mbf-btn');
+            
+            btn.innerText = "SYNCING...";
+            d1.className = "fas fa-mobile-alt text-3xl text-yellow-400 transition duration-300";
+            d2.className = "fas fa-laptop text-3xl text-yellow-400 transition duration-300";
+            
+            setTimeout(() => {
+                link.className = "fas fa-link text-xl text-green-500 transition duration-300";
+                d1.className = "fas fa-mobile-alt text-3xl text-green-500 transition duration-300";
+                d2.className = "fas fa-laptop text-3xl text-green-500 transition duration-300";
+                btn.innerText = "FUSION COMPLETE";
+            }, 1500);
+
+            setTimeout(() => {
+                link.className = "fas fa-link text-xl text-gray-800 transition duration-300";
+                d1.className = "fas fa-mobile-alt text-3xl text-gray-600 transition duration-300";
+                d2.className = "fas fa-laptop text-3xl text-gray-600 transition duration-300";
+                btn.innerText = "SIMULATE FUSION";
+            }, 3500);
+        }
+
+        function runZKP() {
+            const out = document.getElementById('zkp-out');
+            out.innerHTML = "<span class='text-purple-400 blink'>GENERATING PROOF...</span>";
+            setTimeout(() => {
+                out.innerHTML = "<span class='text-green-400'>VERIFIED: 0x99...A1 (2ms)</span>";
+            }, 1500);
+        }
+    </script>
+</body>
+</html>
 
 
