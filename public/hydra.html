@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CHAOS | HYDRA PROTOCOL</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Shamir's Secret Sharing Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/secrets.js-grem/2016.03.04/secrets.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+        body { background-color: #050505; color: #00ff41; font-family: 'Share Tech Mono', monospace; }
+        .panel { border: 1px solid #333; padding: 20px; background: #000; margin-bottom: 20px; box-shadow: 0 0 15px rgba(0, 255, 65, 0.1); }
+        .shard { font-family: 'Courier New'; word-break: break-all; border: 1px dashed #333; padding: 10px; margin-top: 5px; background: #111; color: #aaa; }
+        .btn { width: 100%; padding: 15px; font-weight: bold; border: 1px solid #00ff41; background: #002200; color: #00ff41; cursor: pointer; transition: all 0.2s; }
+        .btn:hover { background: #00ff41; color: black; }
+        .input-dark { width: 100%; bg-gray-900; border: 1px solid #333; padding: 10px; color: white; background: #111; }
+    </style>
+</head>
+<body class="p-4 md:p-8 max-w-5xl mx-auto">
+
+    <header class="text-center mb-10 border-b border-gray-800 pb-6">
+        <h1 class="text-4xl md:text-5xl font-bold tracking-widest text-red-600">HYDRA <span class="text-sm text-white align-middle">PROTOCOL V58</span></h1>
+        <p class="text-gray-500 text-xs mt-2">DECENTRALIZED ADMIN RECOVERY CONSOLE</p>
+    </header>
+
+    <div class="grid md:grid-cols-2 gap-8">
+        
+        <!-- GENESIS: CREATE SHARDS -->
+        <div class="panel border-t-4 border-t-blue-600">
+            <h2 class="text-xl text-blue-400 mb-2"><i class="fas fa-cube"></i> PHASE 1: GENESIS</h2>
+            <p class="text-xs text-gray-500 mb-6">Create a master password. The system will shatter it into 5 cryptographic shards. You need any 3 to recover.</p>
+            
+            <div class="mb-4">
+                <label class="text-xs text-gray-400">MASTER PASSPHRASE</label>
+                <input type="password" id="genesis-secret" placeholder="Enter a strong secret..." class="input-dark mt-1 w-full">
+            </div>
+            
+            <button onclick="shatter()" class="btn border-blue-500 text-blue-400 bg-blue-900/10 hover:bg-blue-500 hover:text-black">
+                SHATTER SECRET (GENERATE)
+            </button>
+
+            <div id="shards-output" class="mt-6 hidden animate-pulse">
+                <div class="text-xs text-yellow-500 mb-2 font-bold">⚠️ SAVE THESE SHARDS IN DIFFERENT LOCATIONS:</div>
+                <div id="shard-list" class="text-xs space-y-2"></div>
+                
+                <div class="mt-6 pt-4 border-t border-gray-800">
+                    <div class="text-xs text-purple-400 font-bold">SERVER CONFIGURATION (HASH):</div>
+                    <p class="text-[10px] text-gray-500 mb-1">Copy this Hash into your index.js as 'HYDRA_HASH'</p>
+                    <div id="genesis-hash" class="text-xs text-white break-all bg-gray-800 p-3 select-all cursor-pointer hover:bg-gray-700"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RESURRECTION: RECOVER ACCESS -->
+        <div class="panel border-t-4 border-t-red-600">
+            <h2 class="text-xl text-red-500 mb-2"><i class="fas fa-biohazard"></i> PHASE 2: RESURRECTION</h2>
+            <p class="text-xs text-gray-500 mb-6">Enter any 3 shards to reconstruct the key and unlock the server registration.</p>
+            
+            <div class="space-y-3 mb-6">
+                <input type="text" class="shard-input input-dark" placeholder="Paste Shard 1">
+                <input type="text" class="shard-input input-dark" placeholder="Paste Shard 2">
+                <input type="text" class="shard-input input-dark" placeholder="Paste Shard 3">
+            </div>
+
+            <button onclick="resurrect()" class="btn border-red-500 text-red-500 bg-red-900/10 hover:bg-red-500 hover:text-black">
+                RECONSTRUCT & UNLOCK
+            </button>
+            <div id="recovery-status" class="mt-4 text-center font-bold text-sm h-6"></div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- GENESIS LOGIC ---
+        async function shatter() {
+            const secret = document.getElementById('genesis-secret').value;
+            if(!secret) return alert("You must enter a master password.");
+
+            // 1. Convert to Hex
+            const secretHex = secrets.str2hex(secret);
+            
+            // 2. Split: 5 shares, threshold 3
+            const shares = secrets.share(secretHex, 5, 3);
+            
+            // 3. UI Output
+            const list = document.getElementById('shard-list');
+            list.innerHTML = '';
+            shares.forEach((s, i) => {
+                list.innerHTML += `<div class="shard">Shard ${i+1}: ${s}</div>`;
+            });
+
+            // 4. Calculate SHA-256 Hash for the Server (One-Way)
+            const encoder = new TextEncoder();
+            const data = encoder.encode(secret);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+            document.getElementById('genesis-hash').innerText = hashHex;
+            document.getElementById('shards-output').classList.remove('hidden');
+            
+            // SECURITY: Clear memory of the input
+            document.getElementById('genesis-secret').value = "";
+        }
+
+        // --- RESURRECTION LOGIC ---
+        async function resurrect() {
+            const inputs = document.querySelectorAll('.shard-input');
+            const shares = Array.from(inputs).map(i => i.value.trim()).filter(v => v);
+            const status = document.getElementById('recovery-status');
+
+            if(shares.length < 3) {
+                status.className = "text-red-500";
+                status.innerText = "ERROR: Minimum 3 shards required.";
+                return;
+            }
+
+            try {
+                status.className = "text-yellow-400 blink";
+                status.innerText = "FUSING SHARDS...";
+
+                // 1. Reconstruct Hex -> String
+                const hex = secrets.combine(shares);
+                const secret = secrets.hex2str(hex);
+                
+                // 2. Send to Server
+                const resp = await fetch('/api/v1/auth/hydra-unlock', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key: secret })
+                });
+
+                // SECURITY: Memory Flush (Overwrite variables)
+                // This minimizes the window for memory scraping attacks
+                const flush = new Uint8Array(1000);
+                window.crypto.getRandomValues(flush);
+                
+                const data = await resp.json();
+                
+                if (data.success) {
+                    status.className = "text-green-500";
+                    status.innerText = "ACCESS GRANTED. REDIRECTING...";
+                    setTimeout(() => window.location.href = '/app.html', 2000);
+                } else {
+                    throw new Error("Invalid Key Reconstructed");
+                }
+
+            } catch(e) {
+                status.className = "text-red-500";
+                status.innerText = "RESURRECTION FAILED. INVALID SHARDS.";
+                console.error(e);
+            }
+        }
+    </script>
+</body>
+</html>
+
+
