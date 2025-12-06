@@ -15,7 +15,7 @@
         .shard { font-family: 'Courier New'; word-break: break-all; border: 1px dashed #333; padding: 10px; margin-top: 5px; background: #111; color: #aaa; }
         .btn { width: 100%; padding: 15px; font-weight: bold; border: 1px solid #00ff41; background: #002200; color: #00ff41; cursor: pointer; transition: all 0.2s; }
         .btn:hover { background: #00ff41; color: black; }
-        .input-dark { width: 100%; bg-gray-900; border: 1px solid #333; padding: 10px; color: white; background: #111; }
+        .input-dark { width: 100%; border: 1px solid #333; padding: 10px; color: white; background: #111; }
     </style>
 </head>
 <body class="p-4 md:p-8 max-w-5xl mx-auto">
@@ -34,10 +34,10 @@
             
             <div class="mb-4">
                 <label class="text-xs text-gray-400">MASTER PASSPHRASE</label>
-                <input type="password" id="genesis-secret" placeholder="Enter a strong secret..." class="input-dark mt-1 w-full">
+                <input type="password" id="genesis-secret" placeholder="Enter a strong secret..." class="input-dark mt-1">
             </div>
             
-            <button onclick="shatter()" class="btn border-blue-500 text-blue-400 bg-blue-900/10 hover:bg-blue-500 hover:text-black">
+            <button onclick="shatter()" class="btn border-blue-500 text-blue-400 bg-blue-900/10 hover:bg-blue-900/40">
                 SHATTER SECRET (GENERATE)
             </button>
 
@@ -64,7 +64,7 @@
                 <input type="text" class="shard-input input-dark" placeholder="Paste Shard 3">
             </div>
 
-            <button onclick="resurrect()" class="btn border-red-500 text-red-500 bg-red-900/10 hover:bg-red-500 hover:text-black">
+            <button onclick="resurrect()" class="btn border-red-500 text-red-500 bg-red-900/20 hover:bg-red-900/40">
                 RECONSTRUCT & UNLOCK
             </button>
             <div id="recovery-status" class="mt-4 text-center font-bold text-sm h-6"></div>
@@ -125,15 +125,14 @@
                 const hex = secrets.combine(shares);
                 const secret = secrets.hex2str(hex);
                 
-                // 2. Send to Server
+                // 2. Send to Server to Unlock
                 const resp = await fetch('/api/v1/auth/hydra-unlock', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ key: secret })
                 });
 
-                // SECURITY: Memory Flush (Overwrite variables)
-                // This minimizes the window for memory scraping attacks
+                // SECURITY: Memory Flush
                 const flush = new Uint8Array(1000);
                 window.crypto.getRandomValues(flush);
                 
