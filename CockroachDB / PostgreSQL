@@ -1,0 +1,31 @@
+-- CHAOS V60 PREP: DRIFT TELEMETRY SILO
+CREATE TABLE drift_telemetry (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id_hash STRING NOT NULL,     -- HMAC(session + daily_pepper)
+    user_id_hash STRING NOT NULL,        -- HMAC(uid + static_pepper)
+    timestamp TIMESTAMPTZ DEFAULT NOW(),
+    
+    -- CONTEXT
+    device_class STRING,                 -- mobile/desktop
+    network_bucket STRING,               -- latency tier
+    totem_version STRING DEFAULT 'v54',
+    
+    -- BEHAVIORAL VECTOR (Normalized 0.0-1.0)
+    zone_salted FLOAT,
+    mouse_entropy FLOAT,
+    velocity_variance FLOAT,
+    cognitive_latency INT,
+
+    -- DRIFT & SECURITY FLAGS
+    result_status STRING,                -- 'accepted' | 'migrated' | 'rejected'
+    was_migrated BOOL,
+    zone_delta INT,
+    jitter_applied_ms INT,
+    
+    -- METADATA
+    ip_country STRING,                   -- Anonymized location (Country only)
+    ingest_node STRING                   -- Server ID
+);
+
+-- Index for rapid training retrieval
+CREATE INDEX idx_drift_training ON drift_telemetry (result_status, device_class, network_bucket);
