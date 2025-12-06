@@ -3,130 +3,94 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>A+ CHAOS | SECURE GATE</title>
+    <title>A+ CHAOS | SECURE LOGIN GATE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@simplewebauthn/browser@10.0.0/dist/bundle/index.umd.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
-        body { background-color: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; }
+        body { background-color: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; overflow: hidden; }
+        .smart-btn { width: 100%; padding: 1.5rem; font-size: 1.2rem; font-weight: bold; border: 2px solid #00ff41; background: #111; color: #fff; border-radius: 12px; margin-top: 20px; }
+        .danger-btn { width: 100%; padding: 1rem; font-size: 1rem; font-weight: bold; border: 1px solid #ff0000; background: #330000; color: #ff0000; border-radius: 12px; margin-top: 10px; }
         .hud-status { font-size: 1.5rem; font-weight: 800; text-align: center; margin-bottom: 1rem; }
-        .smart-btn { width: 100%; padding: 1.2rem; font-size: 1.1rem; font-weight: bold; border: 2px solid #00ff41; background: #111; color: #fff; border-radius: 12px; margin-top: 10px; }
-        .input-field { width: 100%; padding: 12px; background: #111; border: 1px solid #333; color: white; text-align: center; margin-bottom: 10px; border-radius: 8px; }
     </style>
 </head>
 <body class="h-screen flex flex-col items-center justify-center p-6 bg-black">
 
     <div id="hud" class="hud-status text-green-500">SYSTEM READY</div>
-
-    <div class="w-full max-w-sm">
-        <!-- MASTER KEY INPUT (Hidden by default, shown if needed) -->
-        <div id="setup-panel" class="hidden">
-            <input type="password" id="master-key" class="input-field" placeholder="ENTER MASTER KEY">
-            <button class="smart-btn bg-yellow-900 border-yellow-500" onclick="doRegister()">
-                <i class="fas fa-key mr-2"></i> ACTIVATE NEW DEVICE
-            </button>
-            <div class="text-center text-xs text-gray-500 mt-4">- OR -</div>
-        </div>
-
-        <button id="login-btn" class="smart-btn" onclick="doLogin()">
-            <i class="fas fa-fingerprint mr-2"></i> VERIFY IDENTITY
-        </button>
-        
-        <div class="text-center mt-6">
-            <button onclick="toggleSetup()" class="text-xs text-gray-600 hover:text-white">Admin Recovery</button>
-        </div>
-    </div>
+    
+    <button id="main-btn" class="smart-btn" onclick="handleMainAction()">VERIFY IDENTITY</button>
+    
+    <!-- Hidden Reset Button -->
+    <button id="reset-btn" class="danger-btn hidden" onclick="doRegister()">FORCE NEW REGISTRATION</button>
 
     <script>
         const { startRegistration, startAuthentication } = SimpleWebAuthnBrowser;
         const API_BASE = '/api/v1';
+        const HEADERS = { 'Content-Type': 'application/json' };
 
-        function updateHUD(text, color = 'text-green-500') { 
-            const h = document.getElementById('hud'); 
-            h.innerText = text; 
-            h.className = `hud-status ${color}`; 
-        }
+        function updateHUD(text, color) { document.getElementById('hud').innerText = text; document.getElementById('hud').style.color = color; }
 
-        function toggleSetup() {
-            const panel = document.getElementById('setup-panel');
-            panel.classList.toggle('hidden');
-        }
-
-        async function doRegister() {
-            const masterKey = document.getElementById('master-key').value;
-            if(!masterKey) return alert("ENTER MASTER KEY");
-
-            updateHUD("AUTHENTICATING KEY...", "text-yellow-400");
-            try {
-                // 1. Get Options with Key
-                const resp = await fetch(`${API_BASE}/auth/register-options`, { 
-                    headers: { 'X-CHAOS-MASTER-KEY': masterKey } 
-                });
-                
-                if (!resp.ok) {
-                    const err = await resp.json();
-                    throw new Error(err.error || "Key Rejected");
-                }
-                const opts = await resp.json();
-
-                updateHUD("SCAN FINGERPRINT", "text-white");
-                const attResp = await startRegistration(opts);
-
-                updateHUD("BINDING IDENTITY...", "text-blue-400");
-                const verifyResp = await fetch(`${API_BASE}/auth/register-verify`, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'X-CHAOS-MASTER-KEY': masterKey 
-                    },
-                    body: JSON.stringify(attResp)
-                });
-                
-                const result = await verifyResp.json();
-                if (result.verified) {
-                    updateHUD("IDENTITY SECURED", "text-green-500");
-                    alert("SUCCESS: Device Registered.");
-                    location.reload();
-                } else {
-                    throw new Error("Registration Verification Failed");
-                }
-            } catch (e) {
-                updateHUD("ACCESS DENIED", "text-red-500");
-                alert(e.message);
-            }
+        async function handleMainAction() {
+            // Try Login first. If 404/Error, show Reset button.
+            await doLogin();
         }
 
         async function doLogin() {
-            updateHUD("VERIFYING...", "text-white");
+            updateHUD("VERIFYING...", "#ffffff");
             try {
                 const resp = await fetch(`${API_BASE}/auth/login-options`);
                 if (resp.status === 404) {
-                    // SERVER RESET DETECTED
-                    updateHUD("SYSTEM RESET", "text-red-500");
-                    document.getElementById('setup-panel').classList.remove('hidden');
-                    alert("System Memory Reset. Please enter Master Key to claim Admin Access.");
-                    return;
+                    throw new Error("RESET_REQUIRED");
                 }
                 const opts = await resp.json();
                 const asseResp = await startAuthentication({ publicKey: opts });
-                
                 const verifyResp = await fetch(`${API_BASE}/auth/login-verify`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(asseResp)
+                    method: 'POST', headers: HEADERS, body: JSON.stringify(asseResp)
                 });
-
                 const result = await verifyResp.json();
                 if (result.verified) {
                     sessionStorage.setItem('chaos_session', result.token);
                     window.location.href = '/dashboard.html';
-                } else {
-                    throw new Error(result.error);
+                } else throw new Error("Invalid Credentials");
+            } catch (e) {
+                updateHUD("ACCESS DENIED", "#ff0000");
+                // Show the Force Reset button so you can fix it
+                document.getElementById('reset-btn').classList.remove('hidden');
+                document.getElementById('reset-btn').innerText = "TAP TO RE-REGISTER DEVICE";
+                console.error(e);
+            }
+        }
+
+        async function doRegister() {
+            updateHUD("INITIALIZING NEW KEY...", "#ffff00");
+            try {
+                const resp = await fetch(`${API_BASE}/auth/register-options`);
+                const opts = await resp.json();
+                
+                // FORCE PLATFORM AUTHENTICATOR
+                const attResp = await startRegistration(opts);
+
+                updateHUD("SAVING...", "#0000ff");
+                const verifyResp = await fetch(`${API_BASE}/auth/register-verify`, {
+                    method: 'POST', headers: HEADERS, body: JSON.stringify(attResp)
+                });
+
+                const result = await verifyResp.json();
+                if (result.verified) {
+                    const dna = result.adminDNA;
+                    // COPY DNA LOGIC
+                    const copyArea = document.createElement('textarea');
+                    copyArea.value = dna;
+                    document.body.appendChild(copyArea);
+                    copyArea.select();
+                    try { document.execCommand('copy'); alert("NEW DNA COPIED! SAVE THIS."); } catch(e) { alert("COPY FAILED. SEE SCREEN."); }
+                    
+                    updateHUD("SUCCESS. LOGGING IN...", "#00ff00");
+                    setTimeout(() => location.reload(), 2000);
                 }
             } catch (e) {
-                updateHUD("FAILED", "text-red-500");
-                console.error(e);
+                updateHUD("REGISTRATION FAILED", "#ff0000");
+                alert(e.message);
             }
         }
     </script>
