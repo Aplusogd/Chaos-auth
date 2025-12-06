@@ -1,6 +1,6 @@
 /**
- * A+ CHAOS ID: V64 (KINETIC TOTEM EDITION)
- * STATUS: "Slide-to-Verify" Logic Enabled. Dynamic Friction Active.
+ * A+ CHAOS ID: V66 (MAGNETIC GATE EDITION)
+ * STATUS: Kinetic Telemetry Enabled. Gravity Assist Logging.
  */
 import express from 'express';
 import path from 'path';
@@ -43,20 +43,21 @@ function extractChallengeFromClientResponse(clientResponse) {
 }
 
 // ==========================================
-// 1. KINETIC & DREAMS ENGINE
+// 1. DREAMS ENGINE (KINETIC AWARE)
 // ==========================================
 const DreamsEngine = {
     start: () => process.hrtime.bigint(),
-    // V64 Update: Check Kinetic Data
     check: (durationMs, user, kinetic) => {
-        // 1. Check Duration (Standard DREAMS)
-        if (durationMs < 100) return false; // Too fast for human slide
+        // 1. Standard Duration Check
+        if (durationMs < 100) return false; 
 
-        // 2. Check Kinetic Telemetry (If provided)
+        // 2. Kinetic Analysis (V66)
         if (kinetic) {
-            // Bots usually have 0 deviation (straight line) or infinite jerk
-            if (kinetic.deviation < 0.1 && kinetic.velocity > 500) {
-                console.log("[KINETIC] REJECT: Line too straight (Bot-like).");
+            console.log(`[KINETIC] Velocity: ${kinetic.velocity.toFixed(2)} | Jerk: ${kinetic.jerk.toFixed(4)} | Assisted: ${kinetic.assisted}`);
+            
+            // Bot Detection: If Jerk is mathematically zero (perfectly smooth), REJECT.
+            if (kinetic.jerk < 0.0001) {
+                console.log("[KINETIC] REJECT: Movement too smooth (Bot detected).");
                 return false;
             }
         }
@@ -69,7 +70,7 @@ const DreamsEngine = {
 // 2. CORE LOGIC
 // ==========================================
 const Users = new Map();
-// YOUR HARDCODED DNA (V61 LOCK)
+// YOUR HARDCODED DNA
 const ADMIN_DNA_JS = {
   "credentialID": {"0":34,"1":107,"2":129,"3":52,"4":150,"5":223,"6":204,"7":57,"8":171,"9":110,"10":196,"11":62,"12":244,"13":235,"14":33,"15":107},
   "credentialPublicKey": {"0":165,"1":1,"2":2,"3":3,"4":38,"5":32,"6":1,"7":33,"8":88,"9":32,"10":248,"11":139,"12":206,"13":64,"14":122,"15":111,"16":83,"17":204,"18":37,"19":190,"20":213,"21":75,"22":207,"23":124,"24":3,"25":54,"26":101,"27":62,"28":26,"29":49,"30":36,"31":44,"32":74,"33":127,"34":106,"35":134,"36":50,"37":208,"38":245,"39":80,"40":80,"41":204,"42":34,"43":88,"44":32,"45":121,"46":45,"47":78,"48":103,"49":57,"50":120,"51":161,"52":241,"53":219,"54":228,"55":124,"56":89,"57":247,"58":180,"59":98,"60":57,"61":145,"62":0,"63":28,"64":76,"65":179,"66":212,"67":222,"68":26,"69":0,"70":230,"71":233,"72":237,"73":243,"74":138,"75":182,"76":166},
@@ -89,6 +90,7 @@ Abyss.partners.set(Abyss.hash('sk_chaos_demo123'), { company: 'Demo', plan: 'fre
 const Nightmare = { guardSaaS: (req, res, next) => next() };
 const Chaos = { mintToken: () => crypto.randomBytes(16).toString('hex') };
 const Challenges = new Map();
+
 const getOrigin = (req) => `https://${req.headers['x-forwarded-host'] || req.get('host')}`;
 const getRpId = (req) => req.get('host').split(':')[0];
 
@@ -106,10 +108,7 @@ app.get('/api/v1/auth/login-options', async (req, res) => {
             userVerification: 'required',
         });
         
-        // V64: Dynamic Friction Seed (0.0 to 1.0)
-        // This tells the client how "heavy" the slider should feel
         const friction = Math.random(); 
-        
         Challenges.set(options.challenge, { 
             challenge: options.challenge, 
             startTime: DreamsEngine.start(),
@@ -131,9 +130,8 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
     
     // KINETIC CHECK
     const durationMs = Number(process.hrtime.bigint() - expectedChallenge.startTime) / 1000000;
-    const kineticData = clientResponse.kinetic_data; // From client V64
+    const kineticData = clientResponse.kinetic_data; 
     
-    // Pass friction data to check if user compensated correctly
     const dreamPassed = DreamsEngine.check(durationMs, user, kineticData);
     
     if (!dreamPassed) {
@@ -171,4 +169,4 @@ app.get('/admin', (req, res) => serve('admin.html', res));
 app.get('/sdk', (req, res) => serve('sdk.html', res)); 
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V64 (KINETIC TOTEM) ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V66 (MAGNETIC GATE) ONLINE: ${PORT}`));
