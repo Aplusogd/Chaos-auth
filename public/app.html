@@ -3,94 +3,214 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>A+ CHAOS | SECURE LOGIN GATE</title>
+    <title>A+ CHAOS | KINETIC GATE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@simplewebauthn/browser@10.0.0/dist/bundle/index.umd.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
-        body { background-color: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; overflow: hidden; }
-        .smart-btn { width: 100%; padding: 1.5rem; font-size: 1.2rem; font-weight: bold; border: 2px solid #00ff41; background: #111; color: #fff; border-radius: 12px; margin-top: 20px; }
-        .danger-btn { width: 100%; padding: 1rem; font-size: 1rem; font-weight: bold; border: 1px solid #ff0000; background: #330000; color: #ff0000; border-radius: 12px; margin-top: 10px; }
-        .hud-status { font-size: 1.5rem; font-weight: 800; text-align: center; margin-bottom: 1rem; }
+        body { background-color: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; touch-action: none; overflow: hidden; }
+        
+        /* SLIDER TRACK */
+        .track {
+            width: 80px;
+            height: 300px;
+            background: rgba(0, 255, 65, 0.1);
+            border: 2px solid #004400;
+            border-radius: 40px;
+            position: relative;
+            margin: 0 auto;
+            overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 255, 65, 0.1);
+        }
+
+        /* SLIDER THUMB (THE TOTEM) */
+        .thumb {
+            width: 70px;
+            height: 70px;
+            background: #00ff41;
+            border-radius: 50%;
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: black;
+            font-size: 24px;
+            cursor: grab;
+            box-shadow: 0 0 15px #00ff41;
+            z-index: 10;
+        }
+
+        .thumb:active { cursor: grabbing; box-shadow: 0 0 30px #00ff41; }
+        
+        /* ARROWS ANIMATION */
+        .arrows {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(0, 255, 65, 0.5);
+            font-size: 20px;
+            animation: arrow-float 1.5s infinite;
+        }
+        @keyframes arrow-float { 0% { opacity: 0; transform: translate(-50%, 10px); } 50% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -10px); } }
+
+        .hud-status { font-size: 1.5rem; font-weight: 800; text-align: center; margin-bottom: 2rem; }
     </style>
 </head>
 <body class="h-screen flex flex-col items-center justify-center p-6 bg-black">
 
+    <div class="w-full max-w-sm text-center mb-10">
+        <div class="text-xs text-gray-600 mb-3">A+ CHAOS CORE // V64 KINETIC</div>
+        <h1 class="text-4xl font-bold tracking-tighter text-white">BIOMETRIC GATE</h1>
+    </div>
+
     <div id="hud" class="hud-status text-green-500">SYSTEM READY</div>
+
+    <!-- KINETIC SLIDER -->
+    <div class="track" id="track">
+        <div class="arrows">
+            <i class="fas fa-chevron-up"></i><br>
+            <i class="fas fa-chevron-up"></i>
+        </div>
+        <div class="thumb" id="thumb">
+            <i class="fas fa-fingerprint"></i>
+        </div>
+    </div>
     
-    <button id="main-btn" class="smart-btn" onclick="handleMainAction()">VERIFY IDENTITY</button>
-    
-    <!-- Hidden Reset Button -->
-    <button id="reset-btn" class="danger-btn hidden" onclick="doRegister()">FORCE NEW REGISTRATION</button>
+    <div class="text-center mt-6 text-xs text-gray-500 tracking-widest">SLIDE UP TO VERIFY</div>
 
     <script>
-        const { startRegistration, startAuthentication } = SimpleWebAuthnBrowser;
+        const { startAuthentication } = SimpleWebAuthnBrowser;
         const API_BASE = '/api/v1';
-        const HEADERS = { 'Content-Type': 'application/json' };
+        const HEADERS = { 'Content-Type': 'application/json', 'X-APLUS-SECURE': 'TOTEM_V8_BIO' };
+        
+        const track = document.getElementById('track');
+        const thumb = document.getElementById('thumb');
+        const hud = document.getElementById('hud');
+        
+        let isDragging = false;
+        let startY = 0;
+        let thumbBottom = 5;
+        let friction = 0.5; // Default, will update from server
+        let pathData = []; // Store gesture data for DREAMS V5
 
-        function updateHUD(text, color) { document.getElementById('hud').innerText = text; document.getElementById('hud').style.color = color; }
+        // --- FETCH OPTIONS & FRICTION ---
+        let authOptions = null;
+        
+        async function preheat() {
+            try {
+                const resp = await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS });
+                if(resp.ok) {
+                    authOptions = await resp.json();
+                    friction = authOptions.kinetic_friction || 0.5; // Load dynamic friction
+                    hud.innerText = "SLIDE TO UNLOCK";
+                    thumb.style.opacity = "1";
+                }
+            } catch(e) {
+                hud.innerText = "OFFLINE";
+                hud.className = "hud-status text-red-500";
+            }
+        }
+        preheat(); // Run on load
 
-        async function handleMainAction() {
-            // Try Login first. If 404/Error, show Reset button.
-            await doLogin();
+        // --- TOUCH PHYSICS ---
+        track.addEventListener('touchstart', startDrag);
+        track.addEventListener('touchmove', drag);
+        track.addEventListener('touchend', endDrag);
+        track.addEventListener('mousedown', startDrag); // Desktop support
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', endDrag);
+
+        function startDrag(e) {
+            if(!authOptions) return;
+            isDragging = true;
+            startY = e.touches ? e.touches[0].clientY : e.clientY;
+            thumb.style.transition = 'none'; // Instant response
+            pathData = []; // Reset path
         }
 
-        async function doLogin() {
-            updateHUD("VERIFYING...", "#ffffff");
-            try {
-                const resp = await fetch(`${API_BASE}/auth/login-options`);
-                if (resp.status === 404) {
-                    throw new Error("RESET_REQUIRED");
-                }
-                const opts = await resp.json();
-                const asseResp = await startAuthentication({ publicKey: opts });
-                const verifyResp = await fetch(`${API_BASE}/auth/login-verify`, {
-                    method: 'POST', headers: HEADERS, body: JSON.stringify(asseResp)
-                });
-                const result = await verifyResp.json();
-                if (result.verified) {
-                    sessionStorage.setItem('chaos_session', result.token);
-                    window.location.href = '/dashboard.html';
-                } else throw new Error("Invalid Credentials");
-            } catch (e) {
-                updateHUD("ACCESS DENIED", "#ff0000");
-                // Show the Force Reset button so you can fix it
-                document.getElementById('reset-btn').classList.remove('hidden');
-                document.getElementById('reset-btn').innerText = "TAP TO RE-REGISTER DEVICE";
-                console.error(e);
+        function drag(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const deltaY = startY - clientY;
+            
+            // Apply Dynamic Friction (The "Heavy" feel)
+            // Higher friction = harder to drag
+            const resistance = 1 - (friction * 0.3); 
+            const moveY = Math.max(0, Math.min(230, deltaY * resistance));
+            
+            thumb.style.bottom = `${5 + moveY}px`;
+            
+            // Collect Kinetic Data
+            pathData.push({ y: moveY, t: Date.now() });
+
+            // Visual Feedback
+            if (moveY > 150) {
+                thumb.style.backgroundColor = "#fff";
+                thumb.style.color = "#000";
             }
         }
 
-        async function doRegister() {
-            updateHUD("INITIALIZING NEW KEY...", "#ffff00");
+        function endDrag() {
+            if (!isDragging) return;
+            isDragging = false;
+            
+            const currentBottom = parseFloat(thumb.style.bottom);
+            
+            // THRESHOLD CHECK (Did they slide high enough?)
+            if (currentBottom > 200) {
+                // LOCK POSITION & TRIGGER
+                thumb.style.bottom = '230px';
+                triggerBiometric();
+            } else {
+                // SNAP BACK
+                thumb.style.transition = 'all 0.3s cubic-bezier(0.25, 1.5, 0.5, 1)';
+                thumb.style.bottom = '5px';
+                thumb.style.backgroundColor = "#00ff41";
+                thumb.style.color = "#000";
+            }
+        }
+
+        async function triggerBiometric() {
+            hud.innerText = "SCANNING...";
+            hud.className = "hud-status text-blue-400";
+            
+            // Calculate Kinetic Metrics
+            const velocity = pathData.length / ((pathData[pathData.length-1].t - pathData[0].t) || 1);
+            
             try {
-                const resp = await fetch(`${API_BASE}/auth/register-options`);
-                const opts = await resp.json();
+                const asseResp = await startAuthentication({ publicKey: authOptions });
                 
-                // FORCE PLATFORM AUTHENTICATOR
-                const attResp = await startRegistration(opts);
+                // Inject Kinetic Data
+                const payload = {
+                    ...asseResp,
+                    kinetic_data: { velocity, deviation: Math.random() } // Mock dev for now
+                };
 
-                updateHUD("SAVING...", "#0000ff");
-                const verifyResp = await fetch(`${API_BASE}/auth/register-verify`, {
-                    method: 'POST', headers: HEADERS, body: JSON.stringify(attResp)
+                const verifyResp = await fetch(`${API_BASE}/auth/login-verify`, {
+                    method: 'POST', headers: HEADERS, body: JSON.stringify(payload)
                 });
-
+                
                 const result = await verifyResp.json();
                 if (result.verified) {
-                    const dna = result.adminDNA;
-                    // COPY DNA LOGIC
-                    const copyArea = document.createElement('textarea');
-                    copyArea.value = dna;
-                    document.body.appendChild(copyArea);
-                    copyArea.select();
-                    try { document.execCommand('copy'); alert("NEW DNA COPIED! SAVE THIS."); } catch(e) { alert("COPY FAILED. SEE SCREEN."); }
-                    
-                    updateHUD("SUCCESS. LOGGING IN...", "#00ff00");
-                    setTimeout(() => location.reload(), 2000);
+                    hud.innerText = "ACCESS GRANTED";
+                    hud.className = "hud-status text-green-500";
+                    sessionStorage.setItem('chaos_session', result.token);
+                    setTimeout(() => location.href = '/dashboard.html', 1000);
+                } else {
+                    throw new Error("Rejected");
                 }
             } catch (e) {
-                updateHUD("REGISTRATION FAILED", "#ff0000");
-                alert(e.message);
+                hud.innerText = "DENIED";
+                hud.className = "hud-status text-red-500";
+                // Reset Slide
+                thumb.style.transition = 'all 0.5s';
+                thumb.style.bottom = '5px';
             }
         }
     </script>
