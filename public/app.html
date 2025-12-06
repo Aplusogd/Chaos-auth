@@ -3,193 +3,177 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>A+ CHAOS | KINETIC GATE</title>
+    <title>A+ CHAOS | KINETIC LAUNCHPAD</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@simplewebauthn/browser@10.0.0/dist/bundle/index.umd.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
-        body { background-color: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; touch-action: none; overflow: hidden; }
-        
-        /* SLIDER TRACK */
-        .track {
-            width: 80px;
-            height: 300px;
-            background: rgba(0, 255, 65, 0.1);
-            border: 2px solid #004400;
-            border-radius: 40px;
-            position: relative;
-            margin: 0 auto;
-            overflow: hidden;
-            box-shadow: 0 0 20px rgba(0, 255, 65, 0.1);
+        body { 
+            background-color: #000; 
+            color: #00ff41; 
+            font-family: 'JetBrains Mono', monospace; 
+            touch-action: none; 
+            overflow: hidden; 
         }
 
-        /* SLIDER THUMB (THE TOTEM) */
-        .thumb {
-            width: 70px;
-            height: 70px;
-            background: #00ff41;
+        .well-container {
+            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+            width: 120px; height: 160px;
+            border-left: 2px solid #004400; border-right: 2px solid #004400; border-bottom: 2px solid #004400;
+            border-radius: 0 0 30px 30px; border-top: none;
+            background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0, 255, 65, 0.05));
+        }
+
+        .totem {
+            width: 80px; height: 80px;
+            background: radial-gradient(circle at 30% 30%, #aaffaa, #00ff41);
             border-radius: 50%;
-            position: absolute;
-            bottom: 5px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: black;
-            font-size: 24px;
-            cursor: grab;
-            box-shadow: 0 0 15px #00ff41;
-            z-index: 10;
+            position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 32px; color: #002200;
+            box-shadow: 0 0 20px #00ff41, inset 0 0 10px rgba(255,255,255,0.5);
+            cursor: grab; z-index: 100;
         }
 
-        .thumb:active { cursor: grabbing; box-shadow: 0 0 30px #00ff41; }
-        
-        /* ARROWS ANIMATION */
-        .arrows {
-            position: absolute;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: rgba(0, 255, 65, 0.5);
-            font-size: 20px;
-            animation: arrow-float 1.5s infinite;
-        }
-        @keyframes arrow-float { 0% { opacity: 0; transform: translate(-50%, 10px); } 50% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -10px); } }
+        .totem:active { cursor: grabbing; box-shadow: 0 0 40px #00ff41; transform: translateX(-50%) scale(1.05); }
 
-        .hud-status { font-size: 1.5rem; font-weight: 800; text-align: center; margin-bottom: 2rem; }
+        .launching { transition: bottom 0.5s cubic-bezier(0.1, 0.7, 0.1, 1), opacity 0.5s; bottom: 120vh !important; opacity: 0; }
+        .falling { transition: bottom 0.6s cubic-bezier(0.5, 0, 0.5, 1.5); bottom: 20px !important; }
+
+        .arrow-guide { position: absolute; bottom: 200px; left: 50%; transform: translateX(-50%); color: rgba(0, 255, 65, 0.3); animation: float-up 1.5s infinite; }
+        @keyframes float-up { 0% { opacity:0; transform:translate(-50%, 10px);} 50% {opacity:1;} 100% {opacity:0; transform:translate(-50%, -20px);} }
+        .hud-status { font-size: 1.5rem; font-weight: 800; text-align: center; margin-top: 20vh; text-shadow: 0 0 10px #00ff41; }
     </style>
 </head>
-<body class="h-screen flex flex-col items-center justify-center p-6 bg-black">
-
-    <div class="w-full max-w-sm text-center mb-10">
-        <div class="text-xs text-gray-600 mb-3">A+ CHAOS CORE // V64 KINETIC</div>
-        <h1 class="text-4xl font-bold tracking-tighter text-white">BIOMETRIC GATE</h1>
-    </div>
+<body class="h-screen w-screen">
 
     <div id="hud" class="hud-status text-green-500">SYSTEM READY</div>
-
-    <!-- KINETIC SLIDER -->
-    <div class="track" id="track">
-        <div class="arrows">
-            <i class="fas fa-chevron-up"></i><br>
-            <i class="fas fa-chevron-up"></i>
-        </div>
-        <div class="thumb" id="thumb">
-            <i class="fas fa-fingerprint"></i>
-        </div>
-    </div>
-    
-    <div class="text-center mt-6 text-xs text-gray-500 tracking-widest">SLIDE UP TO VERIFY</div>
+    <div class="arrow-guide"><i class="fas fa-chevron-up text-2xl"></i></div>
+    <div class="well-container"><div class="text-[10px] text-green-900 text-center mt-24 select-none">SWIPE UP</div></div>
+    <div class="totem" id="totem"><i class="fas fa-fingerprint"></i></div>
 
     <script>
         const { startAuthentication } = SimpleWebAuthnBrowser;
         const API_BASE = '/api/v1';
         const HEADERS = { 'Content-Type': 'application/json', 'X-APLUS-SECURE': 'TOTEM_V8_BIO' };
         
-        const track = document.getElementById('track');
-        const thumb = document.getElementById('thumb');
+        const totem = document.getElementById('totem');
         const hud = document.getElementById('hud');
         
         let isDragging = false;
         let startY = 0;
-        let thumbBottom = 5;
-        let friction = 0.5; // Default, will update from server
-        let pathData = []; // Store gesture data for DREAMS V5
-
-        // --- FETCH OPTIONS & FRICTION ---
+        let lastTime = 0;
+        let lastY = 0;
+        let velocityY = 0;
         let authOptions = null;
-        
+        let pathData = []; 
+        let accels = [];
+
         async function preheat() {
             try {
                 const resp = await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS });
                 if(resp.ok) {
                     authOptions = await resp.json();
-                    friction = authOptions.kinetic_friction || 0.5; // Load dynamic friction
-                    hud.innerText = "SLIDE TO UNLOCK";
-                    thumb.style.opacity = "1";
+                    hud.innerText = "CAST TOTEM";
                 }
-            } catch(e) {
-                hud.innerText = "OFFLINE";
-                hud.className = "hud-status text-red-500";
-            }
+            } catch(e) { hud.innerText = "OFFLINE"; hud.className = "hud-status text-red-500"; }
         }
-        preheat(); // Run on load
+        preheat();
 
-        // --- TOUCH PHYSICS ---
-        track.addEventListener('touchstart', startDrag);
-        track.addEventListener('touchmove', drag);
-        track.addEventListener('touchend', endDrag);
-        track.addEventListener('mousedown', startDrag); // Desktop support
-        document.addEventListener('mousemove', drag);
-        document.addEventListener('mouseup', endDrag);
+        totem.addEventListener('touchstart', grab);
+        document.addEventListener('touchmove', move, { passive: false });
+        document.addEventListener('touchend', release);
+        totem.addEventListener('mousedown', grab);
+        document.addEventListener('mousemove', move);
+        document.addEventListener('mouseup', release);
 
-        function startDrag(e) {
+        function grab(e) {
             if(!authOptions) return;
             isDragging = true;
             startY = e.touches ? e.touches[0].clientY : e.clientY;
-            thumb.style.transition = 'none'; // Instant response
-            pathData = []; // Reset path
+            lastY = startY;
+            lastTime = Date.now();
+            totem.classList.remove('falling', 'launching');
+            totem.style.transition = 'none'; 
+            pathData = [];
+            accels = [];
         }
 
-        function drag(e) {
+        function move(e) {
             if (!isDragging) return;
             e.preventDefault();
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            const deltaY = startY - clientY;
-            
-            // Apply Dynamic Friction (The "Heavy" feel)
-            // Higher friction = harder to drag
-            const resistance = 1 - (friction * 0.3); 
-            const moveY = Math.max(0, Math.min(230, deltaY * resistance));
-            
-            thumb.style.bottom = `${5 + moveY}px`;
-            
-            // Collect Kinetic Data
-            pathData.push({ y: moveY, t: Date.now() });
+            const now = Date.now();
+            let deltaY = startY - clientY; 
 
-            // Visual Feedback
-            if (moveY > 150) {
-                thumb.style.backgroundColor = "#fff";
-                thumb.style.color = "#000";
+            // Physics Calc
+            const dt = now - lastTime;
+            let currentVel = 0;
+            if (dt > 0) {
+                currentVel = (lastY - clientY) / dt; 
+                // Calculate Jerk (Change in accel) approx
+                const prevVel = pathData.length > 0 ? pathData[pathData.length-1].v : 0;
+                const accel = (currentVel - prevVel) / dt;
+                accels.push(Math.abs(accel));
+            }
+            
+            // Log Data
+            pathData.push({ y: deltaY, v: currentVel, t: now });
+            lastY = clientY;
+            lastTime = now;
+
+            // Visual Update
+            if (deltaY < 0) deltaY = deltaY * 0.2; // Rubber band bottom
+            totem.style.bottom = `${20 + deltaY}px`;
+            
+            // GRAVITY ASSIST HINT: Glow white if fast/high enough
+            if (deltaY > 150 || currentVel > 1.0) {
+                totem.style.backgroundColor = "#fff";
+                totem.style.color = "#000";
+            } else {
+                totem.style.backgroundColor = ""; // Reset to gradient
+                totem.style.color = "#002200";
             }
         }
 
-        function endDrag() {
+        function release(e) {
             if (!isDragging) return;
             isDragging = false;
             
-            const currentBottom = parseFloat(thumb.style.bottom);
+            const currentBottom = parseFloat(totem.style.bottom);
             
-            // THRESHOLD CHECK (Did they slide high enough?)
-            if (currentBottom > 200) {
-                // LOCK POSITION & TRIGGER
-                thumb.style.bottom = '230px';
-                triggerBiometric();
+            // --- GRAVITY ASSIST ALGORITHM ---
+            // If they threw it > 150px OR velocity > 0.8 px/ms, we help them.
+            if (currentBottom > 150 || velocityY > 0.8) {
+                launch();
             } else {
-                // SNAP BACK
-                thumb.style.transition = 'all 0.3s cubic-bezier(0.25, 1.5, 0.5, 1)';
-                thumb.style.bottom = '5px';
-                thumb.style.backgroundColor = "#00ff41";
-                thumb.style.color = "#000";
+                // Gravity Fall
+                totem.classList.add('falling');
+                hud.innerText = "THROW HARDER";
+                setTimeout(() => { if(hud.innerText === "THROW HARDER") hud.innerText = "CAST TOTEM"; }, 1500);
             }
         }
 
-        async function triggerBiometric() {
-            hud.innerText = "SCANNING...";
-            hud.className = "hud-status text-blue-400";
+        async function launch() {
+            hud.innerText = "OPENING GATE...";
+            hud.className = "hud-status text-green-400";
+            totem.classList.add('launching'); // Fly away animation
             
-            // Calculate Kinetic Metrics
-            const velocity = pathData.length / ((pathData[pathData.length-1].t - pathData[0].t) || 1);
+            // Calculate Jerk (Smoothness)
+            const avgJerk = accels.reduce((a,b) => a+b, 0) / (accels.length || 1);
+            const avgVelocity = pathData.reduce((a,b) => a + b.v, 0) / (pathData.length || 1);
             
             try {
                 const asseResp = await startAuthentication({ publicKey: authOptions });
                 
-                // Inject Kinetic Data
                 const payload = {
                     ...asseResp,
-                    kinetic_data: { velocity, deviation: Math.random() } // Mock dev for now
+                    kinetic_data: { 
+                        velocity: avgVelocity,
+                        jerk: avgJerk, // The Biological Signature
+                        assisted: true // Flag that we helped them
+                    }
                 };
 
                 const verifyResp = await fetch(`${API_BASE}/auth/login-verify`, {
@@ -198,19 +182,19 @@
                 
                 const result = await verifyResp.json();
                 if (result.verified) {
-                    hud.innerText = "ACCESS GRANTED";
-                    hud.className = "hud-status text-green-500";
+                    hud.innerText = "IDENTITY CONFIRMED";
                     sessionStorage.setItem('chaos_session', result.token);
                     setTimeout(() => location.href = '/dashboard.html', 1000);
-                } else {
-                    throw new Error("Rejected");
-                }
+                } else { throw new Error("Rejected"); }
             } catch (e) {
-                hud.innerText = "DENIED";
+                hud.innerText = "ACCESS DENIED";
                 hud.className = "hud-status text-red-500";
-                // Reset Slide
-                thumb.style.transition = 'all 0.5s';
-                thumb.style.bottom = '5px';
+                setTimeout(() => {
+                    totem.classList.remove('launching');
+                    totem.classList.add('falling'); // Drop back down
+                    hud.innerText = "CAST TOTEM";
+                    hud.className = "hud-status text-green-500";
+                }, 2000);
             }
         }
     </script>
