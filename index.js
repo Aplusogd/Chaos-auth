@@ -1,6 +1,6 @@
 /**
- * A+ CHAOS ID: V79 (CLIENT FIX)
- * STATUS: Server supports Env Var Persistence. Client crash fixed.
+ * A+ CHAOS ID: V80 (KILL SWITCH EDITION)
+ * STATUS: Added /reset endpoint to fix "Ghost Key" lockouts.
  */
 import express from 'express';
 import path from 'path';
@@ -27,9 +27,29 @@ app.use(cors({ origin: '*' }));
 app.use(express.json());
 app.use(express.static(publicPath));
 
-// --- UTILITY ---
+// --- UTILITIES ---
 const toBuffer = (base64) => Buffer.from(base64, 'base64url');
 const toBase64 = (buffer) => Buffer.from(buffer).toString('base64url');
+
+const jsObjectToBuffer = (obj) => {
+    if (obj instanceof Uint8Array) return obj;
+    if (obj instanceof Buffer) return obj;
+    if (typeof obj !== 'object' || obj === null) return new Uint8Array();
+    return Buffer.from(Object.values(obj));
+};
+
+function extractChallengeFromClientResponse(clientResponse) {
+    try {
+        const json = Buffer.from(clientResponse.response.clientDataJSON, 'base64url').toString('utf8');
+        return JSON.parse(json).challenge;
+    } catch (e) { return null; }
+}
+
+const DreamsEngine = {
+    start: () => process.hrtime.bigint(),
+    check: () => true, 
+    update: () => {}
+};
 
 // ==========================================
 // 1. IDENTITY CORE
@@ -37,10 +57,9 @@ const toBase64 = (buffer) => Buffer.from(buffer).toString('base64url');
 const Users = new Map();
 const ADMIN_USER_ID = 'admin-user';
 
-// CHECK ENV VARS
+// LOAD ENV VARS (But allow Reset)
 if (process.env.ADMIN_CRED_ID && process.env.ADMIN_PUB_KEY) {
     try {
-        console.log(">>> [SYSTEM] LOADING IDENTITY FROM ENV...");
         const dna = {
             credentialID: process.env.ADMIN_CRED_ID,
             credentialPublicKey: new Uint8Array(toBuffer(process.env.ADMIN_PUB_KEY)),
@@ -48,10 +67,8 @@ if (process.env.ADMIN_CRED_ID && process.env.ADMIN_PUB_KEY) {
             dreamProfile: { window: [], sum_T: 0, sum_T2: 0 }
         };
         Users.set(ADMIN_USER_ID, dna);
-        console.log(">>> [SYSTEM] ADMIN RESTORED.");
+        console.log(">>> [SYSTEM] RESTORED FROM ENV.");
     } catch (e) { console.error("!!! [ERROR] BAD ENV DATA:", e); }
-} else {
-    console.log(">>> [SYSTEM] NO DNA FOUND. REGISTRATION OPEN.");
 }
 
 const Abyss = { partners: new Map(), hash: (k) => crypto.createHash('sha256').update(k).digest('hex') };
@@ -66,12 +83,15 @@ const getRpId = (req) => req.get('host').split(':')[0];
 // 2. AUTH ROUTES
 // ==========================================
 
+// --- KILL SWITCH (NEW) ---
+app.post('/api/v1/auth/reset', (req, res) => {
+    Users.clear(); // WIPE MEMORY
+    console.log(">>> [SYSTEM] MANUAL RESET TRIGGERED. MEMORY WIPED.");
+    res.json({ success: true });
+});
+
 // REGISTER
 app.get('/api/v1/auth/register-options', async (req, res) => {
-    if (Users.has(ADMIN_USER_ID)) {
-        res.setHeader('Content-Type', 'application/json');
-        return res.status(403).send(JSON.stringify({ error: "SYSTEM LOCKED." }));
-    }
     try {
         const options = await generateRegistrationOptions({
             rpName: 'A+ Chaos ID',
@@ -79,7 +99,10 @@ app.get('/api/v1/auth/register-options', async (req, res) => {
             userID: new Uint8Array(Buffer.from(ADMIN_USER_ID)),
             userName: 'admin@aplus.com',
             attestationType: 'none',
-            authenticatorSelection: { residentKey: 'preferred', userVerification: 'preferred' },
+            authenticatorSelection: { 
+                residentKey: 'required', // FORCE RESIDENT KEY (Better for mobile)
+                userVerification: 'preferred' 
+            },
         });
         Challenges.set(ADMIN_USER_ID, options.challenge);
         res.json(options);
@@ -102,7 +125,6 @@ app.post('/api/v1/auth/register-verify', async (req, res) => {
         if (verification.verified) {
             const { credentialID, credentialPublicKey, counter } = verification.registrationInfo;
             
-            // Format for Env Vars
             const idString = toBase64(credentialID);
             const keyString = toBase64(credentialPublicKey);
 
@@ -145,8 +167,8 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
          const json = Buffer.from(req.body.response.clientDataJSON, 'base64url').toString('utf8');
          challengeString = JSON.parse(json).challenge;
     } catch(e) { return res.status(400).json({error: "Bad Payload"}); }
+    
     const expectedChallenge = Challenges.get(challengeString); 
-
     if (!user || !expectedChallenge) return res.status(400).json({ error: "Invalid State" });
     
     try {
@@ -180,6 +202,6 @@ app.get('/app', (req, res) => serve('app.html', res));
 app.get('/dashboard', (req, res) => serve('dashboard.html', res));
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V79 (CLIENT FIX) ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V80 (KILL SWITCH) ONLINE: ${PORT}`));
 
 
