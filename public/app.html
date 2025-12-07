@@ -3,177 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>A+ CHAOS | KINETIC LAUNCHPAD</title>
+    <title>A+ CHAOS | IMMORTAL GATE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@simplewebauthn/browser@10.0.0/dist/bundle/index.umd.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
-        body { background-color: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; touch-action: none; overflow: hidden; user-select: none; }
-
-        .well-container { position: absolute; bottom: 140px; left: 50%; transform: translateX(-50%); width: 120px; height: 160px; border-left: 2px solid #004400; border-right: 2px solid #004400; border-bottom: 2px solid #004400; border-radius: 0 0 30px 30px; border-top: none; background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0, 255, 65, 0.05)); pointer-events: none; z-index: 10; }
-
-        .totem { width: 90px; height: 90px; background: radial-gradient(circle at 30% 30%, #aaffaa, #00ff41); border-radius: 50%; position: absolute; bottom: 130px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; font-size: 36px; color: #002200; box-shadow: 0 0 25px #00ff41; cursor: grab; z-index: 50; transition: filter 0.5s, box-shadow 0.5s; }
-        .totem.offline { filter: grayscale(100%); opacity: 0.3; }
-        .totem:active:not(.offline) { cursor: grabbing; box-shadow: 0 0 50px #00ff41; transform: translateX(-50%) scale(1.1); }
-        .launching { transition: bottom 0.4s cubic-bezier(0.1, 0.7, 0.1, 1), opacity 0.4s; bottom: 120vh !important; opacity: 0; }
-        .falling { transition: bottom 0.6s cubic-bezier(0.5, 0, 0.5, 1.5); bottom: 130px !important; }
-        
-        .hud-status { font-size: 1.5rem; font-weight: 800; text-align: center; margin-top: 10vh; text-shadow: 0 0 10px #00ff41; pointer-events: none; }
-        
-        /* PERMANENT DEBUG TERMINAL */
-        #debug-term {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 120px;
-            background: #050505; border-top: 1px solid #004400;
-            font-size: 10px; color: #55aa55; padding: 10px; overflow-y: auto; z-index: 100;
-            font-family: monospace; opacity: 0.9;
-        }
+        body { background-color: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; touch-action: none; overflow: hidden; }
+        .hud-status { font-size: 1.5rem; font-weight: 800; text-align: center; margin-top: 10vh; text-shadow: 0 0 10px #00ff41; }
+        .totem { width: 90px; height: 90px; background: #00ff41; border-radius: 50%; position: absolute; bottom: 130px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; font-size: 36px; color: #002200; box-shadow: 0 0 25px #00ff41; }
     </style>
 </head>
 <body class="h-screen w-screen">
 
     <div id="hud" class="hud-status text-yellow-500">CONNECTING...</div>
-    <div class="well-container"><div class="text-[10px] text-green-900 text-center mt-28 select-none">SWIPE UP</div></div>
-    <div class="totem offline" id="totem"><i class="fas fa-fingerprint"></i></div>
-
-    <!-- VISUAL DEBUGGER -->
-    <div id="debug-term">> SYSTEM START...</div>
+    <div class="totem" id="totem"><i class="fas fa-fingerprint"></i></div>
 
     <script>
-        const { startAuthentication } = SimpleWebAuthnBrowser;
-        const API_BASE = window.location.origin + '/api/v1'; 
-        const HEADERS = { 'Content-Type': 'application/json', 'X-APLUS-SECURE': 'TOTEM_V8_BIO' };
+        const { startRegistration, startAuthentication } = SimpleWebAuthnBrowser;
+        const API_BASE = '/api/v1';
+        const HEADERS = { 'Content-Type': 'application/json' };
         
-        const totem = document.getElementById('totem');
-        const hud = document.getElementById('hud');
-        const term = document.getElementById('debug-term');
-        
-        function log(msg) {
-            term.innerHTML += `<br>> ${msg}`;
-            term.scrollTop = term.scrollHeight;
-        }
-
-        let isDragging = false;
-        let startY = 0; let lastTime = 0; let lastY = 0; let velocityY = 0;
-        let authOptions = null;
-        let pathData = []; 
+        let mode = 'LOGIN';
 
         async function preheat() {
-            log(`Pinging ${API_BASE}...`);
             try {
-                // 1. Raw Ping
-                const ping = await fetch('/ping');
-                if(!ping.ok) throw new Error("Ping Failed: " + ping.status);
-                log("Ping: OK (Latency <100ms)");
-
-                // 2. Auth Options
-                log("Requesting Login Options...");
                 const resp = await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS });
-                
                 if(resp.ok) {
-                    authOptions = await resp.json();
-                    hud.innerText = "CAST TOTEM";
-                    hud.className = "hud-status text-green-500";
-                    totem.classList.remove('offline');
-                    log("Options: Loaded. Ready for Totem.");
-                } else {
-                    const err = await resp.json();
-                    log(`Auth Error: ${JSON.stringify(err)}`);
-                    hud.innerText = "SERVER ERROR";
+                    mode = 'LOGIN';
+                    document.getElementById('hud').innerText = "CAST TOTEM";
+                    document.getElementById('hud').className = "hud-status text-green-500";
+                } else if (resp.status === 404) {
+                    mode = 'REGISTER';
+                    document.getElementById('hud').innerText = "IMPRINT IDENTITY";
+                    document.getElementById('hud').className = "hud-status text-blue-400";
+                    document.getElementById('totem').style.background = "#0088ff";
                 }
-            } catch(e) { 
-                log(`FAIL: ${e.message}`);
-                hud.innerText = "ABYSS ASLEEP"; 
-                hud.className = "hud-status text-red-500";
-                setTimeout(preheat, 3000);
-            }
+            } catch(e) { setTimeout(preheat, 2000); }
         }
-        setTimeout(preheat, 500); 
+        setTimeout(preheat, 100);
 
-        // --- PHYSICS ---
-        totem.addEventListener('touchstart', grab, { passive: false });
-        document.addEventListener('touchmove', move, { passive: false });
-        document.addEventListener('touchend', release, { passive: false });
-        totem.addEventListener('mousedown', grab);
-        document.addEventListener('mousemove', move);
-        document.addEventListener('mouseup', release);
+        document.getElementById('totem').addEventListener('click', async () => {
+            if (mode === 'REGISTER') await doRegister();
+            else await doLogin();
+        });
 
-        function grab(e) {
-            if(totem.classList.contains('offline')) return;
-            isDragging = true;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            startY = clientY; lastY = startY; lastTime = Date.now();
-            totem.classList.remove('falling', 'launching');
-            totem.style.transition = 'none'; 
-            pathData = [];
-            totem.style.transform = 'translateX(-50%) scale(1.1)';
-        }
-
-        function move(e) {
-            if (!isDragging) return;
-            if (e.cancelable) e.preventDefault(); 
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            const now = Date.now();
-            let deltaY = startY - clientY; 
-            const dt = now - lastTime;
-            if (dt > 0) velocityY = (lastY - clientY) / dt;
-            pathData.push({ y: deltaY, v: velocityY, t: now });
-            lastY = clientY; lastTime = now;
-
-            if (deltaY < 0) deltaY = deltaY * 0.2; 
-            totem.style.bottom = `${130 + deltaY}px`; 
-            if (deltaY > 150) { totem.style.backgroundColor = "#fff"; totem.style.color = "#000"; }
-            else { totem.style.background = ""; totem.style.color = "#002200"; }
-        }
-
-        function release(e) {
-            if (!isDragging) return;
-            isDragging = false;
-            const currentBottom = parseFloat(totem.style.bottom);
-            totem.style.transform = 'translateX(-50%) scale(1)';
-            
-            if (currentBottom > 330 || (velocityY > 1.2 && currentBottom > 200)) {
-                launch();
-            } else {
-                totem.classList.add('falling');
-                hud.innerText = "THROW HARDER";
-                setTimeout(() => { if(hud.innerText === "THROW HARDER") hud.innerText = "CAST TOTEM"; }, 1500);
-            }
-        }
-
-        async function launch() {
-            hud.innerText = "OPENING GATE...";
-            totem.classList.add('launching');
+        async function doRegister() {
+            document.getElementById('hud').innerText = "SCANNING...";
             try {
-                log("Starting Authenticator...");
-                const asseResp = await startAuthentication({ publicKey: authOptions });
-                log("Biometrics Scanned.");
-                
-                const avgVel = pathData.reduce((a,b)=>a+b.v,0)/pathData.length;
-                const payload = { ...asseResp, kinetic_data: { velocity: avgVel, distance: pathData.length } };
-
-                log("Verifying with Abyss...");
-                const verifyResp = await fetch(`${API_BASE}/auth/login-verify`, {
-                    method: 'POST', headers: HEADERS, body: JSON.stringify(payload)
+                const opts = await (await fetch(`${API_BASE}/auth/register-options`)).json();
+                const attResp = await startRegistration(opts);
+                const verifyResp = await fetch(`${API_BASE}/auth/register-verify`, {
+                    method: 'POST', headers: HEADERS, body: JSON.stringify(attResp)
                 });
+                const res = await verifyResp.json();
                 
-                const result = await verifyResp.json();
-                if (result.verified) {
-                    hud.innerText = "CONFIRMED";
-                    log("SUCCESS: Identity Verified.");
-                    sessionStorage.setItem('chaos_session', result.token);
+                if (res.verified) {
+                    // SHOW THE VAULT KEYS
+                    const msg = `
+SAVE THESE IN RENDER ENVIRONMENT VARIABLES:
+
+Key: ADMIN_CRED_ID
+Value: ${res.env_ID}
+
+Key: ADMIN_PUB_KEY
+Value: ${res.env_KEY}
+                    `;
+                    const ta = document.createElement('textarea');
+                    ta.value = msg;
+                    ta.style.position='fixed'; ta.style.top='0'; ta.style.left='0'; ta.style.width='100%'; ta.style.height='50%';
+                    document.body.appendChild(ta);
+                    alert("IDENTITY SAVED. COPY THE KEYS ON SCREEN.");
+                }
+            } catch(e) { alert(e.message); }
+        }
+
+        async function doLogin() {
+            document.getElementById('hud').innerText = "VERIFYING...";
+            try {
+                const opts = await (await fetch(`${API_BASE}/auth/login-options`)).json();
+                const asseResp = await startAuthentication({ publicKey: opts });
+                const verifyResp = await fetch(`${API_BASE}/auth/login-verify`, {
+                    method: 'POST', headers: HEADERS, body: JSON.stringify(asseResp)
+                });
+                const res = await verifyResp.json();
+                if(res.verified) {
+                    document.getElementById('hud').innerText = "CONFIRMED";
                     setTimeout(() => location.href = '/dashboard.html', 1000);
-                } else { throw new Error(result.error); }
+                } else throw new Error(res.error);
             } catch(e) {
-                log(`Verify Error: ${e.message}`);
-                hud.innerText = "DENIED";
-                hud.className = "hud-status text-red-500";
-                setTimeout(() => {
-                    totem.classList.remove('launching');
-                    totem.classList.add('falling');
-                    hud.innerText = "CAST TOTEM";
-                    hud.className = "hud-status text-green-500";
-                }, 2000);
+                document.getElementById('hud').innerText = "DENIED";
+                alert("Login Failed: " + e.message);
             }
         }
     </script>
