@@ -3,191 +3,259 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>A+ CHAOS | KINETIC GATE</title>
+    <title>A+ CHAOS | SECURE GATE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@simplewebauthn/browser@10.0.0/dist/bundle/index.umd.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
-        body { background-color: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; touch-action: none; overflow: hidden; user-select: none; }
+        body { 
+            background-color: #000; 
+            color: #00ff41; 
+            font-family: 'JetBrains Mono', monospace; 
+            touch-action: none; 
+            overflow: hidden; 
+            user-select: none;
+        }
 
-        .hud-status { font-size: 1.5rem; font-weight: 800; text-align: center; margin-top: 15vh; text-shadow: 0 0 10px #00ff41; pointer-events: none; }
-        
+        /* HUD & STATUS */
+        .hud-status { 
+            font-size: 1.5rem; 
+            font-weight: 800; 
+            text-align: center; 
+            margin-top: 20vh; 
+            text-shadow: 0 0 10px #00ff41; 
+            pointer-events: none; 
+            transition: color 0.5s;
+        }
+
+        /* GRAVITY WELL */
         .well-container { 
             position: absolute; bottom: 140px; left: 50%; transform: translateX(-50%); 
-            width: 120px; height: 180px; 
-            border: 2px solid #004400; border-top: none; border-radius: 0 0 30px 30px;
+            width: 120px; height: 160px; 
+            border-left: 2px solid #004400; border-right: 2px solid #004400; border-bottom: 2px solid #004400; 
+            border-radius: 0 0 30px 30px; border-top: none; 
             background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0, 255, 65, 0.05)); 
             pointer-events: none; z-index: 10; 
         }
 
+        /* THE TOTEM */
         .totem { 
             width: 90px; height: 90px; 
-            background: #00ff41; 
+            background: radial-gradient(circle at 30% 30%, #aaffaa, #00ff41); 
             border-radius: 50%; 
-            position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%); 
+            position: absolute; bottom: 130px; left: 50%; transform: translateX(-50%); 
             display: flex; align-items: center; justify-content: center; 
             font-size: 36px; color: #002200; 
             box-shadow: 0 0 25px #00ff41; 
-            cursor: pointer; z-index: 50; 
-            transition: bottom 0.2s cubic-bezier(0.25, 1, 0.5, 1), transform 0.1s;
+            cursor: grab; z-index: 50; 
+            transition: filter 0.5s, box-shadow 0.5s, opacity 0.5s; 
         }
         
-        .totem.imprint { background: #0088ff; box-shadow: 0 0 25px #0088ff; color: #001133; }
-        .totem.processing { animation: pulse-white 1s infinite; background: #fff; color: #000; }
+        .totem.offline { filter: grayscale(100%); opacity: 0.3; cursor: wait; }
+        .totem:active:not(.offline) { cursor: grabbing; box-shadow: 0 0 60px #00ff41; transform: translateX(-50%) scale(1.15); }
         
-        @keyframes pulse-white { 0% { box-shadow: 0 0 20px #fff; } 50% { box-shadow: 0 0 50px #fff; } 100% { box-shadow: 0 0 20px #fff; } }
+        /* ANIMATIONS */
+        .launching { transition: bottom 0.4s cubic-bezier(0.1, 0.7, 0.1, 1), opacity 0.4s; bottom: 120vh !important; opacity: 0; }
+        .falling { transition: bottom 0.6s cubic-bezier(0.5, 0, 0.5, 1.5); bottom: 130px !important; }
+        
+        .arrow-guide { 
+            position: absolute; bottom: 220px; left: 50%; transform: translateX(-50%); 
+            color: rgba(0, 255, 65, 0.3); animation: float-up 2s infinite; pointer-events: none; 
+        }
+        @keyframes float-up { 0% { opacity:0; transform:translate(-50%, 10px);} 50% {opacity:1;} 100% {opacity:0; transform:translate(-50%, -20px);} }
 
-        /* DEBUG TERMINAL */
-        #term { position: absolute; bottom: 0; left: 0; width: 100%; height: 120px; background: #050505; border-top: 1px solid #004400; font-size: 10px; color: #55aa55; padding: 10px; overflow-y: auto; z-index: 100; font-family: monospace; opacity: 0.9; }
-        
-        .reset-btn { position: absolute; top: 20px; right: 20px; font-size: 10px; color: #555; border: 1px solid #333; padding: 5px; z-index: 100; cursor: pointer; }
+        /* STATUS DOT */
+        .status-dot { 
+            position: absolute; top: 20px; right: 20px; 
+            width: 8px; height: 8px; border-radius: 50%; 
+            background: #330000; transition: all 0.5s; 
+        }
+        .status-dot.online { background: #00ff41; box-shadow: 0 0 10px #00ff41; }
     </style>
 </head>
 <body class="h-screen w-screen">
 
-    <div class="reset-btn" onclick="hardReset()">RESET</div>
+    <!-- MINIMALIST UI -->
+    <div id="status-dot" class="status-dot"></div>
     <div id="hud" class="hud-status text-yellow-500">CONNECTING...</div>
     
-    <div class="well-container"></div>
-    <div class="totem" id="totem"><i class="fas fa-fingerprint"></i></div>
+    <div class="arrow-guide"><i class="fas fa-chevron-up text-2xl"></i></div>
     
-    <!-- DNA ZONE -->
-    <div id="dna-zone" class="hidden fixed top-0 left-0 w-full h-full bg-black/95 p-6 z-50 flex flex-col justify-center">
-        <p class="text-white text-xs mb-2">UPDATE RENDER ENV VARS:</p>
-        <textarea id="dna-text" class="w-full h-40 bg-gray-900 text-green-400 text-xs p-2 rounded font-mono mb-4"></textarea>
-        <button onclick="location.reload()" class="w-full py-4 bg-green-600 text-black font-bold rounded">DONE</button>
+    <div class="well-container">
+        <div class="text-[10px] text-green-900 text-center mt-28 select-none tracking-widest">SWIPE UP</div>
     </div>
 
-    <div id="term">> SYSTEM START...</div>
+    <!-- TOTEM -->
+    <div class="totem offline" id="totem"><i class="fas fa-fingerprint"></i></div>
 
     <script>
-        const { startRegistration, startAuthentication } = SimpleWebAuthnBrowser;
+        const { startAuthentication, startRegistration } = SimpleWebAuthnBrowser;
         const API_BASE = '/api/v1';
-        const HEADERS = { 'Content-Type': 'application/json' };
+        const HEADERS = { 'Content-Type': 'application/json', 'X-APLUS-SECURE': 'TOTEM_V8_BIO' };
         
-        let mode = 'LOGIN';
-        let isProcessing = false; // PREVENTS DOUBLE CLICK
+        const totem = document.getElementById('totem');
+        const hud = document.getElementById('hud');
+        const dot = document.getElementById('status-dot');
+        
+        let isDragging = false;
+        let startY = 0; let lastTime = 0; let lastY = 0; let velocityY = 0;
+        let authOptions = null;
+        let mode = 'LOGIN'; // Default
+        let pathData = []; 
 
-        function log(msg) {
-            const t = document.getElementById('term');
-            t.innerHTML += `<br>> ${msg}`;
-            t.scrollTop = t.scrollHeight;
-        }
-
+        // --- 1. SILENT CONNECT ---
         async function preheat() {
-            log(`Pinging Server...`);
             try {
+                // Try Login Check
                 const resp = await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS });
                 
                 if(resp.ok) {
-                    mode = 'LOGIN';
-                    document.getElementById('hud').innerText = "TAP TO VERIFY";
-                    document.getElementById('hud').className = "hud-status text-green-500";
-                    document.getElementById('totem').className = "totem";
-                    log("STATUS: Login Ready");
+                    authOptions = await resp.json();
+                    setMode('LOGIN');
                 } else if (resp.status === 404) {
-                    mode = 'REGISTER';
-                    document.getElementById('hud').innerText = "TAP TO IMPRINT";
-                    document.getElementById('hud').className = "hud-status text-blue-400";
-                    document.getElementById('totem').className = "totem imprint";
-                    log("STATUS: Registration Open");
+                    // If server was wiped (rare), switch to Register
+                    const regResp = await fetch(`${API_BASE}/auth/register-options`, { headers: HEADERS });
+                    if(regResp.ok) {
+                        authOptions = await regResp.json();
+                        setMode('REGISTER');
+                    }
                 }
             } catch(e) { 
-                log(`FAIL: ${e.message}`);
-                setTimeout(preheat, 2000); 
+                // Silent Retry
+                setTimeout(preheat, 3000);
             }
         }
-        setTimeout(preheat, 500);
-
-        // --- INTERACTION ---
-        const totem = document.getElementById('totem');
         
-        // V84 FIX: Using simple 'click' to guarantee User Activation for WebAuthn
-        totem.addEventListener('click', async () => {
-            if (isProcessing) return; // Debounce
-            isProcessing = true;
-            totem.classList.add('processing');
-
-            if (mode === 'REGISTER') await doRegister();
-            else await doLogin();
+        function setMode(newMode) {
+            mode = newMode;
+            hud.innerText = mode === 'LOGIN' ? "CAST TOTEM" : "IMPRINT IDENTITY";
+            hud.className = mode === 'LOGIN' ? "hud-status text-green-500" : "hud-status text-blue-400";
             
-            // Only reset if failed
-            if (document.getElementById('hud').innerText !== "CONFIRMED") {
-                isProcessing = false;
-                totem.classList.remove('processing');
-            }
-        });
-
-        // --- ACTIONS ---
-
-        async function hardReset() {
-            if(!confirm("WIPE SERVER MEMORY?")) return;
-            log("Sending Reset Command...");
-            await fetch(`${API_BASE}/auth/reset`, { method: 'POST' });
-            location.reload();
+            totem.classList.remove('offline');
+            // Visual diff for register vs login
+            totem.style.background = mode === 'LOGIN' 
+                ? "radial-gradient(circle at 30% 30%, #aaffaa, #00ff41)" 
+                : "radial-gradient(circle at 30% 30%, #aaccff, #0088ff)";
+            
+            dot.classList.add('online');
         }
 
-        async function doRegister() {
-            document.getElementById('hud').innerText = "SCANNING...";
-            log("Starting Registration...");
+        setTimeout(preheat, 100); 
+
+        // --- 2. PHYSICS ENGINE ---
+        totem.addEventListener('touchstart', grab, { passive: false });
+        document.addEventListener('touchmove', move, { passive: false });
+        document.addEventListener('touchend', release, { passive: false });
+        totem.addEventListener('mousedown', grab);
+        document.addEventListener('mousemove', move);
+        document.addEventListener('mouseup', release);
+
+        function grab(e) {
+            if(totem.classList.contains('offline')) return;
+            isDragging = true;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            startY = clientY; lastY = startY; lastTime = Date.now();
+            totem.classList.remove('falling', 'launching');
+            totem.style.transition = 'none'; 
+            pathData = [];
+            totem.style.transform = 'translateX(-50%) scale(1.1)';
+        }
+
+        function move(e) {
+            if (!isDragging) return;
+            if (e.cancelable) e.preventDefault(); 
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            const now = Date.now();
+            let deltaY = startY - clientY; 
+            const dt = now - lastTime;
+            if (dt > 0) velocityY = (lastY - clientY) / dt;
+            
+            pathData.push({ y: deltaY, v: velocityY, t: now });
+            lastY = clientY; lastTime = now;
+
+            if (deltaY < 0) deltaY = deltaY * 0.2; 
+            totem.style.bottom = `${130 + deltaY}px`; 
+            
+            // Glow Effect
+            if (deltaY > 150) {
+                totem.style.backgroundColor = "#fff";
+                totem.style.color = "#000";
+            } else {
+                totem.style.background = ""; // Revert to CSS gradient
+                totem.style.color = "#002200";
+            }
+        }
+
+        function release(e) {
+            if (!isDragging) return;
+            isDragging = false;
+            const currentBottom = parseFloat(totem.style.bottom);
+            totem.style.transform = 'translateX(-50%) scale(1)';
+            
+            // LAUNCH THRESHOLD
+            if (currentBottom > 330 || (velocityY > 1.2 && currentBottom > 200)) {
+                launch();
+            } else {
+                totem.classList.add('falling');
+                hud.innerText = "THROW HARDER";
+                setTimeout(() => { 
+                    if(hud.innerText === "THROW HARDER") hud.innerText = mode === 'LOGIN' ? "CAST TOTEM" : "IMPRINT IDENTITY"; 
+                }, 1500);
+            }
+        }
+
+        // --- 3. EXECUTION ---
+        async function launch() {
+            hud.innerText = mode === 'LOGIN' ? "OPENING GATE..." : "SECURING DNA...";
+            totem.classList.add('launching');
+            
             try {
-                const opts = await (await fetch(`${API_BASE}/auth/register-options`)).json();
-                
-                // BROWSER CALL
-                const attResp = await startRegistration(opts);
-                log("Biometrics Scanned.");
-                
-                const verifyResp = await fetch(`${API_BASE}/auth/register-verify`, {
-                    method: 'POST', headers: HEADERS, body: JSON.stringify(attResp)
-                });
-                const res = await verifyResp.json();
-                
-                if (res.verified) {
-                    log("SUCCESS: Identity Created.");
-                    const dnaText = `ADMIN_CRED_ID=${res.env_ID}\n\nADMIN_PUB_KEY=${res.env_KEY}`;
-                    document.getElementById('dna-zone').classList.remove('hidden');
-                    document.getElementById('dna-text').value = dnaText;
+                // Determine Action
+                let result;
+                if (mode === 'LOGIN') {
+                    const asseResp = await startAuthentication({ publicKey: authOptions });
+                    
+                    const avgVel = pathData.reduce((a,b)=>a+b.v,0)/pathData.length;
+                    const payload = { ...asseResp, kinetic_data: { velocity: avgVel, distance: pathData.length } };
+
+                    const verifyResp = await fetch(`${API_BASE}/auth/login-verify`, {
+                        method: 'POST', headers: HEADERS, body: JSON.stringify(payload)
+                    });
+                    result = await verifyResp.json();
                 } else {
-                    throw new Error("Verification Failed");
+                    // REGISTER
+                    const attResp = await startRegistration(authOptions);
+                    const verifyResp = await fetch(`${API_BASE}/auth/register-verify`, {
+                        method: 'POST', headers: HEADERS, body: JSON.stringify(attResp)
+                    });
+                    result = await verifyResp.json();
                 }
-            } catch(e) { 
-                log(`REG ERROR: ${e.message}`);
-                alert("Register Failed: " + e.message); 
-            }
-        }
 
-        async function doLogin() {
-            document.getElementById('hud').innerText = "VERIFYING...";
-            log("Starting Login...");
-            try {
-                const opts = await (await fetch(`${API_BASE}/auth/login-options`)).json();
-                
-                // BROWSER CALL
-                const asseResp = await startAuthentication(opts); 
-                log("Biometrics Scanned. Sending to Abyss...");
-                
-                const verifyResp = await fetch(`${API_BASE}/auth/login-verify`, {
-                    method: 'POST', headers: HEADERS, body: JSON.stringify(asseResp)
-                });
-                const res = await verifyResp.json();
-                
-                if(res.verified) {
-                    document.getElementById('hud').innerText = "CONFIRMED";
-                    log("SUCCESS: Access Granted.");
-                    sessionStorage.setItem('chaos_session', res.token);
-                    setTimeout(() => location.href = '/dashboard.html', 1000);
-                } else throw new Error(res.error || "Denied");
-            } catch(e) {
-                document.getElementById('hud').innerText = "DENIED";
-                log(`LOGIN ERROR: ${e.message}`);
-                
-                if(e.message.includes("No credentials")) {
-                    if(confirm("Key Mismatch. Reset System?")) hardReset();
+                if (result.verified) {
+                    hud.innerText = "CONFIRMED";
+                    if(result.token) sessionStorage.setItem('chaos_session', result.token);
+                    
+                    if(mode === 'REGISTER') {
+                         alert("IDENTITY SECURED. REFRESHING.");
+                         location.reload();
+                    } else {
+                         setTimeout(() => location.href = '/dashboard.html', 1000);
+                    }
+                } else {
+                    throw new Error(result.error || "Rejected");
                 }
+            } catch(e) {
+                console.error(e);
+                hud.innerText = "DENIED";
+                hud.className = "hud-status text-red-500";
+                setTimeout(() => {
+                    totem.classList.remove('launching');
+                    totem.classList.add('falling');
+                    setMode(mode); // Reset colors
+                }, 2000);
             }
         }
     </script>
 </body>
 </html>
-
-
