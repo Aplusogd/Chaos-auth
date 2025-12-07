@@ -92,7 +92,9 @@
             document.getElementById('hud').innerText = "VERIFYING...";
             try {
                 const opts = await (await fetch(`${API_BASE}/auth/login-options`)).json();
-                const asseResp = await startAuthentication(opts); // No wrapper
+                // UNIVERSAL LOGIN CALL
+                const asseResp = await startAuthentication(opts); 
+                
                 const verifyResp = await fetch(`${API_BASE}/auth/login-verify`, {
                     method: 'POST', headers: HEADERS, body: JSON.stringify(asseResp)
                 });
@@ -104,7 +106,9 @@
                 } else throw new Error(res.error);
             } catch(e) {
                 document.getElementById('hud').innerText = "DENIED";
-                if(confirm("Authentication failed. Your phone key might be out of sync. Do you want to reset and re-register?")) {
+                console.error(e);
+                alert("Login Failed: " + e.message);
+                if(e.message.includes("No credentials")) {
                     hardReset();
                 }
             }
