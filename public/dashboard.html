@@ -4,149 +4,179 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CHAOS ID | COMMAND CENTER</title>
-    <meta name="description" content="High-Assurance Control Panel — MBF Fusion, DREAMS V3, ZKP Audits">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* BASE STYLES */
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
-        body { 
-            background-color: #050505; 
-            color: #e5e5e5; 
-            font-family: 'JetBrains Mono', monospace; 
-            background-image: url('https://www.transparenttextures.com/patterns/black-linen.png');
-        }
-        .card { 
-            background: rgba(15, 23, 42, 0.7); 
-            border: 1px solid #334155; 
-            backdrop-filter: blur(8px);
-            box-shadow: 0 4px 20px rgba(0, 255, 65, 0.05);
-        }
-        /* ASSURANCE BADGE STYLES */
-        .assurance-badge { 
-            display: inline-flex;
-            align-items: center;
-            padding: 6px 14px;
-            font-size: 11px;
-            font-weight: bold;
-            border-radius: 9999px;
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: #000;
-            text-shadow: 0 0 8px rgba(0, 255, 65, 0.6);
-            box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
-        }
-        .pulse { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        /* CORE AESTHETIC */
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono:wght@400;700&display=swap');
+        body { background-color: #000; color: #00ff41; font-family: 'Share Tech Mono', monospace; overflow-x: hidden; }
+        
+        .neon-border { border: 1px solid rgba(0, 255, 65, 0.3); box-shadow: 0 0 15px rgba(0, 255, 65, 0.1); }
+        .glass-panel { background: rgba(0, 20, 0, 0.85); backdrop-filter: blur(5px); border: 1px solid #004400; }
+        
+        /* MATRIX RAIN BG */
+        #matrix-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.1; }
+
+        /* LIVE METRICS */
+        .stat-card { transition: all 0.3s; }
+        .stat-card:hover { transform: translateY(-2px); border-color: #00ff41; box-shadow: 0 0 20px rgba(0, 255, 65, 0.2); }
+        
+        .blink { animation: blink 1s step-end infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
-    <!-- NAV BAR -->
-    <nav class="flex justify-between items-center p-4 md:p-6 border-b border-green-800 bg-black/80 backdrop-blur">
-        <div class="text-xl font-bold tracking-widest text-white">
-            <i class="fas fa-layer-group text-green-500 mr-2"></i> CHAOS ID HOMEBASE
+    <canvas id="matrix-canvas"></canvas>
+
+    <!-- TOP NAV -->
+    <nav class="p-4 md:p-6 flex justify-between items-center border-b border-green-900 bg-black/80 backdrop-blur z-10">
+        <div class="flex items-center gap-4">
+            <div class="text-2xl font-bold tracking-widest text-white">CHAOS<span class="text-green-500">CORE</span></div>
+            <div class="hidden md:block px-2 py-0.5 text-[10px] border border-green-700 rounded text-green-700">ADMIN CLEARANCE</div>
         </div>
         <div class="flex items-center gap-6">
-            <!-- Dynamic Assurance Badge -->
-            <div id="assurance-badge" class="assurance-badge pulse">
-                <i class="fas fa-fingerprint mr-2"></i> <span id="assurance-text">HIGH ASSURANCE</span>
+            <div class="flex items-center gap-2 text-xs">
+                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                <span class="text-green-400">SECURE LINK</span>
             </div>
-            <button onclick="logout()" class="text-xs border border-red-900 text-red-500 px-4 py-2 rounded hover:bg-red-900/30 transition font-bold">
-                <i class="fas fa-power-off mr-1"></i> LOGOUT
+            <button onclick="logout()" class="text-xs text-red-500 hover:text-white transition border border-red-900 px-3 py-1 rounded hover:bg-red-900/20">
+                DISCONNECT
             </button>
         </div>
     </nav>
 
-    <!-- MAIN CONTENT -->
-    <main class="flex-grow p-6 md:p-10 max-w-7xl mx-auto w-full">
+    <!-- MAIN DASHBOARD -->
+    <main class="flex-grow p-6 md:p-10 max-w-7xl mx-auto w-full z-10">
         
-        <!-- WELCOME HEADER -->
-        <div class="mb-10">
-            <h1 class="text-3xl font-bold text-white mb-2">WELCOME BACK, <span class="text-green-400">AGENT</span>.</h1>
-            <p class="text-gray-400">Your identity is protected by <strong>Multi-Factor Biometric Fusion</strong> and <strong>DREAMS V3 Behavioral Intelligence</strong>.</p>
+        <!-- WELCOME BANNER -->
+        <div class="mb-10 flex flex-col md:flex-row justify-between items-end gap-4 border-b border-green-900 pb-6">
+            <div>
+                <h1 class="text-3xl md:text-5xl font-bold text-white mb-2">COMMAND CENTER</h1>
+                <p class="text-green-600/80 text-sm md:text-base">Identity Protocol: <span class="text-green-400">V84 STABLE</span> | Session Hash: <span id="session-hash" class="text-white">LOADING...</span></p>
+            </div>
+            <div class="text-right hidden md:block">
+                <div class="text-[10px] text-gray-500">SYSTEM TIME</div>
+                <div id="clock" class="text-xl text-green-500">00:00:00</div>
+            </div>
         </div>
 
-        <div class="grid md:grid-cols-4 gap-8">
+        <!-- QUICK ACTIONS GRID -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            
+            <!-- ACTION 1: KEY FORGE -->
+            <a href="/admin/portal" class="stat-card glass-panel p-6 rounded-xl group cursor-pointer block">
+                <div class="flex justify-between items-start mb-4">
+                    <i class="fas fa-key text-3xl text-yellow-500 group-hover:text-white transition"></i>
+                    <i class="fas fa-arrow-right text-green-900 group-hover:text-green-500 transition"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-1">KEY FORGE</h3>
+                <p class="text-xs text-gray-400">Generate and revoke Partner API keys. Manage Quotas.</p>
+            </a>
 
-            <!-- CARD 1: DIGITAL PASSPORT -->
-            <div class="card p-6 rounded-xl md:col-span-2">
-                <div class="text-gray-500 text-xs uppercase tracking-widest mb-4">DIGITAL PASSPORT</div>
-                <div class="flex items-center gap-5 mb-6">
-                    <div class="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center text-3xl">
-                        <i class="fas fa-user-astronaut"></i>
-                    </div>
-                    <div>
-                        <div class="font-bold text-xl text-white">Admin Agent</div>
-                        <div class="text-sm text-green-400">DREAMS V3 Confirmed</div>
-                    </div>
+            <!-- ACTION 2: OVERWATCH -->
+            <a href="/admin" class="stat-card glass-panel p-6 rounded-xl group cursor-pointer block">
+                <div class="flex justify-between items-start mb-4">
+                    <i class="fas fa-eye text-3xl text-red-500 group-hover:text-white transition"></i>
+                    <i class="fas fa-arrow-right text-green-900 group-hover:text-green-500 transition"></i>
                 </div>
-                <div class="bg-black/60 p-4 rounded-lg border border-gray-800">
-                    <div class="text-xs text-gray-500 mb-2">CURRENT SESSION TOKEN</div>
-                    <div id="token-display" class="text-sm text-cyan-400 font-mono break-all">LOADING...</div>
-                </div>
-            </div>
+                <h3 class="text-xl font-bold text-white mb-1">OVERWATCH</h3>
+                <p class="text-xs text-gray-400">Real-time threat monitoring and self-healing diagnostics.</p>
+            </a>
 
-            <!-- CARD 2: TIER & REVENUE HOOK -->
-            <div class="card p-6 rounded-xl">
-                <div class="text-gray-500 text-xs uppercase tracking-widest mb-4">ACCOUNT TIER</div>
-                <div class="space-y-4">
-                    <div class="flex justify-between items-center">
-                        <span class="text-gray-400">Current Tier:</span> 
-                        <span id="current-tier" class="font-bold text-2xl text-yellow-400">PRO</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-400">RPM Limit:</span> 
-                        <span id="quota-limit" class="font-bold text-green-400">500</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span class="text-gray-400">MBF Fusion:</span> 
-                        <span class="text-green-400 font-bold">ENABLED</span>
-                    </div>
-                    <a href="/admin/portal" class="block text-center py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-black font-bold rounded-lg hover:opacity-90 transition mt-6">
-                        <i class="fas fa-arrow-up mr-2"></i> UPGRADE TO ENTERPRISE
-                    </a>
+            <!-- ACTION 3: SDK DOCS -->
+            <a href="/sdk" class="stat-card glass-panel p-6 rounded-xl group cursor-pointer block">
+                <div class="flex justify-between items-start mb-4">
+                    <i class="fas fa-code text-3xl text-blue-500 group-hover:text-white transition"></i>
+                    <i class="fas fa-arrow-right text-green-900 group-hover:text-green-500 transition"></i>
                 </div>
-            </div>
-
-            <!-- CARD 3: ZKP AUDIT & INTEGRITY -->
-            <div class="card p-6 rounded-xl">
-                <div class="text-gray-500 text-xs uppercase tracking-widest mb-4">FINANCIAL INTEGRITY (ZKP)</div>
-                <div class="space-y-3">
-                    <div class="text-xs text-purple-400">Last Verified Audit Root:</div>
-                    <div id="audit-root" class="text-xs text-purple-300 font-mono break-all">0x99238FF7C1A4...92F1</div>
-                    <div class="text-xs text-gray-400 mt-4">PQC Key Status: <span class="text-green-400 font-bold">ML-KEM ACTIVE</span></div>
-                </div>
-                <button onclick="window.location.href='/sdk.html'" class="w-full mt-6 py-3 bg-blue-600/20 text-blue-400 border border-blue-700 rounded-lg hover:bg-blue-600/40 transition font-bold text-sm">
-                    <i class="fas fa-code mr-2"></i> ACCESS SDK & DOCS
-                </button>
-            </div>
+                <h3 class="text-xl font-bold text-white mb-1">INTEGRATION SDK</h3>
+                <p class="text-xs text-gray-400">Developer documentation for MBF and Chaos Pulse.</p>
+            </a>
 
         </div>
+
+        <!-- LIVE TELEMETRY PREVIEW -->
+        <div class="glass-panel p-1 rounded-xl">
+            <div class="bg-black/50 p-3 flex justify-between items-center border-b border-green-900">
+                <span class="text-xs font-bold text-green-500"><i class="fas fa-satellite-dish mr-2"></i> LIVE TRAFFIC</span>
+                <span class="text-[10px] text-gray-500">SOURCE: ABYSS NODE 01</span>
+            </div>
+            <div class="p-6 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+                <div>
+                    <div class="text-[10px] text-gray-500 mb-1">TOTAL REQUESTS</div>
+                    <div id="metric-req" class="text-2xl font-bold text-white">0</div>
+                </div>
+                <div>
+                    <div class="text-[10px] text-gray-500 mb-1">THREATS BLOCKED</div>
+                    <div id="metric-block" class="text-2xl font-bold text-red-500">0</div>
+                </div>
+                <div>
+                    <div class="text-[10px] text-gray-500 mb-1">ACTIVE PULSES</div>
+                    <div id="metric-pulse" class="text-2xl font-bold text-blue-400">0</div>
+                </div>
+                <div>
+                    <div class="text-[10px] text-gray-500 mb-1">UPTIME</div>
+                    <div id="metric-uptime" class="text-2xl font-bold text-green-400">0%</div>
+                </div>
+            </div>
+        </div>
+
     </main>
 
     <script>
-        // === SECURITY GATE ===
+        // --- 1. AUTH CHECK ---
         const session = sessionStorage.getItem('chaos_session');
-        const tokenDisplay = document.getElementById('token-display');
-        const auditRootDisplay = document.getElementById('audit-root');
-
-        if (!session) {
-            window.location.href = '/app.html';
-        } else {
-            // Display partial token and static audit root
-            tokenDisplay.innerText = session.substring(0, 64) + '...';
-            // Placeholder for the Merkle Root—replace with dynamic fetch in production
-            auditRootDisplay.innerText = '0x99238FF7C1A4D8E9F1...'; 
-            
-            // NOTE: fetchStatus function would dynamically update tier and quota from server /admin/telemetry
-        }
+        if (!session) window.location.href = '/app';
+        
+        document.getElementById('session-hash').innerText = session.substring(0, 12) + '...';
 
         function logout() {
             sessionStorage.clear();
-            window.location.href = '/app.html';
+            window.location.href = '/app';
         }
+
+        // --- 2. MATRIX RAIN ---
+        const c = document.getElementById('matrix-canvas');
+        const ctx = c.getContext('2d');
+        c.height = window.innerHeight; c.width = window.innerWidth;
+        const font_size = 12;
+        const columns = c.width / font_size;
+        const drops = Array(Math.floor(columns)).fill(1);
+
+        function draw() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+            ctx.fillRect(0, 0, c.width, c.height);
+            ctx.fillStyle = '#0F0';
+            ctx.font = font_size + 'px monospace';
+            for (let i = 0; i < drops.length; i++) {
+                const text = String.fromCharCode(0x30A0 + Math.random() * 96);
+                ctx.fillText(text, i * font_size, drops[i] * font_size);
+                if (drops[i] * font_size > c.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            }
+        }
+        setInterval(draw, 50);
+
+        // --- 3. LIVE CLOCK & MOCK TELEMETRY ---
+        setInterval(() => {
+            document.getElementById('clock').innerText = new Date().toLocaleTimeString();
+            
+            // NOTE: In production, fetch '/api/v1/admin/telemetry'
+            // For now, we simulate "Life"
+            const reqs = document.getElementById('metric-req');
+            reqs.innerText = parseInt(reqs.innerText) + Math.floor(Math.random() * 3);
+            document.getElementById('metric-uptime').innerText = "99.9%";
+        }, 1000);
+        
+        // Initial Fetch
+        fetch('/api/v1/admin/telemetry')
+            .then(r => r.json())
+            .then(data => {
+                 document.getElementById('metric-req').innerText = data.stats.requests;
+                 document.getElementById('metric-block').innerText = data.stats.threats;
+            }).catch(console.error);
 
     </script>
 </body>
 </html>
-
