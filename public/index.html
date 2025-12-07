@@ -21,8 +21,6 @@
         .neon-text { text-shadow: 0 0 5px #00ff41, 0 0 10px #00ff41; }
         .neon-border { border: 1px solid rgba(0, 255, 65, 0.3); box-shadow: 0 0 15px rgba(0, 255, 65, 0.1); }
         .terminal-bg { background: rgba(0, 15, 0, 0.95); }
-        .terminal-log { height: 200px; scrollbar-width: none; }
-        .terminal-log::-webkit-scrollbar { display: none; }
 
         /* ASCII MATRIX RAIN */
         #matrix-canvas {
@@ -48,8 +46,28 @@
         }
         @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
-        .blink { animation: blink 1s step-end infinite; }
-        @keyframes blink { 50% { opacity: 0; } }
+        /* SECTOR CARDS */
+        .sector-card {
+            background: rgba(10, 20, 10, 0.6);
+            border: 1px solid #113311;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .sector-card:hover {
+            border-color: #00ff41;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 255, 65, 0.1);
+        }
+        .icon-bg {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            font-size: 5rem;
+            opacity: 0.05;
+            color: white;
+            transform: rotate(15deg);
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -59,7 +77,7 @@
     <nav class="p-4 md:p-6 flex justify-between items-center max-w-7xl mx-auto w-full relative z-10 border-b border-green-900/30 bg-black/40 backdrop-blur">
         <div class="text-2xl font-bold text-green-500 neon-text tracking-widest">CHAOS<span class="text-white">ID</span></div>
         <div class="flex items-center gap-6 text-xs md:text-sm">
-            <div class="hidden md:block text-gray-500">p99 Latency: <span id="latency" class="text-yellow-400 font-bold">1.8ms</span></div>
+            <div class="hidden md:block text-gray-500">p99 Latency: <span class="text-yellow-400 font-bold">1.8ms</span></div>
             <div class="text-green-500 border border-green-900 px-2 py-1 rounded bg-green-900/20">SYSTEM ONLINE</div>
         </div>
     </nav>
@@ -67,13 +85,13 @@
     <!-- HERO SECTION -->
     <header class="text-center py-20 px-4 relative z-10">
         <div class="inline-block mb-4 text-[10px] md:text-xs border border-green-500 text-green-500 px-3 py-1 rounded-full bg-green-900/10">
-            V49 GOLD MASTER DEPLOYED
+            V95 GOLD MASTER DEPLOYED
         </div>
         <h1 class="text-4xl md:text-7xl font-extrabold text-white mb-6 tracking-tight leading-tight">
             THE AGE OF PASSKEYS<br><span class="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500 neon-text">IS OVER.</span>
         </h1>
         <p class="text-lg md:text-xl text-gray-400 mb-10 max-w-2xl mx-auto">
-            Unbreakable, AI-Native Identity. Secured by <strong class="text-white">Multi-Factor Biometric Fusion</strong> and <strong class="text-white">DREAMS V4 Cognitive Entropy</strong>.
+            Unbreakable, AI-Native Identity. Secured by <strong class="text-white">Multi-Factor Biometric Fusion</strong> and <strong class="text-white">DREAMS V3 Cognitive Entropy</strong>.
         </p>
 
         <!-- CTA BUTTONS -->
@@ -92,14 +110,12 @@
         <p class="text-center text-gray-600 text-xs mb-6 tracking-[0.3em]">POWERING THE NEXT GENERATION OF AI</p>
         <div class="marquee-container opacity-50 grayscale hover:grayscale-0 transition duration-500">
           <div class="animate-marquee flex gap-16 items-center">
-            <!-- Logos (Placeholders with text for stability) -->
             <span class="text-xl font-bold">OPENAI</span>
             <span class="text-xl font-bold">ANTHROPIC</span>
             <span class="text-xl font-bold">SCALE AI</span>
             <span class="text-xl font-bold">ANDURIL</span>
             <span class="text-xl font-bold">PALANTIR</span>
             <span class="text-xl font-bold">SPACEX</span>
-            <!-- Duplicate for loop -->
             <span class="text-xl font-bold">OPENAI</span>
             <span class="text-xl font-bold">ANTHROPIC</span>
             <span class="text-xl font-bold">SCALE AI</span>
@@ -110,57 +126,108 @@
         </div>
     </div>
 
-    <!-- LIVE INTERACTIVE SECTION -->
-    <section class="py-16 max-w-6xl mx-auto px-4 relative z-10">
-        <div class="grid md:grid-cols-2 gap-8">
+    <!-- THE PROTOCOL FLOW -->
+    <section class="py-16 max-w-7xl mx-auto px-4 relative z-10">
+        <div class="text-center mb-12">
+            <h2 class="text-2xl font-bold text-white">THE CHAOS PROTOCOL</h2>
+        </div>
+        
+        <div class="grid md:grid-cols-4 gap-4 text-center">
+            <div class="p-4 border border-gray-800 rounded bg-gray-900/30">
+                <div class="text-3xl text-blue-400 mb-2">1</div>
+                <h4 class="font-bold text-white text-sm">KINETIC INPUT</h4>
+                <p class="text-[10px] text-gray-500 mt-1">User swipes Totem. Physics data captured.</p>
+            </div>
+            <div class="hidden md:flex items-center justify-center text-gray-700"><i class="fas fa-arrow-right"></i></div>
             
-            <!-- LEFT: LIVE TERMINAL -->
-            <div>
-                <h3 class="text-lg font-bold mb-3 text-green-400 flex items-center gap-2">
-                    <i class="fas fa-network-wired"></i> CORE TELEMETRY
-                </h3>
-                <div class="neon-border rounded-lg terminal-bg overflow-hidden">
-                    <div class="bg-green-900/20 p-2 text-green-500 text-[10px] font-mono border-b border-green-900 flex justify-between">
-                        <span>> NODE: US-EAST-1</span>
-                        <span>STATUS: ACTIVE</span>
-                    </div>
-                    <div id="terminal" class="terminal-log text-green-400 p-4 text-xs font-mono overflow-y-auto flex flex-col-reverse">
-                        <!-- JS injects logs here -->
-                        <div>> SYSTEM READY.</div>
-                    </div>
+            <div class="p-4 border border-gray-800 rounded bg-gray-900/30">
+                <div class="text-3xl text-green-400 mb-2">2</div>
+                <h4 class="font-bold text-white text-sm">DREAMS ENGINE</h4>
+                <p class="text-[10px] text-gray-500 mt-1">Calculates μ, σ, and ρ1. Rejects bots.</p>
+            </div>
+            <div class="hidden md:flex items-center justify-center text-gray-700"><i class="fas fa-arrow-right"></i></div>
+
+            <div class="p-4 border border-gray-800 rounded bg-gray-900/30">
+                <div class="text-3xl text-purple-400 mb-2">3</div>
+                <h4 class="font-bold text-white text-sm">ABYSS LEDGER</h4>
+                <p class="text-[10px] text-gray-500 mt-1">ZKP Proof generated. Quota debited.</p>
+            </div>
+            <div class="hidden md:flex items-center justify-center text-gray-700"><i class="fas fa-arrow-right"></i></div>
+
+            <div class="p-4 border border-green-800 rounded bg-green-900/20 shadow-[0_0_15px_rgba(0,255,65,0.2)]">
+                <div class="text-3xl text-white mb-2">4</div>
+                <h4 class="font-bold text-white text-sm">ACCESS GRANTED</h4>
+                <p class="text-[10px] text-green-400 mt-1">Session Token Minted.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- STRATEGIC SECTORS -->
+    <section class="py-16 max-w-7xl mx-auto px-4 relative z-10 border-t border-gray-900">
+        <div class="text-center mb-12">
+            <h2 class="text-2xl font-bold text-white mb-4">DEPLOYING CHAOS INTO THE WILD</h2>
+            <p class="text-gray-500 text-sm">Universal solutions for critical industries.</p>
+        </div>
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- SECTOR 1 -->
+            <div class="sector-card p-6 rounded-xl">
+                <i class="fas fa-book icon-bg"></i>
+                <div class="text-xs text-blue-400 font-bold mb-2 uppercase tracking-widest">Digital Archives</div>
+                <h3 class="text-lg font-bold text-white mb-3">Global Knowledge Platforms</h3>
+                <div class="bg-green-900/20 border-l-2 border-green-500 p-2 text-[10px] text-gray-300">
+                    <strong class="text-green-400 block">FIX: DREAMS V4</strong>
+                    Validates "Human Attention" via cognitive micro-tremors. Bots blocked.
                 </div>
             </div>
-
-            <!-- RIGHT: SIMULATORS -->
-            <div class="space-y-6">
-                
-                <!-- MBF SIMULATOR -->
-                <div class="panel border border-gray-800 bg-gray-900/40 p-6 rounded-xl relative overflow-hidden group hover:border-green-600 transition">
-                    <div class="absolute top-0 right-0 bg-green-600 text-black text-[9px] font-bold px-2 py-1">HIGH ASSURANCE</div>
-                    <h3 class="text-white font-bold mb-1">MBF FUSION</h3>
-                    <p class="text-gray-500 text-xs mb-4">Dual-device BLS Signature Aggregation.</p>
-                    
-                    <div class="flex items-center justify-center gap-8 py-4">
-                        <i id="dev1" class="fas fa-mobile-alt text-3xl text-gray-600 transition duration-300"></i>
-                        <i id="link" class="fas fa-link text-xl text-gray-800 transition duration-300"></i>
-                        <i id="dev2" class="fas fa-laptop text-3xl text-gray-600 transition duration-300"></i>
-                    </div>
-                    
-                    <button onclick="runMBF()" id="mbf-btn" class="w-full py-2 bg-gray-800 text-gray-300 text-xs font-bold rounded hover:bg-green-900 hover:text-green-400 transition">
-                        SIMULATE FUSION
-                    </button>
+            <!-- SECTOR 2 -->
+            <div class="sector-card p-6 rounded-xl">
+                <i class="fas fa-truck-fast icon-bg"></i>
+                <div class="text-xs text-yellow-400 font-bold mb-2 uppercase tracking-widest">On-Demand Economy</div>
+                <h3 class="text-lg font-bold text-white mb-3">Rideshare & Logistics</h3>
+                <div class="bg-green-900/20 border-l-2 border-green-500 p-2 text-[10px] text-gray-300">
+                    <strong class="text-green-400 block">FIX: MBF FUSION</strong>
+                    Requires specific hardware + biometrics. Identity cannot be rented.
                 </div>
-
-                <!-- ZKP SIMULATOR -->
-                <div class="panel border border-gray-800 bg-gray-900/40 p-6 rounded-xl hover:border-purple-600 transition">
-                    <h3 class="text-white font-bold mb-1">ZKP BILLING AUDIT</h3>
-                    <p class="text-gray-500 text-xs mb-4">Verify quota spend without revealing data.</p>
-                    <div id="zkp-out" class="font-mono text-[10px] text-gray-400 h-8 mb-2">Waiting for audit request...</div>
-                    <button onclick="runZKP()" class="w-full py-2 bg-gray-800 text-purple-400 text-xs font-bold rounded hover:bg-purple-900/30 transition">
-                        GENERATE PROOF
-                    </button>
+            </div>
+            <!-- SECTOR 3 -->
+            <div class="sector-card p-6 rounded-xl">
+                <i class="fas fa-shield-halved icon-bg"></i>
+                <div class="text-xs text-orange-400 font-bold mb-2 uppercase tracking-widest">Gov & Defense</div>
+                <h3 class="text-lg font-bold text-white mb-3">National Security</h3>
+                <div class="bg-green-900/20 border-l-2 border-green-500 p-2 text-[10px] text-gray-300">
+                    <strong class="text-green-400 block">FIX: PQC HYBRID</strong>
+                    ML-KEM encryption protects data against future quantum cracking.
                 </div>
-
+            </div>
+             <!-- SECTOR 4 -->
+            <div class="sector-card p-6 rounded-xl">
+                <i class="fas fa-gamepad icon-bg"></i>
+                <div class="text-xs text-cyan-400 font-bold mb-2 uppercase tracking-widest">Gaming</div>
+                <h3 class="text-lg font-bold text-white mb-3">Anti-Cheat</h3>
+                <div class="bg-green-900/20 border-l-2 border-green-500 p-2 text-[10px] text-gray-300">
+                    <strong class="text-green-400 block">FIX: KINETIC TOTEM</strong>
+                    Scripts cannot replicate human "Jerk" physics during login.
+                </div>
+            </div>
+             <!-- SECTOR 5 -->
+            <div class="sector-card p-6 rounded-xl">
+                <i class="fas fa-university icon-bg"></i>
+                <div class="text-xs text-purple-400 font-bold mb-2 uppercase tracking-widest">FinTech</div>
+                <h3 class="text-lg font-bold text-white mb-3">Banking</h3>
+                <div class="bg-green-900/20 border-l-2 border-green-500 p-2 text-[10px] text-gray-300">
+                    <strong class="text-green-400 block">FIX: CHAOS PULSE</strong>
+                    Rolling keys change every 60s. Phishing is impossible.
+                </div>
+            </div>
+             <!-- SECTOR 6 -->
+            <div class="sector-card p-6 rounded-xl">
+                <i class="fas fa-heartbeat icon-bg"></i>
+                <div class="text-xs text-red-400 font-bold mb-2 uppercase tracking-widest">Healthcare</div>
+                <h3 class="text-lg font-bold text-white mb-3">Privacy</h3>
+                <div class="bg-green-900/20 border-l-2 border-green-500 p-2 text-[10px] text-gray-300">
+                    <strong class="text-green-400 block">FIX: ZKP AUDITS</strong>
+                    Zero-Knowledge Proofs guarantee compliance without exposing patient data.
+                </div>
             </div>
         </div>
     </section>
@@ -194,9 +261,8 @@
         </div>
     </footer>
 
-    <!-- JAVASCRIPT -->
+    <!-- JAVASCRIPT: MATRIX RAIN -->
     <script>
-        // --- MATRIX RAIN ---
         const canvas = document.getElementById('matrix-canvas');
         const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth;
@@ -220,65 +286,6 @@
         }
         setInterval(drawMatrix, 50);
         window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
-
-        // --- LIVE TERMINAL ---
-        const events = [
-            "<span class='text-green-400'>[SUCCESS] MBF Handshake verified (12ms)</span>",
-            "<span class='text-blue-400'>[INFO] DREAMS V4: Cognitive check passed</span>",
-            "<span class='text-yellow-400'>[ALERT] Botnet /24 block: 192.168.x.x</span>",
-            "<span class='text-purple-400'>[AUDIT] ZKP Proof #88291 anchored to Ledger</span>",
-            "<span class='text-gray-500'>[SYSTEM] PQC Key Rotation complete</span>",
-            "<span class='text-green-400'>[REVENUE] Enterprise Tier Upgrade: +$999</span>"
-        ];
-        const term = document.getElementById('terminal');
-        
-        function logEvent() {
-            const div = document.createElement('div');
-            div.innerHTML = `> ${events[Math.floor(Math.random() * events.length)]}`;
-            term.insertBefore(div, term.firstChild);
-            if(term.children.length > 15) term.removeChild(term.lastChild);
-            
-            // Fake Latency Jitter
-            const lat = (1.4 + Math.random()).toFixed(1);
-            document.getElementById('latency').innerText = lat + 'ms';
-        }
-        setInterval(logEvent, 2500);
-
-        // --- SIMULATORS ---
-        function runMBF() {
-            const d1 = document.getElementById('dev1');
-            const d2 = document.getElementById('dev2');
-            const link = document.getElementById('link');
-            const btn = document.getElementById('mbf-btn');
-            
-            btn.innerText = "SYNCING...";
-            d1.className = "fas fa-mobile-alt text-3xl text-yellow-400 transition duration-300";
-            d2.className = "fas fa-laptop text-3xl text-yellow-400 transition duration-300";
-            
-            setTimeout(() => {
-                link.className = "fas fa-link text-xl text-green-500 transition duration-300";
-                d1.className = "fas fa-mobile-alt text-3xl text-green-500 transition duration-300";
-                d2.className = "fas fa-laptop text-3xl text-green-500 transition duration-300";
-                btn.innerText = "FUSION COMPLETE";
-            }, 1500);
-
-            setTimeout(() => {
-                link.className = "fas fa-link text-xl text-gray-800 transition duration-300";
-                d1.className = "fas fa-mobile-alt text-3xl text-gray-600 transition duration-300";
-                d2.className = "fas fa-laptop text-3xl text-gray-600 transition duration-300";
-                btn.innerText = "SIMULATE FUSION";
-            }, 3500);
-        }
-
-        function runZKP() {
-            const out = document.getElementById('zkp-out');
-            out.innerHTML = "<span class='text-purple-400 blink'>GENERATING PROOF...</span>";
-            setTimeout(() => {
-                out.innerHTML = "<span class='text-green-400'>VERIFIED: 0x99...A1 (2ms)</span>";
-            }, 1500);
-        }
     </script>
 </body>
 </html>
-
-
