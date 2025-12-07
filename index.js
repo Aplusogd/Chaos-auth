@@ -1,6 +1,6 @@
 /**
- * A+ CHAOS ID: V75 (STRING ID FIX)
- * STATUS: Fixed Credential ID type to prevent 'replace' error.
+ * A+ CHAOS ID: V76 (BUFFER ENFORCEMENT)
+ * STATUS: Fixed 'replace' error by converting Credential ID to Buffer.
  */
 import express from 'express';
 import path from 'path';
@@ -49,7 +49,7 @@ const DreamsEngine = {
 };
 
 // ==========================================
-// 1. CORE IDENTITY
+// 1. CORE IDENTITY (V76 FIX)
 // ==========================================
 const Users = new Map();
 
@@ -60,8 +60,13 @@ const ADMIN_PK_OBJ = {
 };
 
 const ADMIN_DNA = {
-    // FIX: Store ID as String for library compatibility
-    credentialID: ADMIN_CRED_ID_STRING, 
+    // FIX: Convert String ID to Buffer explicitly using base64url encoding
+    // This matches what the library expects for byte-level comparison
+    credentialID: Buffer.from(ADMIN_CRED_ID_STRING, 'base64url'), 
+    
+    // Keep String version for get() options
+    credentialID_String: ADMIN_CRED_ID_STRING, 
+    
     credentialPublicKey: toUint8(Buffer.from(Object.values(ADMIN_PK_OBJ))),
     counter: 0,
     dreamProfile: { window: [], sum_T: 0, sum_T2: 0 }
@@ -96,7 +101,7 @@ app.get('/api/v1/auth/login-options', async (req, res) => {
         const options = await generateAuthenticationOptions({
             rpID: getRpId(req),
             allowCredentials: [{
-                id: user.credentialID, // String is accepted here
+                id: user.credentialID_String, // Use String here for JSON response
                 type: 'public-key'
             }], 
             userVerification: 'required',
@@ -112,14 +117,12 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
     const user = Users.get(userID);
     const clientResponse = req.body;
     
-    // DEBUG LOGS
-    console.log(">>> [DEBUG] Verifying...");
-
     const challengeString = extractChallengeFromClientResponse(clientResponse);
     const expectedChallenge = Challenges.get(challengeString); 
 
     if (!user || !expectedChallenge) return res.status(400).json({ error: "Invalid State/Challenge" });
     
+    // DREAMS CHECK
     const durationMs = Number(process.hrtime.bigint() - expectedChallenge.startTime) / 1000000;
     if (!DreamsEngine.check(durationMs, user, clientResponse.kinetic_data)) {
          Challenges.delete(expectedChallenge.challenge);
@@ -127,11 +130,13 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
     }
     
     try {
-        // FIX: Construct clean authenticator object
+        // CONSTRUCT VERIFICATION OBJECT
+        // V76 FIX: Pass the Buffer ID, not the String ID
         const authenticator = {
-            credentialID: user.credentialID, // String
-            credentialPublicKey: user.credentialPublicKey, // Uint8Array
+            credentialID: user.credentialID, // This is now a Buffer
+            credentialPublicKey: user.credentialPublicKey,
             counter: Number(user.counter),
+            transports: [] // Explicit empty array as per Grok's recommendation
         };
 
         const verification = await verifyAuthenticationResponse({
@@ -163,7 +168,6 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
 // ROUTING
 app.post('/api/v1/external/verify', Nightmare.guardSaaS, (req, res) => res.json({ valid: true }));
 app.get('/api/v1/admin/telemetry', (req, res) => res.json({ stats: { requests: 0 }, threats: [] }));
-// PING
 app.get('/ping', (req, res) => res.send("PONG"));
 
 const serve = (f, res) => fs.existsSync(path.join(publicPath, f)) ? res.sendFile(path.join(publicPath, f)) : res.status(404).send('Missing: ' + f);
@@ -172,6 +176,6 @@ app.get('/app', (req, res) => serve('app.html', res));
 app.get('/dashboard', (req, res) => serve('dashboard.html', res));
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V75 (STRING ID FIX) ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V76 (BUFFER FIX) ONLINE: ${PORT}`));
 
 
