@@ -1,6 +1,7 @@
 /**
- * A+ CHAOS ID: V80 (KILL SWITCH EDITION)
- * STATUS: Added /reset endpoint to fix "Ghost Key" lockouts.
+ * A+ CHAOS ID: V81 (PLATFORM ENFORCEMENT)
+ * STATUS: Forces 'Platform' authenticator (Fingerprint/FaceID) and Resident Keys.
+ * FIXES: "Choose device" popup by mandating internal storage.
  */
 import express from 'express';
 import path from 'path';
@@ -31,20 +32,6 @@ app.use(express.static(publicPath));
 const toBuffer = (base64) => Buffer.from(base64, 'base64url');
 const toBase64 = (buffer) => Buffer.from(buffer).toString('base64url');
 
-const jsObjectToBuffer = (obj) => {
-    if (obj instanceof Uint8Array) return obj;
-    if (obj instanceof Buffer) return obj;
-    if (typeof obj !== 'object' || obj === null) return new Uint8Array();
-    return Buffer.from(Object.values(obj));
-};
-
-function extractChallengeFromClientResponse(clientResponse) {
-    try {
-        const json = Buffer.from(clientResponse.response.clientDataJSON, 'base64url').toString('utf8');
-        return JSON.parse(json).challenge;
-    } catch (e) { return null; }
-}
-
 const DreamsEngine = {
     start: () => process.hrtime.bigint(),
     check: () => true, 
@@ -72,7 +59,6 @@ if (process.env.ADMIN_CRED_ID && process.env.ADMIN_PUB_KEY) {
 }
 
 const Abyss = { partners: new Map(), hash: (k) => crypto.createHash('sha256').update(k).digest('hex') };
-Abyss.partners.set(Abyss.hash('sk_chaos_demo123'), { company: 'Demo', plan: 'free', usage: 0, limit: 50, active: true });
 const Nightmare = { guardSaaS: (req, res, next) => next() };
 const Chaos = { mintToken: () => crypto.randomBytes(16).toString('hex') };
 const Challenges = new Map();
@@ -83,14 +69,14 @@ const getRpId = (req) => req.get('host').split(':')[0];
 // 2. AUTH ROUTES
 // ==========================================
 
-// --- KILL SWITCH (NEW) ---
+// --- KILL SWITCH ---
 app.post('/api/v1/auth/reset', (req, res) => {
-    Users.clear(); // WIPE MEMORY
-    console.log(">>> [SYSTEM] MANUAL RESET TRIGGERED. MEMORY WIPED.");
+    Users.clear();
+    console.log(">>> [SYSTEM] MEMORY WIPED.");
     res.json({ success: true });
 });
 
-// REGISTER
+// REGISTER (STRICT MODE)
 app.get('/api/v1/auth/register-options', async (req, res) => {
     try {
         const options = await generateRegistrationOptions({
@@ -99,9 +85,12 @@ app.get('/api/v1/auth/register-options', async (req, res) => {
             userID: new Uint8Array(Buffer.from(ADMIN_USER_ID)),
             userName: 'admin@aplus.com',
             attestationType: 'none',
+            // FIX: STRICT ENFORCEMENT
             authenticatorSelection: { 
-                residentKey: 'required', // FORCE RESIDENT KEY (Better for mobile)
-                userVerification: 'preferred' 
+                authenticatorAttachment: 'platform', // <--- FORCES PHONE SCANNER
+                residentKey: 'required',             // <--- FORCES STORAGE
+                requireResidentKey: true,
+                userVerification: 'required' 
             },
         });
         Challenges.set(ADMIN_USER_ID, options.challenge);
@@ -149,10 +138,7 @@ app.get('/api/v1/auth/login-options', async (req, res) => {
     try {
         const options = await generateAuthenticationOptions({
             rpID: getRpId(req),
-            allowCredentials: [{
-                id: user.credentialID, 
-                type: 'public-key'
-            }], 
+            // Allow discovery
             userVerification: 'required',
         });
         Challenges.set(options.challenge, { challenge: options.challenge, startTime: process.hrtime.bigint() });
@@ -202,6 +188,6 @@ app.get('/app', (req, res) => serve('app.html', res));
 app.get('/dashboard', (req, res) => serve('dashboard.html', res));
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V80 (KILL SWITCH) ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V81 (PLATFORM ONLY) ONLINE: ${PORT}`));
 
 
