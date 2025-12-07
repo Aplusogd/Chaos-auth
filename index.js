@@ -1,6 +1,7 @@
 /**
- * A+ CHAOS ID: V72 (GLASS BOX DIAGNOSTIC)
- * STATUS: Identity Locked. Debug /ping added.
+ * A+ CHAOS ID: V73 (TYPE SAFE GUARD)
+ * STATUS: Fixed 'input.replace' crash by passing String ID to generator.
+ * Debug Logging: ACTIVE.
  */
 import express from 'express';
 import path from 'path';
@@ -59,7 +60,7 @@ const DreamsEngine = {
 };
 
 // ==========================================
-// 2. CORE IDENTITY (LOCKED)
+// 2. CORE IDENTITY (LOCKED & TYPE SAFE)
 // ==========================================
 const Users = new Map();
 
@@ -70,13 +71,15 @@ const ADMIN_PK_OBJ = {
 };
 
 const ADMIN_DNA = {
+    // We store BOTH formats to satisfy different library needs
     credentialID: Buffer.from(ADMIN_CRED_ID_STRING, 'base64url'),
+    credentialID_String: ADMIN_CRED_ID_STRING, // <--- SAVED FOR OPTIONS GENERATION
     credentialPublicKey: jsObjectToBuffer(ADMIN_PK_OBJ),
     counter: 0,
     dreamProfile: { window: [], sum_T: 0, sum_T2: 0 }
 };
 Users.set('admin-user', ADMIN_DNA); 
-console.log(">>> [SYSTEM] V72 DIAGNOSTIC. IDENTITY LOCKED.");
+console.log(">>> [SYSTEM] V73 TYPE SAFE. IDENTITY LOCKED.");
 
 const Abyss = { partners: new Map(), hash: (k) => crypto.createHash('sha256').update(k).digest('hex') };
 Abyss.partners.set(Abyss.hash('sk_chaos_demo123'), { company: 'Demo', plan: 'free', usage: 0, limit: 50, active: true });
@@ -102,9 +105,9 @@ app.get('/api/v1/auth/login-options', async (req, res) => {
         const options = await generateAuthenticationOptions({
             rpID: getRpId(req),
             allowCredentials: [{
-                id: user.credentialID,
-                type: 'public-key',
-                // transports: ['internal', 'hybrid'] // Removed for max compatibility
+                // FIX: Use the STRING version of the ID for generation options
+                id: user.credentialID_String, 
+                type: 'public-key'
             }], 
             userVerification: 'required',
         });
@@ -117,7 +120,10 @@ app.get('/api/v1/auth/login-options', async (req, res) => {
         });
         
         res.json({ ...options, kinetic_friction: friction });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { 
+        console.error("Login Options Error:", err);
+        res.status(500).json({ error: err.message }); 
+    }
 });
 
 app.post('/api/v1/auth/login-verify', async (req, res) => {
@@ -128,6 +134,15 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
     const expectedChallenge = Challenges.get(challengeString); 
 
     if (!user || !expectedChallenge) return res.status(400).json({ error: "Invalid State" });
+    
+    // KINETIC CHECK (V73)
+    const durationMs = Number(process.hrtime.bigint() - expectedChallenge.startTime) / 1000000;
+    const kineticData = clientResponse.kinetic_data; 
+    
+    if (!DreamsEngine.check(durationMs, user, kineticData)) {
+         Challenges.delete(expectedChallenge.challenge);
+         return res.status(403).json({ verified: false, error: "ERR_KINETIC_ANOMALY" });
+    }
     
     try {
         const verification = await verifyAuthenticationResponse({
@@ -157,4 +172,6 @@ app.get('/app', (req, res) => serve('app.html', res));
 app.get('/dashboard', (req, res) => serve('dashboard.html', res));
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V72 (GLASS BOX) ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V73 (TYPE SAFE) ONLINE: ${PORT}`));
+
+
