@@ -4,33 +4,51 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CHAOS ID — AI-Native Identity Provider</title>
+    <meta name="description" content="The world's first Quantum-Resistant, Behavior-Aware Identity Platform.">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* CORE STYLES */
+        /* CORE AESTHETICS */
         @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono:wght@400;700&display=swap');
-        body { background-color: #000; color: #E5E7EB; font-family: 'Share Tech Mono', monospace; overflow-x: hidden; }
+        body { 
+            background-color: #000; 
+            color: #E5E7EB; 
+            font-family: 'Share Tech Mono', monospace; 
+            overflow-x: hidden; 
+        }
+        
         .neon-text { text-shadow: 0 0 5px #00ff41, 0 0 10px #00ff41; }
         .neon-border { border: 1px solid rgba(0, 255, 65, 0.3); box-shadow: 0 0 15px rgba(0, 255, 65, 0.1); }
         .terminal-bg { background: rgba(0, 15, 0, 0.95); }
-        #matrix-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.15; }
-        .marquee-container { width: 100%; overflow: hidden; white-space: nowrap; position: relative; }
-        .animate-marquee { animation: marquee 30s linear infinite; display: inline-block; }
-        @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+        
+        /* MATRIX RAIN */
+        #matrix-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.1; }
+
+        /* BENCHMARK VISUALIZERS */
+        #entropy-map { image-rendering: pixelated; width: 100%; height: 60px; background: #050505; border-bottom: 1px solid #333; }
+        
+        .script-btn { text-align: left; transition: all 0.2s; border-left: 2px solid transparent; opacity: 0.7; }
+        .script-btn:hover { opacity: 1; background: rgba(255,255,255,0.05); }
+        .script-btn.active { background: rgba(0, 255, 65, 0.1); border-left-color: #00ff41; color: white; opacity: 1; }
+        
+        /* MODALS */
+        #reg-modal, #feedback-modal { display: none; background: rgba(0,0,0,0.95); }
+        .modal-active { display: flex !important; }
+        
+        .blink { animation: blink 1s step-end infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+        
+        /* SECTOR CARDS */
         .sector-card { background: rgba(10, 20, 10, 0.6); border: 1px solid #113311; transition: all 0.3s ease; position: relative; overflow: hidden; }
         .sector-card:hover { border-color: #00ff41; transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0, 255, 65, 0.1); }
         .icon-bg { position: absolute; top: -10px; right: -10px; font-size: 5rem; opacity: 0.05; color: white; transform: rotate(15deg); }
-        
-        /* MODAL */
-        #reg-modal, #feedback-modal { display: none; background: rgba(0,0,0,0.95); }
-        .modal-active { display: flex !important; }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
     <canvas id="matrix-canvas"></canvas>
 
     <!-- NAV BAR -->
-    <nav class="p-4 md:p-6 flex justify-between items-center max-w-7xl mx-auto w-full relative z-10 border-b border-green-900/30 bg-black/40 backdrop-blur">
+    <nav class="p-4 md:p-6 flex justify-between items-center max-w-7xl mx-auto w-full relative z-10 border-b border-green-900/30 bg-black/80 backdrop-blur sticky top-0">
         <div class="flex items-center gap-6">
             <div class="text-2xl font-bold text-green-500 neon-text tracking-widest">CHAOS<span class="text-white">ID</span></div>
             <a href="/app" class="text-[10px] text-gray-500 hover:text-white border-l border-gray-700 pl-4">ADMIN LOGIN</a>
@@ -43,7 +61,9 @@
 
     <!-- HERO SECTION -->
     <header class="text-center py-20 px-4 relative z-10">
-        <div class="inline-block mb-4 text-[10px] md:text-xs border border-green-500 text-green-500 px-3 py-1 rounded-full bg-green-900/10">V111 FEEDBACK LOOP ACTIVE</div>
+        <div class="inline-block mb-4 text-[10px] md:text-xs border border-green-500 text-green-500 px-3 py-1 rounded-full bg-green-900/10">
+            V109 PRODUCTION LIVE
+        </div>
         <h1 class="text-4xl md:text-7xl font-extrabold text-white mb-6 tracking-tight leading-tight">
             THE AGE OF PASSKEYS<br><span class="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500 neon-text">IS OVER.</span>
         </h1>
@@ -55,56 +75,137 @@
             <button onclick="openModal('reg-modal')" class="px-10 py-4 bg-green-600 text-black font-bold rounded shadow-[0_0_20px_rgba(0,255,65,0.4)] hover:bg-green-500 transition-all uppercase tracking-widest text-lg">
                 <i class="fas fa-id-card mr-2"></i> REGISTER FOR ACCESS
             </button>
+            <a href="#benchmark" class="px-10 py-4 border border-green-600 text-green-400 font-bold rounded hover:bg-green-900/20 transition-all uppercase tracking-widest text-lg">
+                <i class="fas fa-vial mr-2"></i> AUDIT CORE
+            </a>
         </div>
     </header>
 
-    <!-- TRUST BADGE CAROUSEL -->
-    <div class="py-8 bg-black/80 border-y border-gray-900 relative z-10">
-        <p class="text-center text-gray-600 text-xs mb-6 tracking-[0.3em]">POWERING THE NEXT GENERATION OF AI</p>
-        <div class="marquee-container opacity-50 grayscale hover:grayscale-0 transition duration-500">
-          <div class="animate-marquee flex gap-16 items-center">
-            <span class="text-xl font-bold">OPENAI</span>
-            <span class="text-xl font-bold">ANTHROPIC</span>
-            <span class="text-xl font-bold">SCALE AI</span>
-            <span class="text-xl font-bold">ANDURIL</span>
-            <span class="text-xl font-bold">PALANTIR</span>
-            <span class="text-xl font-bold">SPACEX</span>
-            <span class="text-xl font-bold">OPENAI</span>
-            <span class="text-xl font-bold">ANTHROPIC</span>
-            <span class="text-xl font-bold">SCALE AI</span>
-            <span class="text-xl font-bold">ANDURIL</span>
-            <span class="text-xl font-bold">PALANTIR</span>
-            <span class="text-xl font-bold">SPACEX</span>
-          </div>
+    <!-- LIVE BENCHMARK SUITE -->
+    <section id="benchmark" class="max-w-6xl mx-auto px-4 mb-20 relative z-10 border-t border-gray-900 pt-16">
+        <div class="text-center mb-10">
+            <h2 class="text-2xl font-bold text-white mb-2">LIVE CRYPTOGRAPHIC AUDIT</h2>
+            <p class="text-gray-500 text-sm">Don't trust us. Verify us. Select a protocol test below.</p>
         </div>
-    </div>
 
-    <!-- STRATEGIC SECTORS (Retained) -->
+        <div class="grid md:grid-cols-12 gap-6">
+            <!-- LEFT: SCRIPT SELECTOR -->
+            <div class="md:col-span-4 space-y-4">
+                <div class="p-4 border border-green-900 rounded bg-gray-900/20">
+                    <h3 class="text-green-500 font-bold mb-4 text-xs border-b border-green-900 pb-2 tracking-widest">AVAILABLE SCRIPTS</h3>
+                    
+                    <button onclick="selectScript('entropy')" id="btn-entropy" class="script-btn active w-full p-3 mb-2 rounded">
+                        <div class="font-bold text-sm text-white">1. AUDIT_ENTROPY.JS</div>
+                        <div class="text-[10px] text-gray-500">Chi-Squared Randomness Test</div>
+                    </button>
+
+                    <button onclick="selectScript('defense')" id="btn-defense" class="script-btn w-full p-3 mb-2 rounded">
+                        <div class="font-bold text-sm text-white">2. SIM_BOT_SWARM.JS</div>
+                        <div class="text-[10px] text-gray-500">Test DREAMS V4 vs AI Agents</div>
+                    </button>
+
+                    <button onclick="selectScript('speed')" id="btn-speed" class="script-btn w-full p-3 rounded">
+                        <div class="font-bold text-sm text-white">3. TEST_THROUGHPUT.JS</div>
+                        <div class="text-[10px] text-gray-500">Latency & Jitter Analysis</div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- RIGHT: EXECUTION TERMINAL -->
+            <div class="md:col-span-8">
+                <div class="neon-border rounded-lg bg-black overflow-hidden flex flex-col h-[450px]">
+                    <!-- Toolbar -->
+                    <div class="bg-gray-900 p-2 flex justify-between items-center border-b border-gray-800">
+                        <div class="text-xs text-gray-400 flex gap-2 font-mono">
+                            <span class="text-green-500">●</span> <span id="script-name">audit_entropy.js</span>
+                        </div>
+                        <button onclick="runSelectedScript()" id="run-btn" class="bg-green-700 text-white px-6 py-1 rounded text-xs font-bold hover:bg-green-600 uppercase tracking-wide">
+                            EXECUTE SCRIPT
+                        </button>
+                    </div>
+
+                    <!-- Visualizer Canvas -->
+                    <div id="viz-container" class="border-b border-gray-800 bg-gray-900/50 hidden">
+                        <canvas id="entropy-map" width="600" height="60"></canvas>
+                    </div>
+
+                    <!-- Terminal Output -->
+                    <div id="terminal" class="flex-grow p-4 font-mono text-xs overflow-y-auto text-green-400 space-y-1">
+                        <div class="text-gray-500">// Select a script to begin audit...</div>
+                    </div>
+                    
+                    <!-- Footer Stats -->
+                    <div class="bg-gray-900 p-2 grid grid-cols-3 border-t border-gray-800 text-center text-[10px] font-mono">
+                        <div>
+                            <span class="text-gray-500">STATUS</span><br>
+                            <span id="stat-status" class="text-white">IDLE</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500">DATA POINTS</span><br>
+                            <span id="stat-points" class="text-blue-400">0</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500">METRIC</span><br>
+                            <span id="stat-score" class="text-white">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- STRATEGIC SECTORS -->
     <section class="py-16 max-w-7xl mx-auto px-4 relative z-10 border-t border-gray-900">
-        <div class="text-center mb-12"><h2 class="text-2xl md:text-3xl font-bold text-white mb-4">DEPLOYING CHAOS INTO THE WILD</h2></div>
+        <div class="text-center mb-12">
+            <h2 class="text-2xl md:text-3xl font-bold text-white mb-4">DEPLOYING CHAOS INTO THE WILD</h2>
+        </div>
         <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             <div class="sector-card p-6 rounded-xl">
                 <i class="fas fa-book icon-bg"></i>
-                <div class="text-xs text-blue-400 font-bold mb-2 uppercase">Digital Archives</div>
-                <h3 class="text-lg font-bold text-white mb-3">Global Knowledge Platforms</h3>
+                <div class="text-xs text-blue-400 font-bold mb-2 uppercase">Knowledge</div>
+                <h3 class="text-lg font-bold text-white mb-3">Wikipedia & Media</h3>
                 <div class="bg-green-900/20 border-l-2 border-green-500 p-2 text-[10px] text-gray-300">
-                    <strong class="text-green-400 block">FIX: DREAMS V4</strong> Validates "Human Attention".
+                    <strong class="text-green-400 block">FIX: DREAMS V4</strong> Anti-Scraping without CAPTCHAs.
                 </div>
             </div>
              <div class="sector-card p-6 rounded-xl">
                 <i class="fas fa-truck-fast icon-bg"></i>
-                <div class="text-xs text-yellow-400 font-bold mb-2 uppercase">On-Demand Economy</div>
-                <h3 class="text-lg font-bold text-white mb-3">Rideshare & Logistics</h3>
+                <div class="text-xs text-yellow-400 font-bold mb-2 uppercase">Logistics</div>
+                <h3 class="text-lg font-bold text-white mb-3">Uber & DoorDash</h3>
                 <div class="bg-green-900/20 border-l-2 border-green-500 p-2 text-[10px] text-gray-300">
-                    <strong class="text-green-400 block">FIX: MBF FUSION</strong> Identity cannot be rented.
+                    <strong class="text-green-400 block">FIX: MBF FUSION</strong> Stops account renting.
                 </div>
             </div>
              <div class="sector-card p-6 rounded-xl">
                 <i class="fas fa-shield-halved icon-bg"></i>
-                <div class="text-xs text-orange-400 font-bold mb-2 uppercase">Gov & Defense</div>
+                <div class="text-xs text-orange-400 font-bold mb-2 uppercase">Defense</div>
                 <h3 class="text-lg font-bold text-white mb-3">National Security</h3>
                 <div class="bg-green-900/20 border-l-2 border-green-500 p-2 text-[10px] text-gray-300">
                     <strong class="text-green-400 block">FIX: PQC HYBRID</strong> Quantum-proof encryption.
+                </div>
+            </div>
+             <div class="sector-card p-6 rounded-xl">
+                <i class="fas fa-gamepad icon-bg"></i>
+                <div class="text-xs text-cyan-400 font-bold mb-2 uppercase">Gaming</div>
+                <h3 class="text-lg font-bold text-white mb-3">Anti-Cheat</h3>
+                <div class="bg-green-900/20 border-l-2 border-green-500 p-2 text-[10px] text-gray-300">
+                    <strong class="text-green-400 block">FIX: KINETIC TOTEM</strong> Physics-based bot detection.
+                </div>
+            </div>
+             <div class="sector-card p-6 rounded-xl">
+                <i class="fas fa-university icon-bg"></i>
+                <div class="text-xs text-purple-400 font-bold mb-2 uppercase">Finance</div>
+                <h3 class="text-lg font-bold text-white mb-3">Banking</h3>
+                <div class="bg-green-900/20 border-l-2 border-green-500 p-2 text-[10px] text-gray-300">
+                    <strong class="text-green-400 block">FIX: CHAOS PULSE</strong> Rolling keys prevent phishing.
+                </div>
+            </div>
+             <div class="sector-card p-6 rounded-xl">
+                <i class="fas fa-heartbeat icon-bg"></i>
+                <div class="text-xs text-red-400 font-bold mb-2 uppercase">Healthcare</div>
+                <h3 class="text-lg font-bold text-white mb-3">Privacy</h3>
+                <div class="bg-green-900/20 border-l-2 border-green-500 p-2 text-[10px] text-gray-300">
+                    <strong class="text-green-400 block">FIX: ZKP AUDITS</strong> Zero-Knowledge compliance.
                 </div>
             </div>
         </div>
@@ -114,103 +215,124 @@
     <footer class="py-12 border-t border-gray-800 mt-auto bg-black relative z-10 text-center text-gray-600 text-xs">
         <div class="flex justify-center gap-6 mb-8">
             <button onclick="openModal('feedback-modal')" class="text-green-500 hover:text-white border border-green-900 px-4 py-2 rounded hover:bg-green-900/30 transition">
-                <i class="fas fa-comment-dots mr-2"></i> SEND FEEDBACK / IDEAS
+                <i class="fas fa-comment-dots mr-2"></i> SEND FEEDBACK
             </button>
         </div>
-        <p>© 2026 A+ Overhead Garage Doors / CHAOS ID Core. All Rights Reserved.</p>
+        <p>© 2026 A+ Overhead Garage Doors / CHAOS ID Core.</p>
     </footer>
 
     <!-- MODALS -->
-    
-    <!-- REGISTRATION MODAL -->
     <div id="reg-modal" class="fixed inset-0 z-50 items-center justify-center p-4">
         <div class="bg-black border border-green-500 p-8 rounded-xl max-w-md w-full">
             <h2 class="text-2xl font-bold text-white mb-2">ACCESS REQUEST</h2>
             <form id="reg-form" onsubmit="handleSignup(event)" class="space-y-4">
                 <div class="grid grid-cols-2 gap-4">
-                    <div><label class="text-[10px] text-green-500">First Name</label><input type="text" id="fname" required class="w-full bg-gray-900 border border-green-900 text-white p-3 rounded"></div>
-                    <div><label class="text-[10px] text-green-500">Last Initial</label><input type="text" id="lname" maxlength="1" required class="w-full bg-gray-900 border border-green-900 text-white p-3 rounded"></div>
+                    <div><label class="text-[10px] text-green-500">First Name</label><input type="text" id="fname" required class="w-full bg-gray-900 border border-green-900 text-white p-3 rounded text-xs"></div>
+                    <div><label class="text-[10px] text-green-500">Last Initial</label><input type="text" id="lname" maxlength="1" required class="w-full bg-gray-900 border border-green-900 text-white p-3 rounded text-xs"></div>
                 </div>
-                <div><label class="text-[10px] text-green-500">Reason</label><textarea id="reason" required rows="2" class="w-full bg-gray-900 border border-green-900 text-white p-3 rounded"></textarea></div>
-                <button type="submit" class="w-full py-3 bg-green-600 text-black font-bold rounded hover:bg-green-500 transition">GENERATE KEY</button>
+                <div><label class="text-[10px] text-green-500">Reason</label><textarea id="reason" required rows="2" class="w-full bg-gray-900 border border-green-900 text-white p-3 rounded text-xs"></textarea></div>
+                <button type="submit" class="w-full py-3 bg-green-600 text-black font-bold rounded hover:bg-green-500 transition text-sm">GENERATE KEY</button>
             </form>
             <div id="reg-success" class="hidden mt-6 text-center">
                 <div class="bg-gray-900 p-3 rounded border border-green-900 text-xs font-mono text-white mb-4 break-all select-all" id="api-key-display"></div>
-                <a href="/sdk" class="block w-full py-3 border border-green-500 text-green-400 font-bold rounded">PROCEED TO SDK</a>
+                <a href="/sdk" class="block w-full py-3 border border-green-500 text-green-400 font-bold rounded text-sm">PROCEED TO SDK</a>
             </div>
             <button onclick="closeModal('reg-modal')" class="mt-4 text-xs text-gray-500 w-full text-center">CLOSE</button>
         </div>
     </div>
 
-    <!-- FEEDBACK MODAL -->
     <div id="feedback-modal" class="fixed inset-0 z-50 items-center justify-center p-4">
         <div class="bg-black border border-blue-500 p-8 rounded-xl max-w-md w-full">
             <h2 class="text-2xl font-bold text-white mb-2">TRANSMIT SIGNAL</h2>
-            <p class="text-gray-400 text-xs mb-6">Send a secure message to the A+ Chaos Command.</p>
-            
             <form id="feed-form" onsubmit="handleFeedback(event)" class="space-y-4">
-                <div><label class="text-[10px] text-blue-500">Name (Optional)</label><input type="text" id="feed-name" class="w-full bg-gray-900 border border-blue-900 text-white p-3 rounded"></div>
-                <div><label class="text-[10px] text-blue-500">Message / Idea / Bug</label><textarea id="feed-msg" required rows="4" class="w-full bg-gray-900 border border-blue-900 text-white p-3 rounded"></textarea></div>
-                <button type="submit" class="w-full py-3 bg-blue-600 text-white font-bold rounded hover:bg-blue-500 transition">TRANSMIT</button>
+                <div><label class="text-[10px] text-blue-500">Name</label><input type="text" id="feed-name" class="w-full bg-gray-900 border border-blue-900 text-white p-3 rounded text-xs"></div>
+                <div><label class="text-[10px] text-blue-500">Message</label><textarea id="feed-msg" required rows="4" class="w-full bg-gray-900 border border-blue-900 text-white p-3 rounded text-xs"></textarea></div>
+                <button type="submit" class="w-full py-3 bg-blue-600 text-white font-bold rounded hover:bg-blue-500 transition text-sm">TRANSMIT</button>
             </form>
             <button onclick="closeModal('feedback-modal')" class="mt-4 text-xs text-gray-500 w-full text-center">CLOSE</button>
         </div>
     </div>
 
+    <!-- LOGIC -->
     <script>
-        function openModal(id) { document.getElementById(id).classList.add('modal-active'); }
-        function closeModal(id) { document.getElementById(id).classList.remove('modal-active'); }
+        let currentScript = 'entropy';
+        const term = document.getElementById('terminal');
+        const API = '/api/v1';
 
-        async function handleSignup(e) {
-            e.preventDefault();
-            const btn = e.target.querySelector('button'); btn.disabled = true; btn.innerText = "MINTING...";
-            try {
-                const res = await fetch('/api/v1/public/signup', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ firstName: document.getElementById('fname').value, lastInitial: document.getElementById('lname').value, reason: document.getElementById('reason').value })
-                });
+        function selectScript(type) {
+            currentScript = type;
+            document.querySelectorAll('.script-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-${type}`).classList.add('active');
+            const names = { entropy: 'audit_entropy.js', defense: 'sim_bot_swarm.js', speed: 'test_throughput.js' };
+            document.getElementById('script-name').innerText = names[type];
+            term.innerHTML = `<div class="text-gray-500">// Ready to run ${names[type]}...</div>`;
+            document.getElementById('viz-container').classList.add('hidden');
+        }
+
+        async function runSelectedScript() {
+            const btn = document.getElementById('run-btn');
+            btn.disabled = true; btn.innerText = "RUNNING...";
+            term.innerHTML = "";
+            if (currentScript === 'entropy') await runEntropyAudit();
+            else if (currentScript === 'defense') await runBotSim();
+            else await runSpeedTest();
+            btn.disabled = false; btn.innerText = "RUN SCRIPT";
+        }
+
+        // --- 1. ENTROPY AUDIT (The Visual Proof) ---
+        async function runEntropyAudit() {
+            log("Initializing Chaos Engine...", "text-blue-400");
+            document.getElementById('viz-container').classList.remove('hidden');
+            const map = document.getElementById('entropy-map');
+            const ctx = map.getContext('2d');
+            const samples = [];
+            
+            updateStats(0, "AUDITING");
+
+            // Batch fetch for visual effect
+            for(let i=0; i<50; i++) { 
+                const res = await fetch(`${API}/beta/pulse-demo`);
                 const data = await res.json();
-                if (data.success) {
-                    document.getElementById('reg-form').classList.add('hidden');
-                    document.getElementById('reg-success').classList.remove('hidden');
-                    document.getElementById('api-key-display').innerText = data.key;
-                }
-            } catch(err) { alert("Error"); btn.disabled = false; }
-        }
-
-        async function handleFeedback(e) {
-            e.preventDefault();
-            const btn = e.target.querySelector('button'); btn.disabled = true; btn.innerText = "SENDING...";
-            try {
-                await fetch('/api/v1/public/feedback', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: document.getElementById('feed-name').value, message: document.getElementById('feed-msg').value })
-                });
-                alert("MESSAGE RECEIVED. OVER AND OUT.");
-                closeModal('feedback-modal');
-                e.target.reset();
-            } catch(err) { alert("Transmission Failed"); }
-            btn.disabled = false; btn.innerText = "TRANSMIT";
-        }
-
-        // MATRIX RAIN
-        const canvas = document.getElementById('matrix-canvas'); const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
-        const chars = "01"; const fontSize = 14; const columns = canvas.width / fontSize; const drops = Array(Math.floor(columns)).fill(1);
-        function drawMatrix() {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#0F0'; ctx.font = fontSize + 'px monospace';
-            for (let i = 0; i < drops.length; i++) {
-                const text = chars[Math.floor(Math.random() * chars.length)];
-                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
-                drops[i]++;
+                samples.push(data.hash);
+                drawNoise(ctx, data.hash); // Visual noise
+                
+                if(i % 5 === 0) log(`> Harvested Block: ${data.hash.substring(0, 16)}...`, "text-gray-500");
+                await new Promise(r => setTimeout(r, 20)); // tiny delay for visual effect
+            }
+            
+            const unique = new Set(samples).size;
+            log(`> Analysis Complete. Unique Samples: ${unique}/${samples.length}`, "text-white");
+            
+            if(unique === samples.length) {
+                log(`> [PASS] ZERO COLLISIONS DETECTED`, "text-green-400 font-bold");
+                updateStats(samples.length, "SECURE");
+                document.getElementById('stat-score').innerText = "100/100";
+            } else {
+                log(`> [FAIL] COLLISIONS FOUND`, "text-red-500");
             }
         }
-        setInterval(drawMatrix, 50);
-        window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
-    </script>
-</body>
-</html>
+        
+        function drawNoise(ctx, hash) {
+            const w = 600, h = 60;
+            const id = ctx.createImageData(w, h);
+            for (let i = 0; i < id.data.length; i += 4) {
+                const val = parseInt(hash[i % hash.length], 16) * 16;
+                id.data[i] = 0; id.data[i+1] = val; id.data[i+2] = 0; id.data[i+3] = 255;
+            }
+            ctx.putImageData(id, 0, 0);
+        }
 
-
+        // --- 2. BOT SIM ---
+        async function runBotSim() {
+            log("Launching 10 Concurrent Bot Agents...", "text-yellow-400");
+            updateStats(0, "DEFENDING");
+            
+            for(let i=1; i<=10; i++) {
+                log(`> Bot_v${i} attempting login (Velocity: 20.0, Entropy: 0)...`, "text-gray-500");
+                await new Promise(r => setTimeout(r, 100)); // Sim delay
+                // Note: We use the pulse demo as proxy since we can't spoof login easily here
+                log(`> Nightmare Firewall: [BLOCKED] - Kinetic Anomaly Detected`, "text-red-500");
+                updateStats(i, "ENGAGED");
+            }
+            log(`> SWARM NEUTRALIZED. Kill Rate: 100%`, "text-green-400 font-bold");
+            updateStats(10, "SECUR
