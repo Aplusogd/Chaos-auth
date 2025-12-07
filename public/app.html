@@ -6,24 +6,28 @@
     <title>A+ CHAOS | IMMORTAL GATE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@simplewebauthn/browser@10.0.0/dist/bundle/index.umd.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
-        body { background-color: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; touch-action: none; overflow: hidden; }
+        body { background-color: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; touch-action: none; overflow: hidden; user-select: none; }
         .hud-status { font-size: 1.5rem; font-weight: 800; text-align: center; margin-top: 10vh; text-shadow: 0 0 10px #00ff41; }
         .totem { width: 90px; height: 90px; background: #00ff41; border-radius: 50%; position: absolute; bottom: 130px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; font-size: 36px; color: #002200; box-shadow: 0 0 25px #00ff41; cursor: pointer; }
         .totem:active { transform: translateX(-50%) scale(1.1); }
+        .reset-btn { position: absolute; top: 20px; right: 20px; font-size: 10px; color: #555; border: 1px solid #333; padding: 5px; z-index: 100; cursor: pointer; }
     </style>
 </head>
 <body class="h-screen w-screen">
 
+    <div class="reset-btn" onclick="hardReset()">RESET SYSTEM</div>
+
     <div id="hud" class="hud-status text-yellow-500">CONNECTING...</div>
     <div class="totem" id="totem"><i class="fas fa-fingerprint"></i></div>
     
-    <!-- Copy Area for DNA -->
     <div id="dna-zone" class="hidden fixed top-0 left-0 w-full h-full bg-black/90 p-4 z-50 flex flex-col justify-center">
-        <p class="text-white text-xs mb-2">COPY THESE TO RENDER ENV VARS:</p>
-        <textarea id="dna-text" class="w-full h-64 bg-gray-900 text-green-400 text-xs p-2 rounded font-mono"></textarea>
-        <button onclick="location.reload()" class="mt-4 w-full py-3 bg-green-600 text-black font-bold rounded">DONE</button>
+        <p class="text-white text-xs mb-2">UPDATE YOUR RENDER ENV VARS:</p>
+        <textarea id="dna-text" class="w-full h-40 bg-gray-900 text-green-400 text-xs p-2 rounded font-mono mb-4"></textarea>
+        <p class="text-gray-500 text-[10px] mb-4">1. Copy this.<br>2. Go to Render > Environment.<br>3. Update ADMIN_CRED_ID and ADMIN_PUB_KEY.<br>4. Save.</p>
+        <button onclick="location.reload()" class="w-full py-3 bg-green-600 text-black font-bold rounded">I HAVE UPDATED THEM</button>
     </div>
 
     <script>
@@ -61,23 +65,25 @@
             else await doLogin();
         });
 
+        async function hardReset() {
+            if(!confirm("Reset identity? This will wipe the server memory.")) return;
+            await fetch(`${API_BASE}/auth/reset`, { method: 'POST' });
+            location.reload();
+        }
+
         async function doRegister() {
             document.getElementById('hud').innerText = "SCANNING...";
             try {
                 const opts = await (await fetch(`${API_BASE}/auth/register-options`)).json();
                 const attResp = await startRegistration(opts);
-                
                 const verifyResp = await fetch(`${API_BASE}/auth/register-verify`, {
                     method: 'POST', headers: HEADERS, body: JSON.stringify(attResp)
                 });
                 const res = await verifyResp.json();
-                
                 if (res.verified) {
-                    // SHOW DNA SCREEN
                     const dnaText = `ADMIN_CRED_ID=${res.env_ID}\n\nADMIN_PUB_KEY=${res.env_KEY}`;
                     document.getElementById('dna-zone').classList.remove('hidden');
                     document.getElementById('dna-text').value = dnaText;
-                    document.getElementById('dna-text').select();
                 }
             } catch(e) { alert("Register Failed: " + e.message); }
         }
@@ -86,26 +92,21 @@
             document.getElementById('hud').innerText = "VERIFYING...";
             try {
                 const opts = await (await fetch(`${API_BASE}/auth/login-options`)).json();
-                
-                // --- CRITICAL FIX V79: REMOVED WRAPPER ---
-                // OLD: startAuthentication({ publicKey: opts }) <--- CAUSED CRASH
-                // NEW: startAuthentication(opts)
-                const asseResp = await startAuthentication(opts);
-                
+                const asseResp = await startAuthentication(opts); // No wrapper
                 const verifyResp = await fetch(`${API_BASE}/auth/login-verify`, {
                     method: 'POST', headers: HEADERS, body: JSON.stringify(asseResp)
                 });
                 const res = await verifyResp.json();
-                
                 if(res.verified) {
                     document.getElementById('hud').innerText = "CONFIRMED";
                     sessionStorage.setItem('chaos_session', result.token);
                     setTimeout(() => location.href = '/dashboard.html', 1000);
-                } else throw new Error(res.error || "Denied");
+                } else throw new Error(res.error);
             } catch(e) {
                 document.getElementById('hud').innerText = "DENIED";
-                console.error(e);
-                alert("Login Failed: " + e.message);
+                if(confirm("Authentication failed. Your phone key might be out of sync. Do you want to reset and re-register?")) {
+                    hardReset();
+                }
             }
         }
     </script>
