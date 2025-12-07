@@ -1,7 +1,10 @@
 /**
- * A+ CHAOS ID: V109 (METERED AUTHORITY)
+ * A+ CHAOS ID: V110 (GATED ACCESS)
  * STATUS: PRODUCTION.
- * STRATEGY: Public Beta capped at 5,000 requests. Enterprise Priority Lane active.
+ * FEATURES:
+ * - Public Signup Flow (Name/Reason capture)
+ * - Metadata storage in Abyss
+ * - Admin Login moved to discrete routing
  */
 import express from 'express';
 import path from 'path';
@@ -41,6 +44,7 @@ function extractChallengeFromClientResponse(clientResponse) {
     } catch (e) { return null; }
 }
 
+// --- DREAMS ENGINE ---
 const DreamsEngine = {
     start: () => process.hrtime.bigint(),
     score: (durationMs, kinetic) => {
@@ -56,7 +60,7 @@ const DreamsEngine = {
     },
     check: (durationMs, kinetic) => {
         const s = DreamsEngine.score(durationMs, kinetic);
-        if (s < 20) return false; // Lenient for Beta
+        if (s < 20) return false; 
         return true; 
     }
 };
@@ -83,15 +87,7 @@ if (process.env.ADMIN_CRED_ID && process.env.ADMIN_PUB_KEY) {
 }
 
 const Abyss = { partners: new Map(), agents: new Map(), hash: (k) => crypto.createHash('sha256').update(k).digest('hex') };
-
-// SEED: Public Beta Key (CAPPED at 5000)
-Abyss.partners.set(Abyss.hash('sk_chaos_public_beta'), { 
-    company: 'Public Dev', 
-    plan: 'BETA', 
-    usage: 0, 
-    limit: 5000, // <--- THE LIMIT
-    active: true 
-});
+Abyss.agents.set('DEMO_AGENT_V1', { id: 'DEMO_AGENT_V1', usage: 0, limit: 500 });
 
 const Nightmare = { 
     guardSaaS: (req, res, next) => {
@@ -101,12 +97,8 @@ const Nightmare = {
         const partner = Abyss.partners.get(Abyss.hash(rawKey));
         if (!partner) return res.status(403).json({ error: "INVALID_KEY" });
         
-        // LIMIT ENFORCEMENT
         if (partner.usage >= partner.limit) {
-            return res.status(429).json({ 
-                error: "QUOTA_EXCEEDED", 
-                message: "Beta Limit Reached. Contact Sales for Priority Access." 
-            });
+            return res.status(429).json({ error: "QUOTA_EXCEEDED", message: "Limit Reached." });
         }
         
         partner.usage++;
@@ -124,6 +116,34 @@ const adminGuard = (req, res, next) => { if (!adminSession.has(req.headers['x-ad
 // ==========================================
 // 3. ROUTES
 // ==========================================
+
+// --- NEW: PUBLIC SIGNUP GATE ---
+app.post('/api/v1/public/signup', (req, res) => {
+    const { firstName, lastInitial, reason } = req.body;
+    
+    if (!firstName || !lastInitial || !reason) {
+        return res.status(400).json({ error: "Incomplete Form. Name and Reason required." });
+    }
+
+    // Generate Free Tier Key
+    const key = `sk_chaos_${uuidv4().replace(/-/g, '').slice(0, 32)}`;
+    const hashedKey = Abyss.hash(key);
+    
+    // Store Metadata in Abyss
+    Abyss.partners.set(hashedKey, { 
+        company: `${firstName} ${lastInitial}.`, 
+        plan: 'Free', 
+        usage: 0, 
+        limit: 500, // 500 Free Requests
+        active: true,
+        meta: { reason, joined: Date.now() }
+    });
+
+    console.log(`[NEW USER] ${firstName} ${lastInitial} - Reason: ${reason}`);
+    res.json({ success: true, key: key, limit: 500 });
+});
+
+// AUTH ROUTES
 app.post('/api/v1/auth/reset', (req, res) => { Users.clear(); res.json({ success: true }); });
 
 app.get('/api/v1/auth/register-options', async (req, res) => {
@@ -202,7 +222,7 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
     } catch (error) { res.status(400).json({ error: error.message }); } 
 });
 
-// --- ADMIN ROUTES ---
+// ADMIN
 app.post('/admin/login', async (req, res) => {
     const { password } = req.body;
     if (await bcrypt.compare(password, ADMIN_PW_HASH)) {
@@ -217,14 +237,19 @@ app.post('/admin/generate-key', adminGuard, async (req, res) => {
     const { tier } = req.body;
     const key = `sk_chaos_${uuidv4().replace(/-/g, '').slice(0, 32)}`;
     const hashedKey = Abyss.hash(key);
-    // V109: Enterprise gets unlimited
-    const limit = tier === 'Enterprise' ? 99999999 : (tier === 'Pro' ? 50000 : 5000);
-    Abyss.partners.set(hashedKey, { quota_current: 0, quota_limit: limit, tier, company: 'New Partner' });
+    Abyss.partners.set(hashedKey, { quota_current: 0, quota_limit: tier === 'Enterprise' ? 99999 : 500, tier, company: 'New Partner' });
     res.json({ success: true, key, tier });
 });
 
 app.get('/admin/partners', adminGuard, (req, res) => {
-    const partners = Array.from(Abyss.partners.entries()).map(([hash, p]) => ({ id: p.company, tier: p.tier, usage: p.quota_current, limit: p.quota_limit }));
+    // Return metadata in partner list
+    const partners = Array.from(Abyss.partners.entries()).map(([hash, p]) => ({ 
+        id: p.company, 
+        tier: p.tier, 
+        usage: p.quota_current, 
+        limit: p.quota_limit,
+        reason: p.meta ? p.meta.reason : 'Legacy'
+    }));
     res.json({ partners });
 });
 
@@ -250,6 +275,6 @@ app.get('/sdk', (req, res) => serve('sdk.html', res));
 app.get('/admin/portal', (req, res) => serve('portal.html', res));
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V109 (METERED AUTHORITY) ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V110 (GATED ACCESS) ONLINE: ${PORT}`));
 
 
