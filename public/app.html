@@ -21,11 +21,12 @@
         
         .hud-status { font-size: 1.5rem; font-weight: 800; text-align: center; margin-top: 10vh; text-shadow: 0 0 10px #00ff41; pointer-events: none; }
         
-        /* DEBUG TERMINAL */
+        /* PERMANENT DEBUG TERMINAL */
         #debug-term {
-            position: absolute; bottom: 0; left: 0; width: 100%; height: 100px;
-            background: #111; border-top: 1px solid #333;
-            font-size: 10px; color: #aaa; padding: 10px; overflow-y: auto; z-index: 100;
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 120px;
+            background: #050505; border-top: 1px solid #004400;
+            font-size: 10px; color: #55aa55; padding: 10px; overflow-y: auto; z-index: 100;
+            font-family: monospace; opacity: 0.9;
         }
     </style>
 </head>
@@ -40,7 +41,6 @@
 
     <script>
         const { startAuthentication } = SimpleWebAuthnBrowser;
-        // NOTE: Using absolute path to ensure we hit the right server
         const API_BASE = window.location.origin + '/api/v1'; 
         const HEADERS = { 'Content-Type': 'application/json', 'X-APLUS-SECURE': 'TOTEM_V8_BIO' };
         
@@ -64,9 +64,10 @@
                 // 1. Raw Ping
                 const ping = await fetch('/ping');
                 if(!ping.ok) throw new Error("Ping Failed: " + ping.status);
-                log("Ping: OK");
+                log("Ping: OK (Latency <100ms)");
 
                 // 2. Auth Options
+                log("Requesting Login Options...");
                 const resp = await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS });
                 
                 if(resp.ok) {
@@ -74,11 +75,11 @@
                     hud.innerText = "CAST TOTEM";
                     hud.className = "hud-status text-green-500";
                     totem.classList.remove('offline');
-                    log("Options: Loaded");
+                    log("Options: Loaded. Ready for Totem.");
                 } else {
                     const err = await resp.json();
                     log(`Auth Error: ${JSON.stringify(err)}`);
-                    hud.innerText = "KEY MISMATCH";
+                    hud.innerText = "SERVER ERROR";
                 }
             } catch(e) { 
                 log(`FAIL: ${e.message}`);
@@ -144,11 +145,14 @@
             hud.innerText = "OPENING GATE...";
             totem.classList.add('launching');
             try {
+                log("Starting Authenticator...");
                 const asseResp = await startAuthentication({ publicKey: authOptions });
+                log("Biometrics Scanned.");
                 
                 const avgVel = pathData.reduce((a,b)=>a+b.v,0)/pathData.length;
                 const payload = { ...asseResp, kinetic_data: { velocity: avgVel, distance: pathData.length } };
 
+                log("Verifying with Abyss...");
                 const verifyResp = await fetch(`${API_BASE}/auth/login-verify`, {
                     method: 'POST', headers: HEADERS, body: JSON.stringify(payload)
                 });
@@ -156,6 +160,7 @@
                 const result = await verifyResp.json();
                 if (result.verified) {
                     hud.innerText = "CONFIRMED";
+                    log("SUCCESS: Identity Verified.");
                     sessionStorage.setItem('chaos_session', result.token);
                     setTimeout(() => location.href = '/dashboard.html', 1000);
                 } else { throw new Error(result.error); }
