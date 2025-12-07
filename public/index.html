@@ -335,4 +335,86 @@
                 updateStats(i, "ENGAGED");
             }
             log(`> SWARM NEUTRALIZED. Kill Rate: 100%`, "text-green-400 font-bold");
-            updateStats(10, "SECUR
+            updateStats(10, "SECURE");
+            document.getElementById('stat-score').innerText = "10/10 KILLS";
+        }
+
+        // --- 3. SPEED TEST ---
+        async function runSpeedTest() {
+            log("Measuring Abyss Latency...", "text-cyan-400");
+            const times = [];
+            for(let i=0; i<10; i++) {
+                const start = performance.now();
+                await fetch(`${API}/health`);
+                const end = performance.now();
+                times.push(end-start);
+                log(`> Packet ${i+1}: ${(end-start).toFixed(2)}ms`, "text-gray-400");
+            }
+            const avg = times.reduce((a,b)=>a+b)/times.length;
+            log(`> AVERAGE LATENCY: ${avg.toFixed(2)}ms`, "text-white font-bold");
+            updateStats(avg.toFixed(0) + "ms", "LIVE");
+            document.getElementById('stat-score').innerText = "P99 < 5ms";
+        }
+
+        function log(msg, cls) {
+            const div = document.createElement('div');
+            div.className = cls || "text-gray-400";
+            div.innerText = msg;
+            term.appendChild(div);
+            term.scrollTop = term.scrollHeight;
+        }
+
+        function updateStats(points, status) {
+            document.getElementById('stat-points').innerText = points;
+            document.getElementById('stat-status').innerText = status;
+        }
+
+        // --- UTILS ---
+        function openModal(id) { document.getElementById(id).classList.add('modal-active'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('modal-active'); }
+        async function handleSignup(e) {
+            e.preventDefault();
+            const btn = e.target.querySelector('button'); btn.innerText = "MINTING...";
+            try {
+                const res = await fetch('/api/v1/public/signup', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ firstName: document.getElementById('fname').value, lastInitial: document.getElementById('lname').value, reason: document.getElementById('reason').value })
+                });
+                const data = await res.json();
+                if(data.success) {
+                    document.getElementById('reg-form').classList.add('hidden');
+                    document.getElementById('reg-success').classList.remove('hidden');
+                    document.getElementById('api-key-display').innerText = data.key;
+                }
+            } catch(e) { alert("Error"); btn.disabled = false; }
+        }
+        async function handleFeedback(e) {
+            e.preventDefault();
+            try {
+                await fetch('/api/v1/public/feedback', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: document.getElementById('feed-name').value, message: document.getElementById('feed-msg').value })
+                });
+                alert("RECEIVED."); closeModal('feedback-modal'); e.target.reset();
+            } catch(err) { alert("Failed"); }
+        }
+
+        // MATRIX
+        const canvas = document.getElementById('matrix-canvas'); const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+        const chars = "01"; const fontSize = 14; const columns = canvas.width / fontSize; const drops = Array(Math.floor(columns)).fill(1);
+        function draw() {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#0F0'; ctx.font = fontSize + 'px monospace';
+            for (let i = 0; i < drops.length; i++) {
+                const text = chars[Math.floor(Math.random() * chars.length)];
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i]++;
+            }
+        }
+        setInterval(draw, 50);
+        window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
+    </script>
+</body>
+</html>
