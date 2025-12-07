@@ -1,7 +1,6 @@
 /**
- * A+ CHAOS ID: V73 (TYPE SAFE GUARD)
- * STATUS: Fixed 'input.replace' crash by passing String ID to generator.
- * Debug Logging: ACTIVE.
+ * A+ CHAOS ID: V74 (SANITIZED AUTHENTICATOR)
+ * STATUS: Strict typing for verifyAuthenticationResponse to fix .replace crash.
  */
 import express from 'express';
 import path from 'path';
@@ -24,26 +23,17 @@ const publicPath = path.join(__dirname, 'public');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ALLOW ALL CONNECTIONS (Debug Mode)
 app.use(cors({ origin: '*' })); 
 app.use(express.json());
 app.use(express.static(publicPath));
 
-// --- 1. INSTANT PING (The Connection Proof) ---
-app.get('/ping', (req, res) => {
-    res.send("PONG");
-});
-
-app.get('/api/v1/health', (req, res) => {
-    res.json({ status: "ALIVE", uptime: process.uptime() });
-});
-
-// --- UTILITY ---
-const jsObjectToBuffer = (obj) => {
-    if (obj instanceof Uint8Array) return obj;
-    if (obj instanceof Buffer) return obj;
-    if (typeof obj !== 'object' || obj === null) return new Uint8Array();
-    return Buffer.from(Object.values(obj));
+// --- UTILITY: CONVERT TO PURE UINT8ARRAY ---
+// WebAuthn library prefers Uint8Array over Node Buffer in some contexts
+const toUint8 = (input) => {
+    if (input instanceof Uint8Array) return input;
+    if (input instanceof Buffer) return new Uint8Array(input);
+    if (typeof input === 'object' && input !== null) return new Uint8Array(Object.values(input));
+    return new Uint8Array();
 };
 
 function extractChallengeFromClientResponse(clientResponse) {
@@ -60,26 +50,25 @@ const DreamsEngine = {
 };
 
 // ==========================================
-// 2. CORE IDENTITY (LOCKED & TYPE SAFE)
+// 1. CORE IDENTITY
 // ==========================================
 const Users = new Map();
 
-// --- YOUR DNA (HARDCODED) ---
+// YOUR HARDCODED DNA
 const ADMIN_CRED_ID_STRING = "oJ18aj5LzkkixMX1ILmv7Q";
 const ADMIN_PK_OBJ = {
     "0":165,"1":1,"2":2,"3":3,"4":38,"5":32,"6":1,"7":33,"8":88,"9":32,"10":137,"11":38,"12":238,"13":41,"14":157,"15":79,"16":47,"17":9,"18":25,"19":26,"20":130,"21":177,"22":87,"23":221,"24":98,"25":125,"26":66,"27":164,"28":2,"29":228,"30":240,"31":117,"32":167,"33":185,"34":43,"35":144,"36":127,"37":209,"38":138,"39":91,"40":44,"41":233,"42":34,"43":88,"44":32,"45":253,"46":17,"47":38,"48":124,"49":173,"50":105,"51":52,"52":132,"53":241,"54":76,"55":22,"56":160,"57":57,"58":68,"59":34,"60":20,"61":4,"62":15,"63":27,"64":165,"65":192,"66":195,"67":125,"68":9,"69":145,"70":249,"71":105,"72":229,"73":118,"74":79,"75":241,"76":42
 };
 
 const ADMIN_DNA = {
-    // We store BOTH formats to satisfy different library needs
+    // Convert to Buffer initially
     credentialID: Buffer.from(ADMIN_CRED_ID_STRING, 'base64url'),
-    credentialID_String: ADMIN_CRED_ID_STRING, // <--- SAVED FOR OPTIONS GENERATION
-    credentialPublicKey: jsObjectToBuffer(ADMIN_PK_OBJ),
+    credentialID_String: ADMIN_CRED_ID_STRING,
+    credentialPublicKey: Buffer.from(Object.values(ADMIN_PK_OBJ)),
     counter: 0,
     dreamProfile: { window: [], sum_T: 0, sum_T2: 0 }
 };
 Users.set('admin-user', ADMIN_DNA); 
-console.log(">>> [SYSTEM] V73 TYPE SAFE. IDENTITY LOCKED.");
 
 const Abyss = { partners: new Map(), hash: (k) => crypto.createHash('sha256').update(k).digest('hex') };
 Abyss.partners.set(Abyss.hash('sk_chaos_demo123'), { company: 'Demo', plan: 'free', usage: 0, limit: 50, active: true });
@@ -87,11 +76,15 @@ const Nightmare = { guardSaaS: (req, res, next) => next() };
 const Chaos = { mintToken: () => crypto.randomBytes(16).toString('hex') };
 const Challenges = new Map();
 
-const getOrigin = (req) => `https://${req.headers['x-forwarded-host'] || req.get('host')}`;
+const getOrigin = (req) => {
+    const host = req.headers['x-forwarded-host'] || req.get('host');
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    return `${protocol}://${host}`;
+};
 const getRpId = (req) => req.get('host').split(':')[0];
 
 // ==========================================
-// 3. AUTH ROUTES
+// 2. AUTH ROUTES
 // ==========================================
 
 app.get('/api/v1/auth/register-options', (req, res) => res.status(403).json({ error: "LOCKED" }));
@@ -105,52 +98,55 @@ app.get('/api/v1/auth/login-options', async (req, res) => {
         const options = await generateAuthenticationOptions({
             rpID: getRpId(req),
             allowCredentials: [{
-                // FIX: Use the STRING version of the ID for generation options
-                id: user.credentialID_String, 
+                id: user.credentialID_String, // Pass String here for generation
                 type: 'public-key'
             }], 
             userVerification: 'required',
         });
-        
         const friction = Math.random(); 
-        Challenges.set(options.challenge, { 
-            challenge: options.challenge, 
-            startTime: DreamsEngine.start(),
-            friction: friction
-        });
-        
+        Challenges.set(options.challenge, { challenge: options.challenge, startTime: DreamsEngine.start(), friction });
         res.json({ ...options, kinetic_friction: friction });
-    } catch (err) { 
-        console.error("Login Options Error:", err);
-        res.status(500).json({ error: err.message }); 
-    }
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/v1/auth/login-verify', async (req, res) => {
     const userID = 'admin-user';
     const user = Users.get(userID);
     const clientResponse = req.body;
+    
+    // DEBUG: Ensure payload is correct
+    console.log(">>> [VERIFY] Payload Keys:", Object.keys(clientResponse));
+    if (!clientResponse.response) return res.status(400).json({ error: "Malformed Body" });
+
     const challengeString = extractChallengeFromClientResponse(clientResponse);
     const expectedChallenge = Challenges.get(challengeString); 
 
-    if (!user || !expectedChallenge) return res.status(400).json({ error: "Invalid State" });
+    if (!user || !expectedChallenge) return res.status(400).json({ error: "Invalid State/Challenge" });
     
-    // KINETIC CHECK (V73)
+    // DREAMS CHECK
     const durationMs = Number(process.hrtime.bigint() - expectedChallenge.startTime) / 1000000;
-    const kineticData = clientResponse.kinetic_data; 
-    
-    if (!DreamsEngine.check(durationMs, user, kineticData)) {
+    if (!DreamsEngine.check(durationMs, user, clientResponse.kinetic_data)) {
          Challenges.delete(expectedChallenge.challenge);
          return res.status(403).json({ verified: false, error: "ERR_KINETIC_ANOMALY" });
     }
     
     try {
+        // CLEAN AUTHENTICATOR OBJECT
+        // We create a new object to ensure no extra properties pollute the verify call
+        // and we enforce Uint8Array types.
+        const authenticatorClean = {
+            credentialID: toUint8(user.credentialID),
+            credentialPublicKey: toUint8(user.credentialPublicKey),
+            counter: Number(user.counter),
+        };
+
         const verification = await verifyAuthenticationResponse({
             response: clientResponse,
             expectedChallenge: expectedChallenge.challenge,
             expectedOrigin: getOrigin(req),
             expectedRPID: getRpId(req),
-            authenticator: user, 
+            authenticator: authenticatorClean, // Use sanitized object
+            requireUserVerification: true,
         });
 
         if (verification.verified) {
@@ -159,19 +155,26 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
             Challenges.delete(expectedChallenge.challenge);
             res.json({ verified: true, token: Chaos.mintToken() });
         } else { res.status(400).json({ verified: false }); }
-    } catch (error) { res.status(400).json({ error: error.message }); } 
-    finally { if(expectedChallenge) Challenges.delete(expectedChallenge.challenge); }
+    } catch (error) { 
+        console.error(">>> [VERIFY ERROR]", error);
+        res.status(400).json({ error: error.message }); 
+    } finally {
+        if(expectedChallenge) Challenges.delete(expectedChallenge.challenge);
+    }
 });
 
 // ROUTING
 app.post('/api/v1/external/verify', Nightmare.guardSaaS, (req, res) => res.json({ valid: true }));
 app.get('/api/v1/admin/telemetry', (req, res) => res.json({ stats: { requests: 0 }, threats: [] }));
+// PING (For Debugging)
+app.get('/ping', (req, res) => res.send("PONG"));
+
 const serve = (f, res) => fs.existsSync(path.join(publicPath, f)) ? res.sendFile(path.join(publicPath, f)) : res.status(404).send('Missing: ' + f);
 app.get('/', (req, res) => serve('index.html', res));
 app.get('/app', (req, res) => serve('app.html', res));
 app.get('/dashboard', (req, res) => serve('dashboard.html', res));
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V73 (TYPE SAFE) ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V74 (SANITIZED) ONLINE: ${PORT}`));
 
 
