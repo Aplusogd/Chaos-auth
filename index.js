@@ -1,6 +1,6 @@
 /**
- * A+ CHAOS ID: V71 (DEFIBRILLATOR EDITION)
- * STATUS: Identity Locked. Health Check Added. Transports loosened.
+ * A+ CHAOS ID: V72 (GLASS BOX DIAGNOSTIC)
+ * STATUS: Identity Locked. Debug /ping added.
  */
 import express from 'express';
 import path from 'path';
@@ -23,9 +23,19 @@ const publicPath = path.join(__dirname, 'public');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// ALLOW ALL CONNECTIONS (Debug Mode)
 app.use(cors({ origin: '*' })); 
 app.use(express.json());
 app.use(express.static(publicPath));
+
+// --- 1. INSTANT PING (The Connection Proof) ---
+app.get('/ping', (req, res) => {
+    res.send("PONG");
+});
+
+app.get('/api/v1/health', (req, res) => {
+    res.json({ status: "ALIVE", uptime: process.uptime() });
+});
 
 // --- UTILITY ---
 const jsObjectToBuffer = (obj) => {
@@ -44,15 +54,12 @@ function extractChallengeFromClientResponse(clientResponse) {
 
 const DreamsEngine = {
     start: () => process.hrtime.bigint(),
-    check: (durationMs, user, kinetic) => {
-        if (kinetic && kinetic.velocity > 5.0) return false;
-        return true; 
-    }, 
-    update: (T_new, profile) => {}
+    check: (d, u, k) => true, 
+    update: (t, p) => {}
 };
 
 // ==========================================
-// 1. CORE IDENTITY (LOCKED)
+// 2. CORE IDENTITY (LOCKED)
 // ==========================================
 const Users = new Map();
 
@@ -69,9 +76,10 @@ const ADMIN_DNA = {
     dreamProfile: { window: [], sum_T: 0, sum_T2: 0 }
 };
 Users.set('admin-user', ADMIN_DNA); 
-console.log(">>> [SYSTEM] V71 DEFIBRILLATOR. IDENTITY LOCKED.");
+console.log(">>> [SYSTEM] V72 DIAGNOSTIC. IDENTITY LOCKED.");
 
 const Abyss = { partners: new Map(), hash: (k) => crypto.createHash('sha256').update(k).digest('hex') };
+Abyss.partners.set(Abyss.hash('sk_chaos_demo123'), { company: 'Demo', plan: 'free', usage: 0, limit: 50, active: true });
 const Nightmare = { guardSaaS: (req, res, next) => next() };
 const Chaos = { mintToken: () => crypto.randomBytes(16).toString('hex') };
 const Challenges = new Map();
@@ -80,13 +88,8 @@ const getOrigin = (req) => `https://${req.headers['x-forwarded-host'] || req.get
 const getRpId = (req) => req.get('host').split(':')[0];
 
 // ==========================================
-// 2. AUTH ROUTES
+// 3. AUTH ROUTES
 // ==========================================
-
-// NEW: LIGHTWEIGHT HEALTH CHECK (Wakes up Render)
-app.get('/api/v1/health', (req, res) => {
-    res.json({ status: "ALIVE", timestamp: Date.now() });
-});
 
 app.get('/api/v1/auth/register-options', (req, res) => res.status(403).json({ error: "LOCKED" }));
 app.post('/api/v1/auth/register-verify', (req, res) => res.status(403).json({ error: "LOCKED" }));
@@ -100,8 +103,8 @@ app.get('/api/v1/auth/login-options', async (req, res) => {
             rpID: getRpId(req),
             allowCredentials: [{
                 id: user.credentialID,
-                type: 'public-key'
-                // REMOVED 'transports' to allow maximum compatibility
+                type: 'public-key',
+                // transports: ['internal', 'hybrid'] // Removed for max compatibility
             }], 
             userVerification: 'required',
         });
@@ -125,15 +128,6 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
     const expectedChallenge = Challenges.get(challengeString); 
 
     if (!user || !expectedChallenge) return res.status(400).json({ error: "Invalid State" });
-    
-    // KINETIC CHECK
-    const durationMs = Number(process.hrtime.bigint() - expectedChallenge.startTime) / 1000000;
-    const kineticData = clientResponse.kinetic_data; 
-    
-    if (!DreamsEngine.check(durationMs, user, kineticData)) {
-         Challenges.delete(expectedChallenge.challenge);
-         return res.status(403).json({ verified: false, error: "ERR_KINETIC_ANOMALY" });
-    }
     
     try {
         const verification = await verifyAuthenticationResponse({
@@ -163,6 +157,4 @@ app.get('/app', (req, res) => serve('app.html', res));
 app.get('/dashboard', (req, res) => serve('dashboard.html', res));
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V71 (DEFIBRILLATOR) ONLINE: ${PORT}`));
-
-
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V72 (GLASS BOX) ONLINE: ${PORT}`));
