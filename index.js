@@ -1,6 +1,6 @@
 /**
- * A+ CHAOS ID: V83 (HONEST SIGNAL)
- * STATUS: Fixes "NO USER IN MEMORY" loop by correctly reporting 404 when empty.
+ * A+ CHAOS ID: V84 (STABLE CORE)
+ * STATUS: Matching V83 logic. Ensures correct options generation.
  */
 import express from 'express';
 import path from 'path';
@@ -31,12 +31,6 @@ app.use(express.static(publicPath));
 const toBuffer = (base64) => Buffer.from(base64, 'base64url');
 const toBase64 = (buffer) => Buffer.from(buffer).toString('base64url');
 
-const DreamsEngine = {
-    start: () => process.hrtime.bigint(),
-    check: () => true, 
-    update: () => {}
-};
-
 // ==========================================
 // 1. IDENTITY CORE
 // ==========================================
@@ -49,18 +43,14 @@ if (process.env.ADMIN_CRED_ID && process.env.ADMIN_PUB_KEY) {
         const dna = {
             credentialID: process.env.ADMIN_CRED_ID,
             credentialPublicKey: new Uint8Array(toBuffer(process.env.ADMIN_PUB_KEY)),
-            counter: 0,
-            dreamProfile: { window: [], sum_T: 0, sum_T2: 0 }
+            counter: 0
         };
         Users.set(ADMIN_USER_ID, dna);
         console.log(">>> [SYSTEM] RESTORED FROM ENV.");
     } catch (e) { console.error("!!! [ERROR] BAD ENV DATA:", e); }
-} else {
-    console.log(">>> [SYSTEM] MEMORY EMPTY. WAITING FOR IMPRINT.");
 }
 
 const Abyss = { partners: new Map(), hash: (k) => crypto.createHash('sha256').update(k).digest('hex') };
-Abyss.partners.set(Abyss.hash('sk_chaos_demo123'), { company: 'Demo', plan: 'free', usage: 0, limit: 50, active: true });
 const Nightmare = { guardSaaS: (req, res, next) => next() };
 const Chaos = { mintToken: () => crypto.randomBytes(16).toString('hex') };
 const Challenges = new Map();
@@ -81,18 +71,13 @@ app.post('/api/v1/auth/reset', (req, res) => {
 // REGISTER
 app.get('/api/v1/auth/register-options', async (req, res) => {
     try {
-        console.log(`[REG OPTION] RPID: ${getRpId(req)}`);
-        
         const options = await generateRegistrationOptions({
             rpName: 'A+ Chaos ID',
             rpID: getRpId(req),
             userID: new Uint8Array(Buffer.from(ADMIN_USER_ID)),
             userName: 'admin@aplus.com',
             attestationType: 'none',
-            authenticatorSelection: { 
-                residentKey: 'required',
-                userVerification: 'preferred',
-            },
+            authenticatorSelection: { residentKey: 'required', userVerification: 'preferred' },
         });
         Challenges.set(ADMIN_USER_ID, options.challenge);
         res.json(options);
@@ -102,7 +87,6 @@ app.get('/api/v1/auth/register-options', async (req, res) => {
 app.post('/api/v1/auth/register-verify', async (req, res) => {
     const clientResponse = req.body;
     const expectedChallenge = Challenges.get(ADMIN_USER_ID);
-    
     if (!expectedChallenge) return res.status(400).json({ error: "Expired" });
 
     try {
@@ -115,20 +99,15 @@ app.post('/api/v1/auth/register-verify', async (req, res) => {
 
         if (verification.verified) {
             const { credentialID, credentialPublicKey, counter } = verification.registrationInfo;
-            
-            const idString = toBase64(credentialID);
-            const keyString = toBase64(credentialPublicKey);
-
             const userData = { 
-                credentialID: idString, 
+                credentialID: toBase64(credentialID), 
                 credentialPublicKey: credentialPublicKey, 
-                counter, 
-                dreamProfile: { window: [], sum_T: 0, sum_T2: 0 } 
+                counter 
             };
             Users.set(ADMIN_USER_ID, userData);
             Challenges.delete(ADMIN_USER_ID);
             
-            res.json({ verified: true, env_ID: idString, env_KEY: keyString });
+            res.json({ verified: true, env_ID: userData.credentialID, env_KEY: toBase64(credentialPublicKey) });
         } else { res.status(400).json({ verified: false }); }
     } catch (e) { res.status(400).json({ error: e.message }); }
 });
@@ -136,47 +115,36 @@ app.post('/api/v1/auth/register-verify', async (req, res) => {
 // LOGIN
 app.get('/api/v1/auth/login-options', async (req, res) => {
     const user = Users.get(ADMIN_USER_ID);
-    
-    // V83 FIX: STRICT 404 IF NO USER
-    if (!user) {
-        console.log(">>> [LOGIN] No user found. Sending 404 to force Register mode.");
-        return res.status(404).json({ error: "NO IDENTITY" });
-    }
-
+    if (!user) return res.status(404).json({ error: "NO IDENTITY" });
     try {
         const options = await generateAuthenticationOptions({
             rpID: getRpId(req),
             allowCredentials: [], 
             userVerification: 'preferred',
         });
-        Challenges.set(options.challenge, { challenge: options.challenge, startTime: process.hrtime.bigint() });
+        Challenges.set(options.challenge, options.challenge);
         res.json(options);
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/v1/auth/login-verify', async (req, res) => {
     const user = Users.get(ADMIN_USER_ID);
-    
-    // V83 FIX: EXTRA GUARD
-    if (!user) return res.status(404).json({ error: "NO USER IN MEMORY" });
-
     let challengeString;
     try {
          const json = Buffer.from(req.body.response.clientDataJSON, 'base64url').toString('utf8');
          challengeString = JSON.parse(json).challenge;
     } catch(e) { return res.status(400).json({error: "Bad Payload"}); }
     
-    const expectedChallenge = Challenges.get(challengeString); 
-    if (!expectedChallenge) return res.status(400).json({ error: "Invalid Challenge" });
+    if (!user || !Challenges.has(challengeString)) return res.status(400).json({ error: "Invalid State" });
     
     try {
         const verification = await verifyAuthenticationResponse({
             response: req.body,
-            expectedChallenge: expectedChallenge.challenge,
+            expectedChallenge: challengeString,
             expectedOrigin: getOrigin(req),
             expectedRPID: getRpId(req),
             authenticator: {
-                credentialID: toBuffer(user.credentialID), 
+                credentialID: toBuffer(user.credentialID),
                 credentialPublicKey: user.credentialPublicKey,
                 counter: user.counter,
             },
@@ -186,7 +154,7 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
         if (verification.verified) {
             user.counter = verification.authenticationInfo.newCounter;
             Users.set(ADMIN_USER_ID, user); 
-            Challenges.delete(expectedChallenge.challenge);
+            Challenges.delete(challengeString);
             res.json({ verified: true, token: Chaos.mintToken() });
         } else { res.status(400).json({ verified: false }); }
     } catch (error) { res.status(400).json({ error: error.message }); } 
@@ -200,6 +168,6 @@ app.get('/app', (req, res) => serve('app.html', res));
 app.get('/dashboard', (req, res) => serve('dashboard.html', res));
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V83 (HONEST SIGNAL) ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V84 (TACTILE) ONLINE: ${PORT}`));
 
 
