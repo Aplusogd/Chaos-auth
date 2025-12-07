@@ -10,13 +10,21 @@
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
         body { background-color: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; touch-action: none; overflow: hidden; }
         .hud-status { font-size: 1.5rem; font-weight: 800; text-align: center; margin-top: 10vh; text-shadow: 0 0 10px #00ff41; }
-        .totem { width: 90px; height: 90px; background: #00ff41; border-radius: 50%; position: absolute; bottom: 130px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; font-size: 36px; color: #002200; box-shadow: 0 0 25px #00ff41; }
+        .totem { width: 90px; height: 90px; background: #00ff41; border-radius: 50%; position: absolute; bottom: 130px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; font-size: 36px; color: #002200; box-shadow: 0 0 25px #00ff41; cursor: pointer; }
+        .totem:active { transform: translateX(-50%) scale(1.1); }
     </style>
 </head>
 <body class="h-screen w-screen">
 
     <div id="hud" class="hud-status text-yellow-500">CONNECTING...</div>
     <div class="totem" id="totem"><i class="fas fa-fingerprint"></i></div>
+    
+    <!-- Copy Area for DNA -->
+    <div id="dna-zone" class="hidden fixed top-0 left-0 w-full h-full bg-black/90 p-4 z-50 flex flex-col justify-center">
+        <p class="text-white text-xs mb-2">COPY THESE TO RENDER ENV VARS:</p>
+        <textarea id="dna-text" class="w-full h-64 bg-gray-900 text-green-400 text-xs p-2 rounded font-mono"></textarea>
+        <button onclick="location.reload()" class="mt-4 w-full py-3 bg-green-600 text-black font-bold rounded">DONE</button>
+    </div>
 
     <script>
         const { startRegistration, startAuthentication } = SimpleWebAuthnBrowser;
@@ -32,13 +40,19 @@
                     mode = 'LOGIN';
                     document.getElementById('hud').innerText = "CAST TOTEM";
                     document.getElementById('hud').className = "hud-status text-green-500";
+                    document.getElementById('totem').style.background = "#00ff41";
                 } else if (resp.status === 404) {
                     mode = 'REGISTER';
                     document.getElementById('hud').innerText = "IMPRINT IDENTITY";
                     document.getElementById('hud').className = "hud-status text-blue-400";
                     document.getElementById('totem').style.background = "#0088ff";
+                } else {
+                    document.getElementById('hud').innerText = "SERVER ERROR";
                 }
-            } catch(e) { setTimeout(preheat, 2000); }
+            } catch(e) { 
+                document.getElementById('hud').innerText = "WAKING ABYSS...";
+                setTimeout(preheat, 2000); 
+            }
         }
         setTimeout(preheat, 100);
 
@@ -52,46 +66,45 @@
             try {
                 const opts = await (await fetch(`${API_BASE}/auth/register-options`)).json();
                 const attResp = await startRegistration(opts);
+                
                 const verifyResp = await fetch(`${API_BASE}/auth/register-verify`, {
                     method: 'POST', headers: HEADERS, body: JSON.stringify(attResp)
                 });
                 const res = await verifyResp.json();
                 
                 if (res.verified) {
-                    // SHOW THE VAULT KEYS
-                    const msg = `
-SAVE THESE IN RENDER ENVIRONMENT VARIABLES:
-
-Key: ADMIN_CRED_ID
-Value: ${res.env_ID}
-
-Key: ADMIN_PUB_KEY
-Value: ${res.env_KEY}
-                    `;
-                    const ta = document.createElement('textarea');
-                    ta.value = msg;
-                    ta.style.position='fixed'; ta.style.top='0'; ta.style.left='0'; ta.style.width='100%'; ta.style.height='50%';
-                    document.body.appendChild(ta);
-                    alert("IDENTITY SAVED. COPY THE KEYS ON SCREEN.");
+                    // SHOW DNA SCREEN
+                    const dnaText = `ADMIN_CRED_ID=${res.env_ID}\n\nADMIN_PUB_KEY=${res.env_KEY}`;
+                    document.getElementById('dna-zone').classList.remove('hidden');
+                    document.getElementById('dna-text').value = dnaText;
+                    document.getElementById('dna-text').select();
                 }
-            } catch(e) { alert(e.message); }
+            } catch(e) { alert("Register Failed: " + e.message); }
         }
 
         async function doLogin() {
             document.getElementById('hud').innerText = "VERIFYING...";
             try {
                 const opts = await (await fetch(`${API_BASE}/auth/login-options`)).json();
-                const asseResp = await startAuthentication({ publicKey: opts });
+                
+                // --- CRITICAL FIX V79: REMOVED WRAPPER ---
+                // OLD: startAuthentication({ publicKey: opts }) <--- CAUSED CRASH
+                // NEW: startAuthentication(opts)
+                const asseResp = await startAuthentication(opts);
+                
                 const verifyResp = await fetch(`${API_BASE}/auth/login-verify`, {
                     method: 'POST', headers: HEADERS, body: JSON.stringify(asseResp)
                 });
                 const res = await verifyResp.json();
+                
                 if(res.verified) {
                     document.getElementById('hud').innerText = "CONFIRMED";
+                    sessionStorage.setItem('chaos_session', result.token);
                     setTimeout(() => location.href = '/dashboard.html', 1000);
-                } else throw new Error(res.error);
+                } else throw new Error(res.error || "Denied");
             } catch(e) {
                 document.getElementById('hud').innerText = "DENIED";
+                console.error(e);
                 alert("Login Failed: " + e.message);
             }
         }
