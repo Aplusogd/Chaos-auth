@@ -3,127 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>A+ CHAOS | SECURE GATE</title>
+    <title>A+ CHAOS | KINETIC GATE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@simplewebauthn/browser@10.0.0/dist/bundle/index.umd.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
-        body { 
-            background-color: #000; 
-            color: #00ff41; 
-            font-family: 'JetBrains Mono', monospace; 
-            touch-action: none; 
-            overflow: hidden; 
-            user-select: none;
-        }
+        body { background-color: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; touch-action: none; overflow: hidden; user-select: none; }
 
-        /* HUD & STATUS */
-        .hud-status { 
-            font-size: 1.5rem; 
-            font-weight: 800; 
-            text-align: center; 
-            margin-top: 20vh; 
-            text-shadow: 0 0 10px #00ff41; 
-            pointer-events: none; 
-            transition: color 0.5s;
-        }
-
-        /* GRAVITY WELL */
-        .well-container { 
-            position: absolute; bottom: 140px; left: 50%; transform: translateX(-50%); 
-            width: 120px; height: 160px; 
-            border-left: 2px solid #004400; border-right: 2px solid #004400; border-bottom: 2px solid #004400; 
-            border-radius: 0 0 30px 30px; border-top: none; 
-            background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0, 255, 65, 0.05)); 
-            pointer-events: none; z-index: 10; 
-        }
-
-        /* THE TOTEM */
-        .totem { 
-            width: 90px; height: 90px; 
-            background: radial-gradient(circle at 30% 30%, #aaffaa, #00ff41); 
-            border-radius: 50%; 
-            position: absolute; bottom: 130px; left: 50%; transform: translateX(-50%); 
-            display: flex; align-items: center; justify-content: center; 
-            font-size: 36px; color: #002200; 
-            box-shadow: 0 0 25px #00ff41; 
-            cursor: grab; z-index: 50; 
-            transition: filter 0.5s, box-shadow 0.5s, opacity 0.5s; 
-        }
+        .hud-status { font-size: 1.5rem; font-weight: 800; text-align: center; margin-top: 20vh; text-shadow: 0 0 10px #00ff41; pointer-events: none; transition: all 0.5s; }
+        .well-container { position: absolute; bottom: 140px; left: 50%; transform: translateX(-50%); width: 120px; height: 160px; border-left: 2px solid #004400; border-right: 2px solid #004400; border-bottom: 2px solid #004400; border-radius: 0 0 30px 30px; border-top: none; background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0, 255, 65, 0.05)); pointer-events: none; z-index: 10; }
         
+        .totem { width: 90px; height: 90px; background: #00ff41; border-radius: 50%; position: absolute; bottom: 130px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; font-size: 36px; color: #002200; box-shadow: 0 0 25px #00ff41; cursor: pointer; z-index: 50; transition: filter 0.5s, box-shadow 0.5s, background-color 0.5s; }
         .totem.offline { filter: grayscale(100%); opacity: 0.3; cursor: wait; }
-        .totem:active:not(.offline) { cursor: grabbing; box-shadow: 0 0 60px #00ff41; transform: translateX(-50%) scale(1.15); }
-        
-        /* ANIMATIONS */
+        .totem.imprint { background: #0088ff; box-shadow: 0 0 25px #0088ff; color: #001133; }
+        .totem:active:not(.offline) { transform: translateX(-50%) scale(1.15); }
         .launching { transition: bottom 0.4s cubic-bezier(0.1, 0.7, 0.1, 1), opacity 0.4s; bottom: 120vh !important; opacity: 0; }
         .falling { transition: bottom 0.6s cubic-bezier(0.5, 0, 0.5, 1.5); bottom: 130px !important; }
-        
-        .arrow-guide { 
-            position: absolute; bottom: 220px; left: 50%; transform: translateX(-50%); 
-            color: rgba(0, 255, 65, 0.3); animation: float-up 2s infinite; pointer-events: none; 
-        }
-        @keyframes float-up { 0% { opacity:0; transform:translate(-50%, 10px);} 50% {opacity:1;} 100% {opacity:0; transform:translate(-50%, -20px);} }
 
-        /* STATUS DOT */
-        .status-dot { 
-            position: absolute; top: 20px; right: 20px; 
-            width: 8px; height: 8px; border-radius: 50%; 
-            background: #330000; transition: all 0.5s; 
-        }
-        .status-dot.online { background: #00ff41; box-shadow: 0 0 10px #00ff41; }
+        .status-dot { position: absolute; top: 20px; right: 20px; width: 12px; height: 12px; border-radius: 50%; background: #330000; border: 1px solid #550000; box-shadow: 0 0 5px #ff0000; transition: all 0.5s; }
+        .status-dot.online { background: #00ff41; border-color: #aaffaa; box-shadow: 0 0 10px #00ff41; }
+        
+        .wake-btn { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); border: 1px solid #333; padding: 8px 16px; font-size: 12px; color: #aaa; background: #111; z-index: 100; cursor: pointer; border-radius: 20px; }
+        .wake-btn:hover { border-color: #00ff41; color: #00ff41; }
     </style>
 </head>
 <body class="h-screen w-screen">
 
-    <!-- MINIMALIST UI -->
     <div id="status-dot" class="status-dot"></div>
+    <button id="wake-btn" class="wake-btn hidden" onclick="forceWake()">WAKE SERVER</button>
+    <div id="reset-btn" class="wake-btn hidden" style="top: 60px; color: #f00; border-color: #500;" onclick="hardReset()">RESET IDENTITY</div>
+
     <div id="hud" class="hud-status text-yellow-500">CONNECTING...</div>
+    <div class="well-container"></div>
+    <div class="totem offline" id="totem"><i class="fas fa-fingerprint"></i></div>
     
-    <div class="arrow-guide"><i class="fas fa-chevron-up text-2xl"></i></div>
-    
-    <div class="well-container">
-        <div class="text-[10px] text-green-900 text-center mt-28 select-none tracking-widest">SWIPE UP</div>
+    <!-- DNA ZONE -->
+    <div id="dna-zone" class="hidden fixed top-0 left-0 w-full h-full bg-black/95 p-6 z-50 flex flex-col justify-center">
+        <p class="text-white text-xs mb-2">UPDATE RENDER ENV VARS:</p>
+        <textarea id="dna-text" class="w-full h-40 bg-gray-900 text-green-400 text-xs p-2 rounded font-mono mb-4"></textarea>
+        <button onclick="location.reload()" class="w-full py-4 bg-green-600 text-black font-bold rounded">DONE</button>
     </div>
 
-    <!-- TOTEM -->
-    <div class="totem offline" id="totem"><i class="fas fa-fingerprint"></i></div>
-
     <script>
-        const { startAuthentication, startRegistration } = SimpleWebAuthnBrowser;
+        const { startRegistration, startAuthentication } = SimpleWebAuthnBrowser;
         const API_BASE = '/api/v1';
-        const HEADERS = { 'Content-Type': 'application/json', 'X-APLUS-SECURE': 'TOTEM_V8_BIO' };
+        const HEADERS = { 'Content-Type': 'application/json' };
         
         const totem = document.getElementById('totem');
         const hud = document.getElementById('hud');
         const dot = document.getElementById('status-dot');
+        const wakeBtn = document.getElementById('wake-btn');
+        const resetBtn = document.getElementById('reset-btn');
         
         let isDragging = false;
         let startY = 0; let lastTime = 0; let lastY = 0; let velocityY = 0;
         let authOptions = null;
-        let mode = 'LOGIN'; // Default
-        let pathData = []; 
+        let mode = 'LOGIN'; 
 
-        // --- 1. SILENT CONNECT ---
+        // --- 1. HEALTH CHECK & PREHEAT ---
         async function preheat() {
             try {
-                // Try Login Check
+                // Step A: Wake Up Check
+                const health = await fetch(`${API_BASE}/health`);
+                if(!health.ok) throw new Error("Server Sleep");
+
+                // Step B: Get Auth State
                 const resp = await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS });
                 
                 if(resp.ok) {
                     authOptions = await resp.json();
                     setMode('LOGIN');
                 } else if (resp.status === 404) {
-                    // If server was wiped (rare), switch to Register
+                    // Server has no user -> Register Mode
                     const regResp = await fetch(`${API_BASE}/auth/register-options`, { headers: HEADERS });
-                    if(regResp.ok) {
-                        authOptions = await regResp.json();
-                        setMode('REGISTER');
-                    }
+                    authOptions = await regResp.json();
+                    setMode('REGISTER');
+                } else {
+                    throw new Error("API Error");
                 }
             } catch(e) { 
-                // Silent Retry
-                setTimeout(preheat, 3000);
+                console.log(e);
+                hud.innerText = "SERVER ASLEEP"; 
+                hud.className = "hud-status text-red-500";
+                totem.classList.add('offline');
+                dot.className = "status-dot";
+                wakeBtn.classList.remove('hidden');
+                setTimeout(preheat, 4000); // Retry loop
             }
         }
         
@@ -132,18 +98,22 @@
             hud.innerText = mode === 'LOGIN' ? "CAST TOTEM" : "IMPRINT IDENTITY";
             hud.className = mode === 'LOGIN' ? "hud-status text-green-500" : "hud-status text-blue-400";
             
-            totem.classList.remove('offline');
-            // Visual diff for register vs login
-            totem.style.background = mode === 'LOGIN' 
-                ? "radial-gradient(circle at 30% 30%, #aaffaa, #00ff41)" 
-                : "radial-gradient(circle at 30% 30%, #aaccff, #0088ff)";
+            totem.classList.remove('offline', 'imprint');
+            if (mode === 'REGISTER') totem.classList.add('imprint');
             
-            dot.classList.add('online');
+            dot.className = "status-dot online";
+            wakeBtn.classList.add('hidden');
+            if (mode === 'LOGIN') resetBtn.classList.remove('hidden');
+        }
+
+        function forceWake() {
+            hud.innerText = "WAKING...";
+            preheat();
         }
 
         setTimeout(preheat, 100); 
 
-        // --- 2. PHYSICS ENGINE ---
+        // --- 2. INTERACTION ---
         totem.addEventListener('touchstart', grab, { passive: false });
         document.addEventListener('touchmove', move, { passive: false });
         document.addEventListener('touchend', release, { passive: false });
@@ -154,11 +124,10 @@
         function grab(e) {
             if(totem.classList.contains('offline')) return;
             isDragging = true;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            startY = clientY; lastY = startY; lastTime = Date.now();
+            startY = e.touches ? e.touches[0].clientY : e.clientY;
+            lastY = startY; lastTime = Date.now();
             totem.classList.remove('falling', 'launching');
             totem.style.transition = 'none'; 
-            pathData = [];
             totem.style.transform = 'translateX(-50%) scale(1.1)';
         }
 
@@ -170,21 +139,9 @@
             let deltaY = startY - clientY; 
             const dt = now - lastTime;
             if (dt > 0) velocityY = (lastY - clientY) / dt;
-            
-            pathData.push({ y: deltaY, v: velocityY, t: now });
             lastY = clientY; lastTime = now;
-
             if (deltaY < 0) deltaY = deltaY * 0.2; 
             totem.style.bottom = `${130 + deltaY}px`; 
-            
-            // Glow Effect
-            if (deltaY > 150) {
-                totem.style.backgroundColor = "#fff";
-                totem.style.color = "#000";
-            } else {
-                totem.style.background = ""; // Revert to CSS gradient
-                totem.style.color = "#002200";
-            }
         }
 
         function release(e) {
@@ -193,8 +150,7 @@
             const currentBottom = parseFloat(totem.style.bottom);
             totem.style.transform = 'translateX(-50%) scale(1)';
             
-            // LAUNCH THRESHOLD
-            if (currentBottom > 330 || (velocityY > 1.2 && currentBottom > 200)) {
+            if (currentBottom > 330 || velocityY > 1.5) {
                 launch();
             } else {
                 totem.classList.add('falling');
@@ -207,24 +163,18 @@
 
         // --- 3. EXECUTION ---
         async function launch() {
-            hud.innerText = mode === 'LOGIN' ? "OPENING GATE..." : "SECURING DNA...";
+            hud.innerText = mode === 'LOGIN' ? "VERIFYING..." : "SECURING...";
             totem.classList.add('launching');
             
             try {
-                // Determine Action
                 let result;
                 if (mode === 'LOGIN') {
-                    const asseResp = await startAuthentication({ publicKey: authOptions });
-                    
-                    const avgVel = pathData.reduce((a,b)=>a+b.v,0)/pathData.length;
-                    const payload = { ...asseResp, kinetic_data: { velocity: avgVel, distance: pathData.length } };
-
+                    const asseResp = await startAuthentication(authOptions);
                     const verifyResp = await fetch(`${API_BASE}/auth/login-verify`, {
-                        method: 'POST', headers: HEADERS, body: JSON.stringify(payload)
+                        method: 'POST', headers: HEADERS, body: JSON.stringify(asseResp)
                     });
                     result = await verifyResp.json();
                 } else {
-                    // REGISTER
                     const attResp = await startRegistration(authOptions);
                     const verifyResp = await fetch(`${API_BASE}/auth/register-verify`, {
                         method: 'POST', headers: HEADERS, body: JSON.stringify(attResp)
@@ -234,13 +184,15 @@
 
                 if (result.verified) {
                     hud.innerText = "CONFIRMED";
-                    if(result.token) sessionStorage.setItem('chaos_session', result.token);
-                    
-                    if(mode === 'REGISTER') {
-                         alert("IDENTITY SECURED. REFRESHING.");
-                         location.reload();
+                    if (result.env_ID) {
+                        // Registration Success -> Show DNA
+                        const dnaText = `ADMIN_CRED_ID=${result.env_ID}\n\nADMIN_PUB_KEY=${result.env_KEY}`;
+                        document.getElementById('dna-zone').classList.remove('hidden');
+                        document.getElementById('dna-text').value = dnaText;
                     } else {
-                         setTimeout(() => location.href = '/dashboard.html', 1000);
+                        // Login Success -> Dashboard
+                        if(result.token) sessionStorage.setItem('chaos_session', result.token);
+                        setTimeout(() => location.href = '/dashboard.html', 1000);
                     }
                 } else {
                     throw new Error(result.error || "Rejected");
@@ -252,10 +204,18 @@
                 setTimeout(() => {
                     totem.classList.remove('launching');
                     totem.classList.add('falling');
-                    setMode(mode); // Reset colors
+                    setMode(mode); 
                 }, 2000);
             }
+        }
+
+        async function hardReset() {
+            if(!confirm("WIPE SERVER MEMORY?")) return;
+            await fetch(`${API_BASE}/auth/reset`, { method: 'POST' });
+            location.reload();
         }
     </script>
 </body>
 </html>
+
+
