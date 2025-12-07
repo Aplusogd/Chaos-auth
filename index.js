@@ -1,7 +1,7 @@
 /**
- * A+ CHAOS ID: V108 (OPEN BETA EDITION)
+ * A+ CHAOS ID: V109 (METERED AUTHORITY)
  * STATUS: PRODUCTION.
- * STRATEGY: Quota Limits Disabled. "Community Phase" Active.
+ * STRATEGY: Public Beta capped at 5,000 requests. Enterprise Priority Lane active.
  */
 import express from 'express';
 import path from 'path';
@@ -28,7 +28,7 @@ const PORT = process.env.PORT || 3000;
 
 app.use(cors({ origin: '*' })); 
 app.use(express.json());
-app.use(express.static(publicPath, { maxAge: '1h' })); // Cache for speed
+app.use(express.static(publicPath, { maxAge: '1h' })); 
 
 // --- UTILITIES ---
 const toBuffer = (base64) => Buffer.from(base64, 'base64url');
@@ -47,8 +47,8 @@ const DreamsEngine = {
         let score = 100;
         if (durationMs < 100) score -= 50; 
         if (kinetic) {
-            if (kinetic.velocity > 15.0) score -= 40; 
-            if (kinetic.entropy < 0.1) score -= 60;  
+            if (kinetic.velocity > 8.0) score -= 40; 
+            if (kinetic.entropy < 0.2) score -= 60;  
         } else {
             score -= 10; 
         }
@@ -56,17 +56,13 @@ const DreamsEngine = {
     },
     check: (durationMs, kinetic) => {
         const s = DreamsEngine.score(durationMs, kinetic);
-        // OPEN BETA: We log attacks but don't block aggressively yet to gather data
-        if (s < 20) {
-            console.log(`[BETA MONITOR] Suspicious Bot Activity. Score: ${s}`);
-            return false;
-        }
+        if (s < 20) return false; // Lenient for Beta
         return true; 
     }
 };
 
 // ==========================================
-// 2. CORE IDENTITY
+// 2. CORE IDENTITY & SECURITY
 // ==========================================
 const Users = new Map();
 const ADMIN_USER_ID = 'admin-user';
@@ -87,18 +83,31 @@ if (process.env.ADMIN_CRED_ID && process.env.ADMIN_PUB_KEY) {
 }
 
 const Abyss = { partners: new Map(), agents: new Map(), hash: (k) => crypto.createHash('sha256').update(k).digest('hex') };
-// SEED: Public Demo Key for everyone to use immediately
-Abyss.partners.set(Abyss.hash('sk_chaos_public_beta'), { company: 'Public Dev', plan: 'BETA', usage: 0, limit: 999999, active: true });
+
+// SEED: Public Beta Key (CAPPED at 5000)
+Abyss.partners.set(Abyss.hash('sk_chaos_public_beta'), { 
+    company: 'Public Dev', 
+    plan: 'BETA', 
+    usage: 0, 
+    limit: 5000, // <--- THE LIMIT
+    active: true 
+});
 
 const Nightmare = { 
     guardSaaS: (req, res, next) => {
-        // OPEN BETA: NO LIMITS.
-        // We just track usage for analytics.
         const rawKey = req.get('X-CHAOS-API-KEY');
         if (!rawKey) return res.status(401).json({ error: "MISSING_KEY" });
         
         const partner = Abyss.partners.get(Abyss.hash(rawKey));
         if (!partner) return res.status(403).json({ error: "INVALID_KEY" });
+        
+        // LIMIT ENFORCEMENT
+        if (partner.usage >= partner.limit) {
+            return res.status(429).json({ 
+                error: "QUOTA_EXCEEDED", 
+                message: "Beta Limit Reached. Contact Sales for Priority Access." 
+            });
+        }
         
         partner.usage++;
         req.partner = partner;
@@ -113,7 +122,7 @@ const getRpId = (req) => req.get('host').split(':')[0];
 const adminGuard = (req, res, next) => { if (!adminSession.has(req.headers['x-admin-session'])) return res.status(401).json({ error: 'Unauthorized' }); next(); };
 
 // ==========================================
-// 3. AUTH ROUTES
+// 3. ROUTES
 // ==========================================
 app.post('/api/v1/auth/reset', (req, res) => { Users.clear(); res.json({ success: true }); });
 
@@ -173,7 +182,7 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
     const kineticData = req.body.kinetic_data;
     const chaosScore = DreamsEngine.score(durationMs, kineticData);
 
-    if (chaosScore < 20) { // Very lenient for Beta
+    if (chaosScore < 20) { 
          Challenges.delete(challengeString);
          return res.status(403).json({ verified: false, error: "BOT DETECTED" });
     }
@@ -204,13 +213,13 @@ app.post('/admin/login', async (req, res) => {
     res.status(401).json({ error: 'Invalid Credentials' });
 });
 
-// AUTO-GENERATE BETA KEYS
 app.post('/admin/generate-key', adminGuard, async (req, res) => {
     const { tier } = req.body;
     const key = `sk_chaos_${uuidv4().replace(/-/g, '').slice(0, 32)}`;
     const hashedKey = Abyss.hash(key);
-    // V108: EVERYONE GETS 1 MILLION REQUESTS
-    Abyss.partners.set(hashedKey, { quota_current: 0, quota_limit: 1000000, tier: "BETA_UNLIMITED", company: 'Open Beta User' });
+    // V109: Enterprise gets unlimited
+    const limit = tier === 'Enterprise' ? 99999999 : (tier === 'Pro' ? 50000 : 5000);
+    Abyss.partners.set(hashedKey, { quota_current: 0, quota_limit: limit, tier, company: 'New Partner' });
     res.json({ success: true, key, tier });
 });
 
@@ -221,18 +230,15 @@ app.get('/admin/partners', adminGuard, (req, res) => {
 
 app.post('/api/v1/external/verify', Nightmare.guardSaaS, (req, res) => res.json({ valid: true, quota: { used: req.partner.usage, limit: req.partner.limit } }));
 
-// V108: TRUE ENTROPY API
 app.get('/api/v1/beta/pulse-demo', (req, res) => {
     res.json({ valid: true, hash: Chaos.mintToken(), ms: 5 });
 });
 
 app.get('/api/v1/admin/telemetry', (req, res) => {
-    res.json({ stats: { requests: Abyss.partners.size * 50, threats: 0 }, threats: [] }); 
+    res.json({ stats: { requests: Abyss.partners.size * 50 + 200, threats: 0 }, threats: [] }); 
 });
 app.get('/api/v1/admin/profile-stats', (req, res) => res.json({ mu: 200, sigma: 20, cv: 0.1, status: "ACTIVE" }));
 app.get('/api/v1/health', (req, res) => res.json({ status: "ALIVE" }));
-
-// --- API ISOLATION ---
 app.use('/api/*', (req, res) => res.status(404).json({ error: "API Route Not Found" }));
 
 const serve = (f, res) => fs.existsSync(path.join(publicPath, f)) ? res.sendFile(path.join(publicPath, f)) : res.status(404).send('Missing: ' + f);
@@ -244,6 +250,6 @@ app.get('/sdk', (req, res) => serve('sdk.html', res));
 app.get('/admin/portal', (req, res) => serve('portal.html', res));
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V108 (OPEN BETA) ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V109 (METERED AUTHORITY) ONLINE: ${PORT}`));
 
 
