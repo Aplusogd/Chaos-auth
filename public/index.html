@@ -4,288 +4,71 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CHAOS ID — AI-Native Identity Provider</title>
-    <meta name="description" content="The world's first Quantum-Resistant, Behavior-Aware Identity Platform.">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* CORE STYLES */
         @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono:wght@400;700&display=swap');
-        body { 
-            background-color: #000; 
-            color: #E5E7EB; 
-            font-family: 'Share Tech Mono', monospace; 
-            overflow-x: hidden; 
-        }
-        
-        /* NEON EFFECTS */
-        .neon-text { text-shadow: 0 0 5px #00ff41, 0 0 10px #00ff41; }
-        .neon-border { border: 1px solid rgba(0, 255, 65, 0.3); box-shadow: 0 0 15px rgba(0, 255, 65, 0.1); }
-        .terminal-bg { background: rgba(0, 15, 0, 0.95); }
-
-        /* ASCII MATRIX RAIN */
-        #matrix-canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            opacity: 0.15;
-        }
-
-        /* SCROLLING MARQUEE */
-        .marquee-container {
-            width: 100%;
-            overflow: hidden;
-            white-space: nowrap;
-            position: relative;
-        }
-        .animate-marquee {
-            animation: marquee 30s linear infinite;
-            display: inline-block;
-        }
-        @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-
-        /* SECTOR CARDS */
-        .sector-card {
-            background: rgba(10, 20, 10, 0.6);
-            border: 1px solid #113311;
-            transition: all 0.3s ease;
-            position: relative;
-            overflow: hidden;
-        }
-        .sector-card:hover {
-            border-color: #00ff41;
-            transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0, 255, 65, 0.1);
-        }
-        .icon-bg {
-            position: absolute;
-            top: -10px;
-            right: -10px;
-            font-size: 5rem;
-            opacity: 0.05;
-            color: white;
-            transform: rotate(15deg);
-        }
+        body { background-color: #000; color: #E5E7EB; font-family: 'Share Tech Mono', monospace; }
+        .neon-text { text-shadow: 0 0 10px #00ff41; }
+        .neon-border { border: 1px solid rgba(0, 255, 65, 0.5); box-shadow: 0 0 15px rgba(0, 255, 65, 0.2); }
+        .blink { animation: blink 1s step-end infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
-    <canvas id="matrix-canvas"></canvas>
 
-    <!-- HEADER -->
-    <nav class="p-4 md:p-6 flex justify-between items-center max-w-7xl mx-auto w-full relative z-10 border-b border-green-900/30 bg-black/40 backdrop-blur">
-        <div class="text-2xl font-bold text-green-500 neon-text tracking-widest">CHAOS<span class="text-white">ID</span></div>
-        <div class="flex items-center gap-6 text-xs md:text-sm">
-            <div class="hidden md:block text-gray-500">p99 Latency: <span class="text-yellow-400 font-bold">1.8ms</span></div>
-            <div class="text-green-500 border border-green-900 px-2 py-1 rounded bg-green-900/20">SYSTEM ONLINE</div>
+    <nav class="p-6 flex justify-between items-center max-w-7xl mx-auto w-full border-b border-green-900/30">
+        <div class="text-2xl font-bold text-green-500 neon-text">CHAOS<span class="text-white">ID</span></div>
+        <div class="flex items-center gap-4">
+            <span class="bg-yellow-500/20 text-yellow-500 px-3 py-1 text-xs rounded border border-yellow-500/50 blink">OPEN BETA LIVE</span>
+            <a href="/sdk" class="text-sm hover:text-white">DOCS</a>
         </div>
     </nav>
 
-    <!-- HERO SECTION -->
-    <header class="text-center py-20 px-4 relative z-10">
-        <div class="inline-block mb-4 text-[10px] md:text-xs border border-green-500 text-green-500 px-3 py-1 rounded-full bg-green-900/10">
-            V95 GOLD MASTER DEPLOYED
-        </div>
-        <h1 class="text-4xl md:text-7xl font-extrabold text-white mb-6 tracking-tight leading-tight">
-            THE AGE OF PASSKEYS<br><span class="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500 neon-text">IS OVER.</span>
+    <header class="text-center py-24 px-4">
+        <h1 class="text-5xl md:text-7xl font-extrabold text-white mb-6">
+            IDENTITY FOR THE<br><span class="text-green-500 neon-text">POST-PASSWORD ERA</span>
         </h1>
-        <p class="text-lg md:text-xl text-gray-400 mb-10 max-w-2xl mx-auto">
-            Unbreakable, AI-Native Identity. Secured by <strong class="text-white">Multi-Factor Biometric Fusion</strong> and <strong class="text-white">DREAMS V3 Cognitive Entropy</strong>.
+        <p class="text-xl text-gray-400 mb-10 max-w-2xl mx-auto">
+            Quantum-Resistant. Behavior-Aware. <span class="text-white font-bold">Free during Public Beta.</span>
         </p>
 
-        <!-- CTA BUTTONS -->
-        <div class="flex flex-col md:flex-row justify-center gap-4">
-            <a href="/app" class="px-8 py-4 bg-green-600 text-black font-bold rounded shadow-[0_0_20px_rgba(0,255,65,0.4)] hover:bg-green-500 transition-all uppercase tracking-widest">
-                <i class="fas fa-fingerprint mr-2"></i> SECURE LOGIN
+        <div class="flex flex-col md:flex-row justify-center gap-6">
+            <a href="/app" class="px-8 py-4 bg-green-600 text-black font-bold rounded shadow-[0_0_30px_rgba(0,255,65,0.4)] hover:bg-green-500 transition uppercase">
+                TEST LIVE DEMO
             </a>
-            <a href="/sdk" class="px-8 py-4 bg-black text-green-400 border border-green-600 font-bold rounded hover:bg-green-900/20 transition-all uppercase tracking-widest">
-                <i class="fas fa-code mr-2"></i> PARTNER SDK
+            <a href="/sdk" class="px-8 py-4 border border-green-600 text-green-400 font-bold rounded hover:bg-green-900/20 transition uppercase">
+                GET FREE SDK
             </a>
         </div>
     </header>
 
-    <!-- TRUST BADGE CAROUSEL -->
-    <div class="py-8 bg-black/80 border-y border-gray-900 relative z-10">
-        <p class="text-center text-gray-600 text-xs mb-6 tracking-[0.3em]">POWERING THE NEXT GENERATION OF AI</p>
-        <div class="marquee-container opacity-50 grayscale hover:grayscale-0 transition duration-500">
-          <div class="animate-marquee flex gap-16 items-center">
-            <span class="text-xl font-bold">OPENAI</span>
-            <span class="text-xl font-bold">ANTHROPIC</span>
-            <span class="text-xl font-bold">SCALE AI</span>
-            <span class="text-xl font-bold">ANDURIL</span>
-            <span class="text-xl font-bold">PALANTIR</span>
-            <span class="text-xl font-bold">SPACEX</span>
-            <span class="text-xl font-bold">OPENAI</span>
-            <span class="text-xl font-bold">ANTHROPIC</span>
-            <span class="text-xl font-bold">SCALE AI</span>
-            <span class="text-xl font-bold">ANDURIL</span>
-            <span class="text-xl font-bold">PALANTIR</span>
-            <span class="text-xl font-bold">SPACEX</span>
-          </div>
-        </div>
-    </div>
-
-    <!-- THE PROTOCOL FLOW -->
-    <section class="py-16 max-w-7xl mx-auto px-4 relative z-10">
-        <div class="text-center mb-12">
-            <h2 class="text-2xl font-bold text-white">THE CHAOS PROTOCOL</h2>
-        </div>
-        
-        <div class="grid md:grid-cols-4 gap-4 text-center">
-            <div class="p-4 border border-gray-800 rounded bg-gray-900/30">
-                <div class="text-3xl text-blue-400 mb-2">1</div>
-                <h4 class="font-bold text-white text-sm">KINETIC INPUT</h4>
-                <p class="text-[10px] text-gray-500 mt-1">User swipes Totem. Physics data captured.</p>
+    <section class="py-16 max-w-5xl mx-auto px-4 text-center">
+        <h2 class="text-2xl font-bold text-white mb-8">WHY WE ARE OPEN SOURCING ACCESS</h2>
+        <div class="grid md:grid-cols-3 gap-8">
+            <div class="p-6 border border-gray-800 rounded bg-gray-900/20">
+                <i class="fas fa-bug text-3xl text-yellow-500 mb-4"></i>
+                <h3 class="text-lg font-bold text-white">Break It</h3>
+                <p class="text-sm text-gray-400 mt-2">We want you to try and hack us. If you find a flaw, tell us. We reward curiosity.</p>
             </div>
-            <div class="hidden md:flex items-center justify-center text-gray-700"><i class="fas fa-arrow-right"></i></div>
-            
-            <div class="p-4 border border-gray-800 rounded bg-gray-900/30">
-                <div class="text-3xl text-green-400 mb-2">2</div>
-                <h4 class="font-bold text-white text-sm">DREAMS ENGINE</h4>
-                <p class="text-[10px] text-gray-500 mt-1">Calculates μ, σ, and ρ1. Rejects bots.</p>
+            <div class="p-6 border border-gray-800 rounded bg-gray-900/20">
+                <i class="fas fa-code-branch text-3xl text-blue-500 mb-4"></i>
+                <h3 class="text-lg font-bold text-white">Build It</h3>
+                <p class="text-sm text-gray-400 mt-2">Integrate CHAOS ID into your app for free. Keep the key forever.</p>
             </div>
-            <div class="hidden md:flex items-center justify-center text-gray-700"><i class="fas fa-arrow-right"></i></div>
-
-            <div class="p-4 border border-gray-800 rounded bg-gray-900/30">
-                <div class="text-3xl text-purple-400 mb-2">3</div>
-                <h4 class="font-bold text-white text-sm">ABYSS LEDGER</h4>
-                <p class="text-[10px] text-gray-500 mt-1">ZKP Proof generated. Quota debited.</p>
-            </div>
-            <div class="hidden md:flex items-center justify-center text-gray-700"><i class="fas fa-arrow-right"></i></div>
-
-            <div class="p-4 border border-green-800 rounded bg-green-900/20 shadow-[0_0_15px_rgba(0,255,65,0.2)]">
-                <div class="text-3xl text-white mb-2">4</div>
-                <h4 class="font-bold text-white text-sm">ACCESS GRANTED</h4>
-                <p class="text-[10px] text-green-400 mt-1">Session Token Minted.</p>
+            <div class="p-6 border border-gray-800 rounded bg-gray-900/20">
+                <i class="fas fa-comments text-3xl text-green-500 mb-4"></i>
+                <h3 class="text-lg font-bold text-white">Shape It</h3>
+                <p class="text-sm text-gray-400 mt-2">Tell us what features you need. We are building the standard together.</p>
             </div>
         </div>
     </section>
 
-    <!-- STRATEGIC SECTORS -->
-    <section class="py-16 max-w-7xl mx-auto px-4 relative z-10 border-t border-gray-900">
-        <div class="text-center mb-12">
-            <h2 class="text-2xl font-bold text-white mb-4">DEPLOYING CHAOS INTO THE WILD</h2>
-            <p class="text-gray-500 text-sm">Universal solutions for critical industries.</p>
-        </div>
-        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- SECTOR 1 -->
-            <div class="sector-card p-6 rounded-xl">
-                <i class="fas fa-book icon-bg"></i>
-                <div class="text-xs text-blue-400 font-bold mb-2 uppercase tracking-widest">Digital Archives</div>
-                <h3 class="text-lg font-bold text-white mb-3">Global Knowledge Platforms</h3>
-                <div class="bg-green-900/20 border-l-2 border-green-500 p-2 text-[10px] text-gray-300">
-                    <strong class="text-green-400 block">FIX: DREAMS V4</strong>
-                    Validates "Human Attention" via cognitive micro-tremors. Bots blocked.
-                </div>
-            </div>
-            <!-- SECTOR 2 -->
-            <div class="sector-card p-6 rounded-xl">
-                <i class="fas fa-truck-fast icon-bg"></i>
-                <div class="text-xs text-yellow-400 font-bold mb-2 uppercase tracking-widest">On-Demand Economy</div>
-                <h3 class="text-lg font-bold text-white mb-3">Rideshare & Logistics</h3>
-                <div class="bg-green-900/20 border-l-2 border-green-500 p-2 text-[10px] text-gray-300">
-                    <strong class="text-green-400 block">FIX: MBF FUSION</strong>
-                    Requires specific hardware + biometrics. Identity cannot be rented.
-                </div>
-            </div>
-            <!-- SECTOR 3 -->
-            <div class="sector-card p-6 rounded-xl">
-                <i class="fas fa-shield-halved icon-bg"></i>
-                <div class="text-xs text-orange-400 font-bold mb-2 uppercase tracking-widest">Gov & Defense</div>
-                <h3 class="text-lg font-bold text-white mb-3">National Security</h3>
-                <div class="bg-green-900/20 border-l-2 border-green-500 p-2 text-[10px] text-gray-300">
-                    <strong class="text-green-400 block">FIX: PQC HYBRID</strong>
-                    ML-KEM encryption protects data against future quantum cracking.
-                </div>
-            </div>
-             <!-- SECTOR 4 -->
-            <div class="sector-card p-6 rounded-xl">
-                <i class="fas fa-gamepad icon-bg"></i>
-                <div class="text-xs text-cyan-400 font-bold mb-2 uppercase tracking-widest">Gaming</div>
-                <h3 class="text-lg font-bold text-white mb-3">Anti-Cheat</h3>
-                <div class="bg-green-900/20 border-l-2 border-green-500 p-2 text-[10px] text-gray-300">
-                    <strong class="text-green-400 block">FIX: KINETIC TOTEM</strong>
-                    Scripts cannot replicate human "Jerk" physics during login.
-                </div>
-            </div>
-             <!-- SECTOR 5 -->
-            <div class="sector-card p-6 rounded-xl">
-                <i class="fas fa-university icon-bg"></i>
-                <div class="text-xs text-purple-400 font-bold mb-2 uppercase tracking-widest">FinTech</div>
-                <h3 class="text-lg font-bold text-white mb-3">Banking</h3>
-                <div class="bg-green-900/20 border-l-2 border-green-500 p-2 text-[10px] text-gray-300">
-                    <strong class="text-green-400 block">FIX: CHAOS PULSE</strong>
-                    Rolling keys change every 60s. Phishing is impossible.
-                </div>
-            </div>
-             <!-- SECTOR 6 -->
-            <div class="sector-card p-6 rounded-xl">
-                <i class="fas fa-heartbeat icon-bg"></i>
-                <div class="text-xs text-red-400 font-bold mb-2 uppercase tracking-widest">Healthcare</div>
-                <h3 class="text-lg font-bold text-white mb-3">Privacy</h3>
-                <div class="bg-green-900/20 border-l-2 border-green-500 p-2 text-[10px] text-gray-300">
-                    <strong class="text-green-400 block">FIX: ZKP AUDITS</strong>
-                    Zero-Knowledge Proofs guarantee compliance without exposing patient data.
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- FOOTER -->
-    <footer class="py-12 border-t border-gray-800 mt-auto bg-black relative z-10">
-        <div class="max-w-6xl mx-auto px-4 grid md:grid-cols-4 gap-8 text-xs text-gray-500">
-            <div>
-                <h4 class="text-white font-bold mb-4 text-sm">CHAOS ID</h4>
-                <p>The final boss of identity infrastructure.</p>
-            </div>
-            <div>
-                <h4 class="text-white font-bold mb-4 text-sm">PRODUCT</h4>
-                <ul class="space-y-2">
-                    <li><a href="/sdk" class="hover:text-green-400">Integration SDK</a></li>
-                    <li><a href="#" class="hover:text-green-400">DREAMS V4 Engine</a></li>
-                    <li><a href="/admin/portal" class="hover:text-green-400">Key Portal</a></li>
-                </ul>
-            </div>
-            <div>
-                <h4 class="text-white font-bold mb-4 text-sm">LEGAL</h4>
-                <ul class="space-y-2">
-                    <li><a href="#" class="hover:text-white">Privacy (ZKP)</a></li>
-                    <li><a href="#" class="hover:text-white">Terms of Chaos</a></li>
-                    <li><a href="#" class="hover:text-white">SLA</a></li>
-                </ul>
-            </div>
-            <div>
-                <p class="mt-4">© 2026 A+ Overhead Garage Doors.</p>
-            </div>
-        </div>
+    <footer class="py-12 border-t border-gray-800 mt-auto text-center text-gray-600 text-xs">
+        <p>© 2026 A+ Overhead Garage Doors / CHAOS ID Core.</p>
     </footer>
 
-    <!-- JAVASCRIPT: MATRIX RAIN -->
-    <script>
-        const canvas = document.getElementById('matrix-canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        const chars = "01";
-        const fontSize = 14;
-        const columns = canvas.width / fontSize;
-        const drops = Array(Math.floor(columns)).fill(1);
-
-        function drawMatrix() {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#0F0';
-            ctx.font = fontSize + 'px monospace';
-            for (let i = 0; i < drops.length; i++) {
-                const text = chars[Math.floor(Math.random() * chars.length)];
-                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
-                drops[i]++;
-            }
-        }
-        setInterval(drawMatrix, 50);
-        window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
-    </script>
 </body>
 </html>
+
+
