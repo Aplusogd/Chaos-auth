@@ -1,6 +1,6 @@
 /**
- * A+ CHAOS ID: V74 (SANITIZED AUTHENTICATOR)
- * STATUS: Strict typing for verifyAuthenticationResponse to fix .replace crash.
+ * A+ CHAOS ID: V75 (STRING ID FIX)
+ * STATUS: Fixed Credential ID type to prevent 'replace' error.
  */
 import express from 'express';
 import path from 'path';
@@ -28,7 +28,6 @@ app.use(express.json());
 app.use(express.static(publicPath));
 
 // --- UTILITY: CONVERT TO PURE UINT8ARRAY ---
-// WebAuthn library prefers Uint8Array over Node Buffer in some contexts
 const toUint8 = (input) => {
     if (input instanceof Uint8Array) return input;
     if (input instanceof Buffer) return new Uint8Array(input);
@@ -61,10 +60,9 @@ const ADMIN_PK_OBJ = {
 };
 
 const ADMIN_DNA = {
-    // Convert to Buffer initially
-    credentialID: Buffer.from(ADMIN_CRED_ID_STRING, 'base64url'),
-    credentialID_String: ADMIN_CRED_ID_STRING,
-    credentialPublicKey: Buffer.from(Object.values(ADMIN_PK_OBJ)),
+    // FIX: Store ID as String for library compatibility
+    credentialID: ADMIN_CRED_ID_STRING, 
+    credentialPublicKey: toUint8(Buffer.from(Object.values(ADMIN_PK_OBJ))),
     counter: 0,
     dreamProfile: { window: [], sum_T: 0, sum_T2: 0 }
 };
@@ -98,7 +96,7 @@ app.get('/api/v1/auth/login-options', async (req, res) => {
         const options = await generateAuthenticationOptions({
             rpID: getRpId(req),
             allowCredentials: [{
-                id: user.credentialID_String, // Pass String here for generation
+                id: user.credentialID, // String is accepted here
                 type: 'public-key'
             }], 
             userVerification: 'required',
@@ -114,16 +112,14 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
     const user = Users.get(userID);
     const clientResponse = req.body;
     
-    // DEBUG: Ensure payload is correct
-    console.log(">>> [VERIFY] Payload Keys:", Object.keys(clientResponse));
-    if (!clientResponse.response) return res.status(400).json({ error: "Malformed Body" });
+    // DEBUG LOGS
+    console.log(">>> [DEBUG] Verifying...");
 
     const challengeString = extractChallengeFromClientResponse(clientResponse);
     const expectedChallenge = Challenges.get(challengeString); 
 
     if (!user || !expectedChallenge) return res.status(400).json({ error: "Invalid State/Challenge" });
     
-    // DREAMS CHECK
     const durationMs = Number(process.hrtime.bigint() - expectedChallenge.startTime) / 1000000;
     if (!DreamsEngine.check(durationMs, user, clientResponse.kinetic_data)) {
          Challenges.delete(expectedChallenge.challenge);
@@ -131,12 +127,10 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
     }
     
     try {
-        // CLEAN AUTHENTICATOR OBJECT
-        // We create a new object to ensure no extra properties pollute the verify call
-        // and we enforce Uint8Array types.
-        const authenticatorClean = {
-            credentialID: toUint8(user.credentialID),
-            credentialPublicKey: toUint8(user.credentialPublicKey),
+        // FIX: Construct clean authenticator object
+        const authenticator = {
+            credentialID: user.credentialID, // String
+            credentialPublicKey: user.credentialPublicKey, // Uint8Array
             counter: Number(user.counter),
         };
 
@@ -145,7 +139,7 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
             expectedChallenge: expectedChallenge.challenge,
             expectedOrigin: getOrigin(req),
             expectedRPID: getRpId(req),
-            authenticator: authenticatorClean, // Use sanitized object
+            authenticator: authenticator, 
             requireUserVerification: true,
         });
 
@@ -154,9 +148,12 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
             Users.set(userID, user); 
             Challenges.delete(expectedChallenge.challenge);
             res.json({ verified: true, token: Chaos.mintToken() });
-        } else { res.status(400).json({ verified: false }); }
+        } else { 
+            console.log(">>> [FAIL] Verify returned false");
+            res.status(400).json({ verified: false }); 
+        }
     } catch (error) { 
-        console.error(">>> [VERIFY ERROR]", error);
+        console.error(">>> [ERROR] Library Crash:", error);
         res.status(400).json({ error: error.message }); 
     } finally {
         if(expectedChallenge) Challenges.delete(expectedChallenge.challenge);
@@ -166,7 +163,7 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
 // ROUTING
 app.post('/api/v1/external/verify', Nightmare.guardSaaS, (req, res) => res.json({ valid: true }));
 app.get('/api/v1/admin/telemetry', (req, res) => res.json({ stats: { requests: 0 }, threats: [] }));
-// PING (For Debugging)
+// PING
 app.get('/ping', (req, res) => res.send("PONG"));
 
 const serve = (f, res) => fs.existsSync(path.join(publicPath, f)) ? res.sendFile(path.join(publicPath, f)) : res.status(404).send('Missing: ' + f);
@@ -175,5 +172,6 @@ app.get('/app', (req, res) => serve('app.html', res));
 app.get('/dashboard', (req, res) => serve('dashboard.html', res));
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V74 (SANITIZED) ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V75 (STRING ID FIX) ONLINE: ${PORT}`));
+
 
