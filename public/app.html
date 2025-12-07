@@ -1,120 +1,205 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>A+ CHAOS | IMMORTAL GATE</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/@simplewebauthn/browser@10.0.0/dist/bundle/index.umd.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
-        body { background-color: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; touch-action: none; overflow: hidden; user-select: none; }
-        .hud-status { font-size: 1.5rem; font-weight: 800; text-align: center; margin-top: 10vh; text-shadow: 0 0 10px #00ff41; }
-        .totem { width: 90px; height: 90px; background: #00ff41; border-radius: 50%; position: absolute; bottom: 130px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; font-size: 36px; color: #002200; box-shadow: 0 0 25px #00ff41; cursor: pointer; }
-        .totem:active { transform: translateX(-50%) scale(1.1); }
-        .reset-btn { position: absolute; top: 20px; right: 20px; font-size: 10px; color: #555; border: 1px solid #333; padding: 5px; z-index: 100; cursor: pointer; }
-    </style>
-</head>
-<body class="h-screen w-screen">
+/**
+ * A+ CHAOS ID: V83 (HONEST SIGNAL)
+ * STATUS: Fixes "NO USER IN MEMORY" loop by correctly reporting 404 when empty.
+ */
+import express from 'express';
+import path from 'path';
+import cors from 'cors';
+import fs from 'fs';
+import crypto from 'crypto';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';     
+import { 
+    generateRegistrationOptions, 
+    verifyRegistrationResponse, 
+    generateAuthenticationOptions, 
+    verifyAuthenticationResponse 
+} from '@simplewebauthn/server';
 
-    <div class="reset-btn" onclick="hardReset()">RESET SYSTEM</div>
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const publicPath = path.join(__dirname, 'public');
 
-    <div id="hud" class="hud-status text-yellow-500">CONNECTING...</div>
-    <div class="totem" id="totem"><i class="fas fa-fingerprint"></i></div>
-    
-    <div id="dna-zone" class="hidden fixed top-0 left-0 w-full h-full bg-black/90 p-4 z-50 flex flex-col justify-center">
-        <p class="text-white text-xs mb-2">UPDATE YOUR RENDER ENV VARS:</p>
-        <textarea id="dna-text" class="w-full h-40 bg-gray-900 text-green-400 text-xs p-2 rounded font-mono mb-4"></textarea>
-        <p class="text-gray-500 text-[10px] mb-4">1. Copy this.<br>2. Go to Render > Environment.<br>3. Update ADMIN_CRED_ID and ADMIN_PUB_KEY.<br>4. Save.</p>
-        <button onclick="location.reload()" class="w-full py-3 bg-green-600 text-black font-bold rounded">I HAVE UPDATED THEM</button>
-    </div>
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-    <script>
-        const { startRegistration, startAuthentication } = SimpleWebAuthnBrowser;
-        const API_BASE = '/api/v1';
-        const HEADERS = { 'Content-Type': 'application/json' };
+app.use(cors({ origin: '*' })); 
+app.use(express.json());
+app.use(express.static(publicPath));
+
+// --- UTILITIES ---
+const toBuffer = (base64) => Buffer.from(base64, 'base64url');
+const toBase64 = (buffer) => Buffer.from(buffer).toString('base64url');
+
+const DreamsEngine = {
+    start: () => process.hrtime.bigint(),
+    check: () => true, 
+    update: () => {}
+};
+
+// ==========================================
+// 1. IDENTITY CORE
+// ==========================================
+const Users = new Map();
+const ADMIN_USER_ID = 'admin-user';
+
+// LOAD ENV VARS (But allow Reset)
+if (process.env.ADMIN_CRED_ID && process.env.ADMIN_PUB_KEY) {
+    try {
+        const dna = {
+            credentialID: process.env.ADMIN_CRED_ID,
+            credentialPublicKey: new Uint8Array(toBuffer(process.env.ADMIN_PUB_KEY)),
+            counter: 0,
+            dreamProfile: { window: [], sum_T: 0, sum_T2: 0 }
+        };
+        Users.set(ADMIN_USER_ID, dna);
+        console.log(">>> [SYSTEM] RESTORED FROM ENV.");
+    } catch (e) { console.error("!!! [ERROR] BAD ENV DATA:", e); }
+} else {
+    console.log(">>> [SYSTEM] MEMORY EMPTY. WAITING FOR IMPRINT.");
+}
+
+const Abyss = { partners: new Map(), hash: (k) => crypto.createHash('sha256').update(k).digest('hex') };
+Abyss.partners.set(Abyss.hash('sk_chaos_demo123'), { company: 'Demo', plan: 'free', usage: 0, limit: 50, active: true });
+const Nightmare = { guardSaaS: (req, res, next) => next() };
+const Chaos = { mintToken: () => crypto.randomBytes(16).toString('hex') };
+const Challenges = new Map();
+const getOrigin = (req) => `https://${req.headers['x-forwarded-host'] || req.get('host')}`;
+const getRpId = (req) => req.get('host').split(':')[0];
+
+// ==========================================
+// 2. AUTH ROUTES
+// ==========================================
+
+// KILL SWITCH
+app.post('/api/v1/auth/reset', (req, res) => {
+    Users.clear();
+    console.log(">>> [SYSTEM] MEMORY WIPED.");
+    res.json({ success: true });
+});
+
+// REGISTER
+app.get('/api/v1/auth/register-options', async (req, res) => {
+    try {
+        console.log(`[REG OPTION] RPID: ${getRpId(req)}`);
         
-        let mode = 'LOGIN';
+        const options = await generateRegistrationOptions({
+            rpName: 'A+ Chaos ID',
+            rpID: getRpId(req),
+            userID: new Uint8Array(Buffer.from(ADMIN_USER_ID)),
+            userName: 'admin@aplus.com',
+            attestationType: 'none',
+            authenticatorSelection: { 
+                residentKey: 'required',
+                userVerification: 'preferred',
+            },
+        });
+        Challenges.set(ADMIN_USER_ID, options.challenge);
+        res.json(options);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
 
-        async function preheat() {
-            try {
-                const resp = await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS });
-                if(resp.ok) {
-                    mode = 'LOGIN';
-                    document.getElementById('hud').innerText = "CAST TOTEM";
-                    document.getElementById('hud').className = "hud-status text-green-500";
-                    document.getElementById('totem').style.background = "#00ff41";
-                } else if (resp.status === 404) {
-                    mode = 'REGISTER';
-                    document.getElementById('hud').innerText = "IMPRINT IDENTITY";
-                    document.getElementById('hud').className = "hud-status text-blue-400";
-                    document.getElementById('totem').style.background = "#0088ff";
-                } else {
-                    document.getElementById('hud').innerText = "SERVER ERROR";
-                }
-            } catch(e) { 
-                document.getElementById('hud').innerText = "WAKING ABYSS...";
-                setTimeout(preheat, 2000); 
-            }
-        }
-        setTimeout(preheat, 100);
+app.post('/api/v1/auth/register-verify', async (req, res) => {
+    const clientResponse = req.body;
+    const expectedChallenge = Challenges.get(ADMIN_USER_ID);
+    
+    if (!expectedChallenge) return res.status(400).json({ error: "Expired" });
 
-        document.getElementById('totem').addEventListener('click', async () => {
-            if (mode === 'REGISTER') await doRegister();
-            else await doLogin();
+    try {
+        const verification = await verifyRegistrationResponse({
+            response: clientResponse,
+            expectedChallenge,
+            expectedOrigin: getOrigin(req),
+            expectedRPID: getRpId(req),
         });
 
-        async function hardReset() {
-            if(!confirm("Reset identity? This will wipe the server memory.")) return;
-            await fetch(`${API_BASE}/auth/reset`, { method: 'POST' });
-            location.reload();
-        }
+        if (verification.verified) {
+            const { credentialID, credentialPublicKey, counter } = verification.registrationInfo;
+            
+            const idString = toBase64(credentialID);
+            const keyString = toBase64(credentialPublicKey);
 
-        async function doRegister() {
-            document.getElementById('hud').innerText = "SCANNING...";
-            try {
-                const opts = await (await fetch(`${API_BASE}/auth/register-options`)).json();
-                const attResp = await startRegistration(opts);
-                const verifyResp = await fetch(`${API_BASE}/auth/register-verify`, {
-                    method: 'POST', headers: HEADERS, body: JSON.stringify(attResp)
-                });
-                const res = await verifyResp.json();
-                if (res.verified) {
-                    const dnaText = `ADMIN_CRED_ID=${res.env_ID}\n\nADMIN_PUB_KEY=${res.env_KEY}`;
-                    document.getElementById('dna-zone').classList.remove('hidden');
-                    document.getElementById('dna-text').value = dnaText;
-                }
-            } catch(e) { alert("Register Failed: " + e.message); }
-        }
+            const userData = { 
+                credentialID: idString, 
+                credentialPublicKey: credentialPublicKey, 
+                counter, 
+                dreamProfile: { window: [], sum_T: 0, sum_T2: 0 } 
+            };
+            Users.set(ADMIN_USER_ID, userData);
+            Challenges.delete(ADMIN_USER_ID);
+            
+            res.json({ verified: true, env_ID: idString, env_KEY: keyString });
+        } else { res.status(400).json({ verified: false }); }
+    } catch (e) { res.status(400).json({ error: e.message }); }
+});
 
-        async function doLogin() {
-            document.getElementById('hud').innerText = "VERIFYING...";
-            try {
-                const opts = await (await fetch(`${API_BASE}/auth/login-options`)).json();
-                // UNIVERSAL LOGIN CALL
-                const asseResp = await startAuthentication(opts); 
-                
-                const verifyResp = await fetch(`${API_BASE}/auth/login-verify`, {
-                    method: 'POST', headers: HEADERS, body: JSON.stringify(asseResp)
-                });
-                const res = await verifyResp.json();
-                if(res.verified) {
-                    document.getElementById('hud').innerText = "CONFIRMED";
-                    sessionStorage.setItem('chaos_session', result.token);
-                    setTimeout(() => location.href = '/dashboard.html', 1000);
-                } else throw new Error(res.error);
-            } catch(e) {
-                document.getElementById('hud').innerText = "DENIED";
-                console.error(e);
-                alert("Login Failed: " + e.message);
-                if(e.message.includes("No credentials")) {
-                    hardReset();
-                }
-            }
-        }
-    </script>
-</body>
-</html>
+// LOGIN
+app.get('/api/v1/auth/login-options', async (req, res) => {
+    const user = Users.get(ADMIN_USER_ID);
+    
+    // V83 FIX: STRICT 404 IF NO USER
+    if (!user) {
+        console.log(">>> [LOGIN] No user found. Sending 404 to force Register mode.");
+        return res.status(404).json({ error: "NO IDENTITY" });
+    }
+
+    try {
+        const options = await generateAuthenticationOptions({
+            rpID: getRpId(req),
+            allowCredentials: [], 
+            userVerification: 'preferred',
+        });
+        Challenges.set(options.challenge, { challenge: options.challenge, startTime: process.hrtime.bigint() });
+        res.json(options);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/v1/auth/login-verify', async (req, res) => {
+    const user = Users.get(ADMIN_USER_ID);
+    
+    // V83 FIX: EXTRA GUARD
+    if (!user) return res.status(404).json({ error: "NO USER IN MEMORY" });
+
+    let challengeString;
+    try {
+         const json = Buffer.from(req.body.response.clientDataJSON, 'base64url').toString('utf8');
+         challengeString = JSON.parse(json).challenge;
+    } catch(e) { return res.status(400).json({error: "Bad Payload"}); }
+    
+    const expectedChallenge = Challenges.get(challengeString); 
+    if (!expectedChallenge) return res.status(400).json({ error: "Invalid Challenge" });
+    
+    try {
+        const verification = await verifyAuthenticationResponse({
+            response: req.body,
+            expectedChallenge: expectedChallenge.challenge,
+            expectedOrigin: getOrigin(req),
+            expectedRPID: getRpId(req),
+            authenticator: {
+                credentialID: toBuffer(user.credentialID), 
+                credentialPublicKey: user.credentialPublicKey,
+                counter: user.counter,
+            },
+            requireUserVerification: false,
+        });
+
+        if (verification.verified) {
+            user.counter = verification.authenticationInfo.newCounter;
+            Users.set(ADMIN_USER_ID, user); 
+            Challenges.delete(expectedChallenge.challenge);
+            res.json({ verified: true, token: Chaos.mintToken() });
+        } else { res.status(400).json({ verified: false }); }
+    } catch (error) { res.status(400).json({ error: error.message }); } 
+});
+
+// ROUTING
+app.post('/api/v1/external/verify', Nightmare.guardSaaS, (req, res) => res.json({ valid: true }));
+const serve = (f, res) => fs.existsSync(path.join(publicPath, f)) ? res.sendFile(path.join(publicPath, f)) : res.status(404).send('Missing: ' + f);
+app.get('/', (req, res) => serve('index.html', res));
+app.get('/app', (req, res) => serve('app.html', res));
+app.get('/dashboard', (req, res) => serve('dashboard.html', res));
+app.get('*', (req, res) => res.redirect('/'));
+
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V83 (HONEST SIGNAL) ONLINE: ${PORT}`));
 
 
