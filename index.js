@@ -1,7 +1,6 @@
 /**
- * A+ CHAOS ID: V82 (UNIVERSAL KEY + ORIGIN SPY)
- * STATUS: Removes credential restriction to force browser discovery.
- * DEBUG: Logs exact RP ID/Origin mismatches.
+ * A+ CHAOS ID: V83 (HONEST SIGNAL)
+ * STATUS: Fixes "NO USER IN MEMORY" loop by correctly reporting 404 when empty.
  */
 import express from 'express';
 import path from 'path';
@@ -56,19 +55,16 @@ if (process.env.ADMIN_CRED_ID && process.env.ADMIN_PUB_KEY) {
         Users.set(ADMIN_USER_ID, dna);
         console.log(">>> [SYSTEM] RESTORED FROM ENV.");
     } catch (e) { console.error("!!! [ERROR] BAD ENV DATA:", e); }
+} else {
+    console.log(">>> [SYSTEM] MEMORY EMPTY. WAITING FOR IMPRINT.");
 }
 
 const Abyss = { partners: new Map(), hash: (k) => crypto.createHash('sha256').update(k).digest('hex') };
+Abyss.partners.set(Abyss.hash('sk_chaos_demo123'), { company: 'Demo', plan: 'free', usage: 0, limit: 50, active: true });
 const Nightmare = { guardSaaS: (req, res, next) => next() };
 const Chaos = { mintToken: () => crypto.randomBytes(16).toString('hex') };
 const Challenges = new Map();
-
-// --- DYNAMIC ORIGIN DEBUGGER ---
-const getOrigin = (req) => {
-    const host = req.headers['x-forwarded-host'] || req.get('host');
-    // Force HTTPS protocol for Render
-    return `https://${host}`;
-};
+const getOrigin = (req) => `https://${req.headers['x-forwarded-host'] || req.get('host')}`;
 const getRpId = (req) => req.get('host').split(':')[0];
 
 // ==========================================
@@ -85,7 +81,7 @@ app.post('/api/v1/auth/reset', (req, res) => {
 // REGISTER
 app.get('/api/v1/auth/register-options', async (req, res) => {
     try {
-        console.log(`[REG OPTION] RPID: ${getRpId(req)} | Origin: ${getOrigin(req)}`);
+        console.log(`[REG OPTION] RPID: ${getRpId(req)}`);
         
         const options = await generateRegistrationOptions({
             rpName: 'A+ Chaos ID',
@@ -107,12 +103,6 @@ app.post('/api/v1/auth/register-verify', async (req, res) => {
     const clientResponse = req.body;
     const expectedChallenge = Challenges.get(ADMIN_USER_ID);
     
-    // DEBUG LOG: See what the client sent
-    try {
-        const clientData = JSON.parse(Buffer.from(clientResponse.response.clientDataJSON, 'base64url').toString('utf8'));
-        console.log(`[REG VERIFY] Client Origin: ${clientData.origin}`);
-    } catch(e) { console.log("[REG VERIFY] Failed to parse clientData"); }
-
     if (!expectedChallenge) return res.status(400).json({ error: "Expired" });
 
     try {
@@ -140,21 +130,22 @@ app.post('/api/v1/auth/register-verify', async (req, res) => {
             
             res.json({ verified: true, env_ID: idString, env_KEY: keyString });
         } else { res.status(400).json({ verified: false }); }
-    } catch (e) { 
-        console.error("[REG ERROR]", e.message);
-        res.status(400).json({ error: e.message }); 
-    }
+    } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-// LOGIN (UNIVERSAL)
+// LOGIN
 app.get('/api/v1/auth/login-options', async (req, res) => {
     const user = Users.get(ADMIN_USER_ID);
-    // Note: We allow login options even if user missing, to debug the "Reset" state
     
+    // V83 FIX: STRICT 404 IF NO USER
+    if (!user) {
+        console.log(">>> [LOGIN] No user found. Sending 404 to force Register mode.");
+        return res.status(404).json({ error: "NO IDENTITY" });
+    }
+
     try {
         const options = await generateAuthenticationOptions({
             rpID: getRpId(req),
-            // V82 FIX: Empty list forces browser to find ANY valid key
             allowCredentials: [], 
             userVerification: 'preferred',
         });
@@ -165,13 +156,14 @@ app.get('/api/v1/auth/login-options', async (req, res) => {
 
 app.post('/api/v1/auth/login-verify', async (req, res) => {
     const user = Users.get(ADMIN_USER_ID);
+    
+    // V83 FIX: EXTRA GUARD
     if (!user) return res.status(404).json({ error: "NO USER IN MEMORY" });
 
     let challengeString;
     try {
          const json = Buffer.from(req.body.response.clientDataJSON, 'base64url').toString('utf8');
          challengeString = JSON.parse(json).challenge;
-         console.log(`[LOGIN VERIFY] Client Origin: ${JSON.parse(json).origin}`);
     } catch(e) { return res.status(400).json({error: "Bad Payload"}); }
     
     const expectedChallenge = Challenges.get(challengeString); 
@@ -184,11 +176,11 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
             expectedOrigin: getOrigin(req),
             expectedRPID: getRpId(req),
             authenticator: {
-                credentialID: toBuffer(user.credentialID), // Convert stored string to Buffer
+                credentialID: toBuffer(user.credentialID), 
                 credentialPublicKey: user.credentialPublicKey,
                 counter: user.counter,
             },
-            requireUserVerification: false, // Loosen check for stability
+            requireUserVerification: false,
         });
 
         if (verification.verified) {
@@ -197,10 +189,7 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
             Challenges.delete(expectedChallenge.challenge);
             res.json({ verified: true, token: Chaos.mintToken() });
         } else { res.status(400).json({ verified: false }); }
-    } catch (error) { 
-        console.error("[LOGIN ERROR]", error.message);
-        res.status(400).json({ error: error.message }); 
-    } 
+    } catch (error) { res.status(400).json({ error: error.message }); } 
 });
 
 // ROUTING
@@ -211,6 +200,6 @@ app.get('/app', (req, res) => serve('app.html', res));
 app.get('/dashboard', (req, res) => serve('dashboard.html', res));
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V82 (UNIVERSAL) ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V83 (HONEST SIGNAL) ONLINE: ${PORT}`));
 
 
