@@ -1,6 +1,6 @@
 /**
- * A+ CHAOS ID: V84 (STABLE CORE)
- * STATUS: Matching V83 logic. Ensures correct options generation.
+ * A+ CHAOS ID: V90 (FINAL PRODUCTION)
+ * STATUS: Health Checks, Auto-Wake, and Universal Login Enabled.
  */
 import express from 'express';
 import path from 'path';
@@ -30,27 +30,48 @@ app.use(express.static(publicPath));
 // --- UTILITIES ---
 const toBuffer = (base64) => Buffer.from(base64, 'base64url');
 const toBase64 = (buffer) => Buffer.from(buffer).toString('base64url');
+const jsObjectToBuffer = (obj) => {
+    if (obj instanceof Uint8Array) return obj;
+    if (obj instanceof Buffer) return obj;
+    if (typeof obj !== 'object' || obj === null) return new Uint8Array();
+    return Buffer.from(Object.values(obj));
+};
+
+function extractChallengeFromClientResponse(clientResponse) {
+    try {
+        const json = Buffer.from(clientResponse.response.clientDataJSON, 'base64url').toString('utf8');
+        return JSON.parse(json).challenge;
+    } catch (e) { return null; }
+}
+
+const DreamsEngine = {
+    start: () => process.hrtime.bigint(),
+    check: () => true, 
+    update: () => {}
+};
 
 // ==========================================
-// 1. IDENTITY CORE
+// 1. IDENTITY CORE (PERSISTENT & RESETTABLE)
 // ==========================================
 const Users = new Map();
 const ADMIN_USER_ID = 'admin-user';
 
-// LOAD ENV VARS (But allow Reset)
+// LOAD ENV VARS AUTOMATICALLY
 if (process.env.ADMIN_CRED_ID && process.env.ADMIN_PUB_KEY) {
     try {
         const dna = {
             credentialID: process.env.ADMIN_CRED_ID,
             credentialPublicKey: new Uint8Array(toBuffer(process.env.ADMIN_PUB_KEY)),
-            counter: 0
+            counter: 0,
+            dreamProfile: { window: [], sum_T: 0, sum_T2: 0 }
         };
         Users.set(ADMIN_USER_ID, dna);
-        console.log(">>> [SYSTEM] RESTORED FROM ENV.");
+        console.log(">>> [SYSTEM] IDENTITY RESTORED FROM ENV.");
     } catch (e) { console.error("!!! [ERROR] BAD ENV DATA:", e); }
 }
 
 const Abyss = { partners: new Map(), hash: (k) => crypto.createHash('sha256').update(k).digest('hex') };
+Abyss.partners.set(Abyss.hash('sk_chaos_demo123'), { company: 'Demo', plan: 'free', usage: 0, limit: 50, active: true });
 const Nightmare = { guardSaaS: (req, res, next) => next() };
 const Chaos = { mintToken: () => crypto.randomBytes(16).toString('hex') };
 const Challenges = new Map();
@@ -58,8 +79,13 @@ const getOrigin = (req) => `https://${req.headers['x-forwarded-host'] || req.get
 const getRpId = (req) => req.get('host').split(':')[0];
 
 // ==========================================
-// 2. AUTH ROUTES
+// 2. ROUTES
 // ==========================================
+
+// --- HEALTH CHECK (THE WAKE UP CALL) ---
+app.get('/api/v1/health', (req, res) => {
+    res.json({ status: "ALIVE", timestamp: Date.now() });
+});
 
 // KILL SWITCH
 app.post('/api/v1/auth/reset', (req, res) => {
@@ -77,7 +103,11 @@ app.get('/api/v1/auth/register-options', async (req, res) => {
             userID: new Uint8Array(Buffer.from(ADMIN_USER_ID)),
             userName: 'admin@aplus.com',
             attestationType: 'none',
-            authenticatorSelection: { residentKey: 'required', userVerification: 'preferred' },
+            authenticatorSelection: { 
+                residentKey: 'required',
+                userVerification: 'preferred',
+                authenticatorAttachment: 'platform'
+            },
         });
         Challenges.set(ADMIN_USER_ID, options.challenge);
         res.json(options);
@@ -102,7 +132,8 @@ app.post('/api/v1/auth/register-verify', async (req, res) => {
             const userData = { 
                 credentialID: toBase64(credentialID), 
                 credentialPublicKey: credentialPublicKey, 
-                counter 
+                counter, 
+                dreamProfile: { window: [], sum_T: 0, sum_T2: 0 } 
             };
             Users.set(ADMIN_USER_ID, userData);
             Challenges.delete(ADMIN_USER_ID);
@@ -119,10 +150,10 @@ app.get('/api/v1/auth/login-options', async (req, res) => {
     try {
         const options = await generateAuthenticationOptions({
             rpID: getRpId(req),
-            allowCredentials: [], 
+            allowCredentials: [], // Universal Login
             userVerification: 'preferred',
         });
-        Challenges.set(options.challenge, options.challenge);
+        Challenges.set(options.challenge, { challenge: options.challenge, startTime: DreamsEngine.start() });
         res.json(options);
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -160,7 +191,6 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
     } catch (error) { res.status(400).json({ error: error.message }); } 
 });
 
-// ROUTING
 app.post('/api/v1/external/verify', Nightmare.guardSaaS, (req, res) => res.json({ valid: true }));
 const serve = (f, res) => fs.existsSync(path.join(publicPath, f)) ? res.sendFile(path.join(publicPath, f)) : res.status(404).send('Missing: ' + f);
 app.get('/', (req, res) => serve('index.html', res));
@@ -168,6 +198,6 @@ app.get('/app', (req, res) => serve('app.html', res));
 app.get('/dashboard', (req, res) => serve('dashboard.html', res));
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V84 (TACTILE) ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V90 (FINAL PRODUCTION) ONLINE: ${PORT}`));
 
 
