@@ -1,6 +1,6 @@
 /**
- * A+ CHAOS ID: V70 (KINETIC GOLD MASTER)
- * STATUS: Identity Locked (ID: oJ18...). Kinetic Totem Active.
+ * A+ CHAOS ID: V71 (DEFIBRILLATOR EDITION)
+ * STATUS: Identity Locked. Health Check Added. Transports loosened.
  */
 import express from 'express';
 import path from 'path';
@@ -27,7 +27,7 @@ app.use(cors({ origin: '*' }));
 app.use(express.json());
 app.use(express.static(publicPath));
 
-// --- UTILITIES ---
+// --- UTILITY ---
 const jsObjectToBuffer = (obj) => {
     if (obj instanceof Uint8Array) return obj;
     if (obj instanceof Buffer) return obj;
@@ -42,25 +42,17 @@ function extractChallengeFromClientResponse(clientResponse) {
     } catch (e) { return null; }
 }
 
-// ==========================================
-// 1. DREAMS & KINETIC ENGINE
-// ==========================================
 const DreamsEngine = {
     start: () => process.hrtime.bigint(),
     check: (durationMs, user, kinetic) => {
-        // Kinetic Validation: Rejects bot-like straight lines or inhuman speed
-        if (kinetic) {
-            console.log(`[KINETIC] Vel: ${kinetic.velocity?.toFixed(2)} | Entropy: ${kinetic.entropy}`);
-            if (kinetic.velocity > 5.0) return false; // Impossible speed
-            if (kinetic.entropy < 3) return false;    // Too perfect (straight line)
-        }
+        if (kinetic && kinetic.velocity > 5.0) return false;
         return true; 
     }, 
     update: (T_new, profile) => {}
 };
 
 // ==========================================
-// 2. CORE IDENTITY (LOCKED)
+// 1. CORE IDENTITY (LOCKED)
 // ==========================================
 const Users = new Map();
 
@@ -77,20 +69,25 @@ const ADMIN_DNA = {
     dreamProfile: { window: [], sum_T: 0, sum_T2: 0 }
 };
 Users.set('admin-user', ADMIN_DNA); 
-console.log(">>> [SYSTEM] V70 GOLD MASTER. IDENTITY 'oJ18...' LOCKED.");
+console.log(">>> [SYSTEM] V71 DEFIBRILLATOR. IDENTITY LOCKED.");
 
 const Abyss = { partners: new Map(), hash: (k) => crypto.createHash('sha256').update(k).digest('hex') };
 const Nightmare = { guardSaaS: (req, res, next) => next() };
 const Chaos = { mintToken: () => crypto.randomBytes(16).toString('hex') };
 const Challenges = new Map();
 
-// --- DYNAMIC ORIGIN ---
 const getOrigin = (req) => `https://${req.headers['x-forwarded-host'] || req.get('host')}`;
 const getRpId = (req) => req.get('host').split(':')[0];
 
 // ==========================================
-// 3. AUTH ROUTES (LOCKED REGISTRATION)
+// 2. AUTH ROUTES
 // ==========================================
+
+// NEW: LIGHTWEIGHT HEALTH CHECK (Wakes up Render)
+app.get('/api/v1/health', (req, res) => {
+    res.json({ status: "ALIVE", timestamp: Date.now() });
+});
+
 app.get('/api/v1/auth/register-options', (req, res) => res.status(403).json({ error: "LOCKED" }));
 app.post('/api/v1/auth/register-verify', (req, res) => res.status(403).json({ error: "LOCKED" }));
 
@@ -101,11 +98,10 @@ app.get('/api/v1/auth/login-options', async (req, res) => {
     try {
         const options = await generateAuthenticationOptions({
             rpID: getRpId(req),
-            // Explicitly requesting your key to fix the "No Passkeys" error
             allowCredentials: [{
                 id: user.credentialID,
-                type: 'public-key',
-                transports: ['internal', 'hybrid'] 
+                type: 'public-key'
+                // REMOVED 'transports' to allow maximum compatibility
             }], 
             userVerification: 'required',
         });
@@ -130,7 +126,7 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
 
     if (!user || !expectedChallenge) return res.status(400).json({ error: "Invalid State" });
     
-    // KINETIC & DREAMS CHECK
+    // KINETIC CHECK
     const durationMs = Number(process.hrtime.bigint() - expectedChallenge.startTime) / 1000000;
     const kineticData = clientResponse.kinetic_data; 
     
@@ -165,10 +161,8 @@ const serve = (f, res) => fs.existsSync(path.join(publicPath, f)) ? res.sendFile
 app.get('/', (req, res) => serve('index.html', res));
 app.get('/app', (req, res) => serve('app.html', res));
 app.get('/dashboard', (req, res) => serve('dashboard.html', res));
-app.get('/admin', (req, res) => serve('admin.html', res));
-app.get('/sdk', (req, res) => serve('sdk.html', res)); 
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V70 (KINETIC GOLD) ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V71 (DEFIBRILLATOR) ONLINE: ${PORT}`));
 
 
