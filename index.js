@@ -1,6 +1,6 @@
 /**
- * A+ CHAOS ID: V76 (BUFFER ENFORCEMENT)
- * STATUS: Fixed 'replace' error by converting Credential ID to Buffer.
+ * A+ CHAOS ID: V77 (PAYLOAD SANITIZER)
+ * STATUS: Manually sanitizing client response to prevent library crash.
  */
 import express from 'express';
 import path from 'path';
@@ -27,7 +27,7 @@ app.use(cors({ origin: '*' }));
 app.use(express.json());
 app.use(express.static(publicPath));
 
-// --- UTILITY: CONVERT TO PURE UINT8ARRAY ---
+// --- UTILITY: STRICT UINT8ARRAY CONVERTER ---
 const toUint8 = (input) => {
     if (input instanceof Uint8Array) return input;
     if (input instanceof Buffer) return new Uint8Array(input);
@@ -49,24 +49,18 @@ const DreamsEngine = {
 };
 
 // ==========================================
-// 1. CORE IDENTITY (V76 FIX)
+// 1. CORE IDENTITY
 // ==========================================
 const Users = new Map();
-
-// YOUR HARDCODED DNA
 const ADMIN_CRED_ID_STRING = "oJ18aj5LzkkixMX1ILmv7Q";
 const ADMIN_PK_OBJ = {
     "0":165,"1":1,"2":2,"3":3,"4":38,"5":32,"6":1,"7":33,"8":88,"9":32,"10":137,"11":38,"12":238,"13":41,"14":157,"15":79,"16":47,"17":9,"18":25,"19":26,"20":130,"21":177,"22":87,"23":221,"24":98,"25":125,"26":66,"27":164,"28":2,"29":228,"30":240,"31":117,"32":167,"33":185,"34":43,"35":144,"36":127,"37":209,"38":138,"39":91,"40":44,"41":233,"42":34,"43":88,"44":32,"45":253,"46":17,"47":38,"48":124,"49":173,"50":105,"51":52,"52":132,"53":241,"54":76,"55":22,"56":160,"57":57,"58":68,"59":34,"60":20,"61":4,"62":15,"63":27,"64":165,"65":192,"66":195,"67":125,"68":9,"69":145,"70":249,"71":105,"72":229,"73":118,"74":79,"75":241,"76":42
 };
 
+// FORCE UINT8ARRAY FOR EVERYTHING
 const ADMIN_DNA = {
-    // FIX: Convert String ID to Buffer explicitly using base64url encoding
-    // This matches what the library expects for byte-level comparison
-    credentialID: Buffer.from(ADMIN_CRED_ID_STRING, 'base64url'), 
-    
-    // Keep String version for get() options
+    credentialID: toUint8(Buffer.from(ADMIN_CRED_ID_STRING, 'base64url')), 
     credentialID_String: ADMIN_CRED_ID_STRING, 
-    
     credentialPublicKey: toUint8(Buffer.from(Object.values(ADMIN_PK_OBJ))),
     counter: 0,
     dreamProfile: { window: [], sum_T: 0, sum_T2: 0 }
@@ -93,7 +87,6 @@ const getRpId = (req) => req.get('host').split(':')[0];
 app.get('/api/v1/auth/register-options', (req, res) => res.status(403).json({ error: "LOCKED" }));
 app.post('/api/v1/auth/register-verify', (req, res) => res.status(403).json({ error: "LOCKED" }));
 
-// LOGIN: KINETIC
 app.get('/api/v1/auth/login-options', async (req, res) => {
     const userID = 'admin-user'; 
     const user = Users.get(userID);
@@ -101,7 +94,7 @@ app.get('/api/v1/auth/login-options', async (req, res) => {
         const options = await generateAuthenticationOptions({
             rpID: getRpId(req),
             allowCredentials: [{
-                id: user.credentialID_String, // Use String here for JSON response
+                id: user.credentialID_String, // String for generation
                 type: 'public-key'
             }], 
             userVerification: 'required',
@@ -115,36 +108,51 @@ app.get('/api/v1/auth/login-options', async (req, res) => {
 app.post('/api/v1/auth/login-verify', async (req, res) => {
     const userID = 'admin-user';
     const user = Users.get(userID);
-    const clientResponse = req.body;
+    const body = req.body;
     
-    const challengeString = extractChallengeFromClientResponse(clientResponse);
+    // DEBUG: Inspect Payload
+    console.log(">>> [VERIFY] ID:", body.id);
+    console.log(">>> [VERIFY] Type:", body.type);
+
+    const challengeString = extractChallengeFromClientResponse(body);
     const expectedChallenge = Challenges.get(challengeString); 
 
-    if (!user || !expectedChallenge) return res.status(400).json({ error: "Invalid State/Challenge" });
-    
+    if (!user || !expectedChallenge) return res.status(400).json({ error: "Invalid State" });
+
     // DREAMS CHECK
     const durationMs = Number(process.hrtime.bigint() - expectedChallenge.startTime) / 1000000;
-    if (!DreamsEngine.check(durationMs, user, clientResponse.kinetic_data)) {
+    if (!DreamsEngine.check(durationMs, user, body.kinetic_data)) {
          Challenges.delete(expectedChallenge.challenge);
          return res.status(403).json({ verified: false, error: "ERR_KINETIC_ANOMALY" });
     }
     
     try {
-        // CONSTRUCT VERIFICATION OBJECT
-        // V76 FIX: Pass the Buffer ID, not the String ID
-        const authenticator = {
-            credentialID: user.credentialID, // This is now a Buffer
-            credentialPublicKey: user.credentialPublicKey,
-            counter: Number(user.counter),
-            transports: [] // Explicit empty array as per Grok's recommendation
+        // --- CLEAN PAYLOAD (CRITICAL) ---
+        // Filter out unexpected fields from client response
+        const cleanResponse = {
+            id: body.id,
+            rawId: body.rawId,
+            response: {
+                clientDataJSON: body.response.clientDataJSON,
+                authenticatorData: body.response.authenticatorData,
+                signature: body.response.signature,
+                userHandle: body.response.userHandle || undefined // Ensure undefined if null
+            },
+            type: body.type,
+            clientExtensionResults: body.clientExtensionResults || {}
         };
 
         const verification = await verifyAuthenticationResponse({
-            response: clientResponse,
+            response: cleanResponse, // Use sanitized body
             expectedChallenge: expectedChallenge.challenge,
             expectedOrigin: getOrigin(req),
             expectedRPID: getRpId(req),
-            authenticator: authenticator, 
+            authenticator: {
+                credentialID: user.credentialID, // Uint8Array
+                credentialPublicKey: user.credentialPublicKey, // Uint8Array
+                counter: Number(user.counter),
+                // Explicitly omitted transports
+            },
             requireUserVerification: true,
         });
 
@@ -154,18 +162,17 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
             Challenges.delete(expectedChallenge.challenge);
             res.json({ verified: true, token: Chaos.mintToken() });
         } else { 
-            console.log(">>> [FAIL] Verify returned false");
+            console.log(">>> [FAIL] Not Verified");
             res.status(400).json({ verified: false }); 
         }
     } catch (error) { 
-        console.error(">>> [ERROR] Library Crash:", error);
+        console.error(">>> [ERROR] Verify Crash:", error);
         res.status(400).json({ error: error.message }); 
     } finally {
         if(expectedChallenge) Challenges.delete(expectedChallenge.challenge);
     }
 });
 
-// ROUTING
 app.post('/api/v1/external/verify', Nightmare.guardSaaS, (req, res) => res.json({ valid: true }));
 app.get('/api/v1/admin/telemetry', (req, res) => res.json({ stats: { requests: 0 }, threats: [] }));
 app.get('/ping', (req, res) => res.send("PONG"));
@@ -176,6 +183,6 @@ app.get('/app', (req, res) => serve('app.html', res));
 app.get('/dashboard', (req, res) => serve('dashboard.html', res));
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V76 (BUFFER FIX) ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V77 (PAYLOAD CLEANER) ONLINE: ${PORT}`));
 
 
