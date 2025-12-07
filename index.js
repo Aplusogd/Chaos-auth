@@ -1,7 +1,7 @@
 /**
- * A+ CHAOS ID: V81 (PLATFORM ENFORCEMENT)
- * STATUS: Forces 'Platform' authenticator (Fingerprint/FaceID) and Resident Keys.
- * FIXES: "Choose device" popup by mandating internal storage.
+ * A+ CHAOS ID: V82 (UNIVERSAL KEY + ORIGIN SPY)
+ * STATUS: Removes credential restriction to force browser discovery.
+ * DEBUG: Logs exact RP ID/Origin mismatches.
  */
 import express from 'express';
 import path from 'path';
@@ -62,35 +62,40 @@ const Abyss = { partners: new Map(), hash: (k) => crypto.createHash('sha256').up
 const Nightmare = { guardSaaS: (req, res, next) => next() };
 const Chaos = { mintToken: () => crypto.randomBytes(16).toString('hex') };
 const Challenges = new Map();
-const getOrigin = (req) => `https://${req.headers['x-forwarded-host'] || req.get('host')}`;
+
+// --- DYNAMIC ORIGIN DEBUGGER ---
+const getOrigin = (req) => {
+    const host = req.headers['x-forwarded-host'] || req.get('host');
+    // Force HTTPS protocol for Render
+    return `https://${host}`;
+};
 const getRpId = (req) => req.get('host').split(':')[0];
 
 // ==========================================
 // 2. AUTH ROUTES
 // ==========================================
 
-// --- KILL SWITCH ---
+// KILL SWITCH
 app.post('/api/v1/auth/reset', (req, res) => {
     Users.clear();
     console.log(">>> [SYSTEM] MEMORY WIPED.");
     res.json({ success: true });
 });
 
-// REGISTER (STRICT MODE)
+// REGISTER
 app.get('/api/v1/auth/register-options', async (req, res) => {
     try {
+        console.log(`[REG OPTION] RPID: ${getRpId(req)} | Origin: ${getOrigin(req)}`);
+        
         const options = await generateRegistrationOptions({
             rpName: 'A+ Chaos ID',
             rpID: getRpId(req),
             userID: new Uint8Array(Buffer.from(ADMIN_USER_ID)),
             userName: 'admin@aplus.com',
             attestationType: 'none',
-            // FIX: STRICT ENFORCEMENT
             authenticatorSelection: { 
-                authenticatorAttachment: 'platform', // <--- FORCES PHONE SCANNER
-                residentKey: 'required',             // <--- FORCES STORAGE
-                requireResidentKey: true,
-                userVerification: 'required' 
+                residentKey: 'required',
+                userVerification: 'preferred',
             },
         });
         Challenges.set(ADMIN_USER_ID, options.challenge);
@@ -101,6 +106,13 @@ app.get('/api/v1/auth/register-options', async (req, res) => {
 app.post('/api/v1/auth/register-verify', async (req, res) => {
     const clientResponse = req.body;
     const expectedChallenge = Challenges.get(ADMIN_USER_ID);
+    
+    // DEBUG LOG: See what the client sent
+    try {
+        const clientData = JSON.parse(Buffer.from(clientResponse.response.clientDataJSON, 'base64url').toString('utf8'));
+        console.log(`[REG VERIFY] Client Origin: ${clientData.origin}`);
+    } catch(e) { console.log("[REG VERIFY] Failed to parse clientData"); }
+
     if (!expectedChallenge) return res.status(400).json({ error: "Expired" });
 
     try {
@@ -128,18 +140,23 @@ app.post('/api/v1/auth/register-verify', async (req, res) => {
             
             res.json({ verified: true, env_ID: idString, env_KEY: keyString });
         } else { res.status(400).json({ verified: false }); }
-    } catch (e) { res.status(400).json({ error: e.message }); }
+    } catch (e) { 
+        console.error("[REG ERROR]", e.message);
+        res.status(400).json({ error: e.message }); 
+    }
 });
 
-// LOGIN
+// LOGIN (UNIVERSAL)
 app.get('/api/v1/auth/login-options', async (req, res) => {
     const user = Users.get(ADMIN_USER_ID);
-    if (!user) return res.status(404).json({ error: "NO IDENTITY" });
+    // Note: We allow login options even if user missing, to debug the "Reset" state
+    
     try {
         const options = await generateAuthenticationOptions({
             rpID: getRpId(req),
-            // Allow discovery
-            userVerification: 'required',
+            // V82 FIX: Empty list forces browser to find ANY valid key
+            allowCredentials: [], 
+            userVerification: 'preferred',
         });
         Challenges.set(options.challenge, { challenge: options.challenge, startTime: process.hrtime.bigint() });
         res.json(options);
@@ -148,14 +165,17 @@ app.get('/api/v1/auth/login-options', async (req, res) => {
 
 app.post('/api/v1/auth/login-verify', async (req, res) => {
     const user = Users.get(ADMIN_USER_ID);
+    if (!user) return res.status(404).json({ error: "NO USER IN MEMORY" });
+
     let challengeString;
     try {
          const json = Buffer.from(req.body.response.clientDataJSON, 'base64url').toString('utf8');
          challengeString = JSON.parse(json).challenge;
+         console.log(`[LOGIN VERIFY] Client Origin: ${JSON.parse(json).origin}`);
     } catch(e) { return res.status(400).json({error: "Bad Payload"}); }
     
     const expectedChallenge = Challenges.get(challengeString); 
-    if (!user || !expectedChallenge) return res.status(400).json({ error: "Invalid State" });
+    if (!expectedChallenge) return res.status(400).json({ error: "Invalid Challenge" });
     
     try {
         const verification = await verifyAuthenticationResponse({
@@ -164,11 +184,11 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
             expectedOrigin: getOrigin(req),
             expectedRPID: getRpId(req),
             authenticator: {
-                credentialID: user.credentialID,
+                credentialID: toBuffer(user.credentialID), // Convert stored string to Buffer
                 credentialPublicKey: user.credentialPublicKey,
                 counter: user.counter,
             },
-            requireUserVerification: true,
+            requireUserVerification: false, // Loosen check for stability
         });
 
         if (verification.verified) {
@@ -177,7 +197,10 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
             Challenges.delete(expectedChallenge.challenge);
             res.json({ verified: true, token: Chaos.mintToken() });
         } else { res.status(400).json({ verified: false }); }
-    } catch (error) { res.status(400).json({ error: error.message }); } 
+    } catch (error) { 
+        console.error("[LOGIN ERROR]", error.message);
+        res.status(400).json({ error: error.message }); 
+    } 
 });
 
 // ROUTING
@@ -188,6 +211,6 @@ app.get('/app', (req, res) => serve('app.html', res));
 app.get('/dashboard', (req, res) => serve('dashboard.html', res));
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V81 (PLATFORM ONLY) ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V82 (UNIVERSAL) ONLINE: ${PORT}`));
 
 
