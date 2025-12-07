@@ -9,98 +9,60 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
-        body { 
-            background-color: #000; 
-            color: #00ff41; 
-            font-family: 'JetBrains Mono', monospace; 
-            touch-action: none; 
-            overflow: hidden; 
-            user-select: none;
-        }
+        body { background-color: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; touch-action: none; overflow: hidden; user-select: none; }
 
-        /* U-SHAPED WELL */
         .well-container {
-            position: absolute;
-            bottom: 40px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 120px;
-            height: 160px;
-            border-left: 2px solid #004400;
-            border-right: 2px solid #004400;
-            border-bottom: 2px solid #004400;
-            border-radius: 0 0 30px 30px;
-            border-top: none;
+            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+            width: 120px; height: 160px;
+            border-left: 2px solid #004400; border-right: 2px solid #004400; border-bottom: 2px solid #004400;
+            border-radius: 0 0 30px 30px; border-top: none;
             background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0, 255, 65, 0.05));
-            pointer-events: none; /* Allows click-through */
-            z-index: 10;
+            pointer-events: none; z-index: 10;
         }
 
-        /* TOTEM */
         .totem {
-            width: 90px;
-            height: 90px;
+            width: 90px; height: 90px;
             background: radial-gradient(circle at 30% 30%, #aaffaa, #00ff41);
             border-radius: 50%;
-            position: absolute;
-            bottom: 30px; 
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 36px;
-            color: #002200;
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 36px; color: #002200;
             box-shadow: 0 0 25px #00ff41;
-            cursor: grab;
-            z-index: 50;
-            touch-action: none;
-            transition: opacity 0.5s, filter 0.5s;
+            cursor: grab; z-index: 50;
+            transition: filter 0.5s, box-shadow 0.5s;
+        }
+        
+        .totem.imprint-mode {
+            background: radial-gradient(circle at 30% 30%, #aaccff, #0088ff);
+            box-shadow: 0 0 25px #0088ff;
+            color: #001133;
         }
 
-        /* OFFLINE STATE */
-        .totem.offline {
-            filter: grayscale(100%);
-            opacity: 0.5;
-            cursor: not-allowed;
-            box-shadow: none;
-        }
-
-        .totem:active:not(.offline) { cursor: grabbing; box-shadow: 0 0 50px #00ff41; }
+        .totem.offline { filter: grayscale(100%); opacity: 0.5; }
+        .totem:active:not(.offline) { cursor: grabbing; transform: translateX(-50%) scale(1.1); }
         .launching { transition: bottom 0.4s cubic-bezier(0.1, 0.7, 0.1, 1), opacity 0.4s; bottom: 120vh !important; opacity: 0; }
         .falling { transition: bottom 0.6s cubic-bezier(0.5, 0, 0.5, 1.5); bottom: 30px !important; }
         .shake { animation: shake 0.5s; }
         @keyframes shake { 0%, 100% { transform: translateX(-50%); } 25% { transform: translateX(-60%); } 75% { transform: translateX(-40%); } }
 
+        .arrow-guide { position: absolute; bottom: 220px; left: 50%; transform: translateX(-50%); color: rgba(0, 255, 65, 0.3); animation: float-up 1.5s infinite; pointer-events: none; }
+        @keyframes float-up { 0% { opacity:0; transform:translate(-50%, 10px);} 50% {opacity:1;} 100% {opacity:0; transform:translate(-50%, -20px);} }
         .hud-status { font-size: 1.5rem; font-weight: 800; text-align: center; margin-top: 20vh; text-shadow: 0 0 10px #00ff41; pointer-events: none; }
-        
-        /* CONNECTION DOT */
-        .status-dot {
-            position: absolute; top: 20px; right: 20px; width: 12px; height: 12px; border-radius: 50%;
-            background: #330000; border: 1px solid #550000;
-            box-shadow: 0 0 5px #ff0000;
-            transition: all 0.5s;
-        }
+        .status-dot { position: absolute; top: 20px; right: 20px; width: 12px; height: 12px; border-radius: 50%; background: #330000; border: 1px solid #550000; box-shadow: 0 0 5px #ff0000; transition: all 0.5s; }
         .status-dot.online { background: #00ff41; border-color: #aaffaa; box-shadow: 0 0 10px #00ff41; }
     </style>
 </head>
 <body class="h-screen w-screen">
 
     <div id="status-dot" class="status-dot"></div>
-
     <div id="hud" class="hud-status text-yellow-500">CONNECTING...</div>
+    <div class="arrow-guide"><i class="fas fa-chevron-up text-2xl"></i></div>
+    <div class="well-container"><div class="text-[10px] text-green-900 text-center mt-28 select-none">SWIPE UP</div></div>
     
-    <div class="well-container">
-        <div class="text-[10px] text-green-900 text-center mt-28 select-none">SWIPE UP</div>
-    </div>
-
-    <!-- Totem Icon (Starts Offline) -->
-    <div class="totem offline" id="totem">
-        <i class="fas fa-fingerprint"></i>
-    </div>
+    <div class="totem offline" id="totem"><i class="fas fa-fingerprint"></i></div>
 
     <script>
-        const { startAuthentication } = SimpleWebAuthnBrowser;
+        const { startRegistration, startAuthentication } = SimpleWebAuthnBrowser;
         const API_BASE = '/api/v1';
         const HEADERS = { 'Content-Type': 'application/json', 'X-APLUS-SECURE': 'TOTEM_V8_BIO' };
         
@@ -114,43 +76,43 @@
         let lastY = 0;
         let velocityY = 0;
         let authOptions = null;
-        let pathData = []; 
+        let mode = 'LOGIN'; // 'LOGIN' or 'REGISTER'
+        let pathData = [];
 
-        // --- FETCH OPTIONS (AUTO-RETRY) ---
+        // --- 1. CONNECT & DETERMINE MODE ---
         async function preheat() {
             try {
-                // Check if server is awake
+                // Try to get Login Options
                 const resp = await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS });
                 
                 if(resp.ok) {
+                    // LOGIN MODE
                     authOptions = await resp.json();
-                    
-                    // SUCCESS STATE
+                    mode = 'LOGIN';
                     hud.innerText = "CAST TOTEM";
                     hud.className = "hud-status text-green-500";
+                    totem.classList.remove('offline', 'imprint-mode');
+                    dot.classList.add('online');
+                } else if (resp.status === 404) {
+                    // REGISTER MODE (System Reset)
+                    mode = 'REGISTER';
+                    hud.innerText = "IMPRINT TOTEM";
+                    hud.className = "hud-status text-blue-400";
                     totem.classList.remove('offline');
+                    totem.classList.add('imprint-mode');
                     dot.classList.add('online');
                 } else {
-                    // SERVER ERROR (500/404)
-                    throw new Error(`Server ${resp.status}`);
+                    throw new Error("Server Error");
                 }
             } catch(e) { 
-                // RETRY STATE
-                console.error("Preheat failed:", e);
-                hud.innerText = "WAKING SERVER..."; 
+                hud.innerText = "WAKING ABYSS..."; 
                 hud.className = "hud-status text-red-500";
-                totem.classList.add('offline');
-                dot.classList.remove('online');
-                
-                // Retry in 2 seconds
                 setTimeout(preheat, 2000);
             }
         }
-        
-        // Start the engine
         setTimeout(preheat, 100); 
 
-        // --- INTERACTION ---
+        // --- 2. PHYSICS ENGINE ---
         totem.addEventListener('touchstart', grab, { passive: false });
         document.addEventListener('touchmove', move, { passive: false });
         document.addEventListener('touchend', release, { passive: false });
@@ -159,109 +121,130 @@
         document.addEventListener('mouseup', release);
 
         function grab(e) {
-            // If offline, reject grab
-            if(!authOptions || totem.classList.contains('offline')) {
-                hud.innerText = "WAITING FOR SERVER...";
+            if(totem.classList.contains('offline')) {
                 totem.classList.add('shake');
                 setTimeout(() => totem.classList.remove('shake'), 500);
                 return;
             }
-
             isDragging = true;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            
-            startY = clientY;
-            lastY = startY;
-            lastTime = Date.now();
-            
+            startY = clientY; lastY = startY; lastTime = Date.now();
             totem.classList.remove('falling', 'launching', 'shake');
             totem.style.transition = 'none'; 
             pathData = [];
-            
             totem.style.transform = 'translateX(-50%) scale(1.1)';
         }
 
         function move(e) {
             if (!isDragging) return;
             if (e.cancelable) e.preventDefault(); 
-            
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
             const now = Date.now();
             let deltaY = startY - clientY; 
-
-            // Physics
             const dt = now - lastTime;
-            let currentVel = 0;
-            if (dt > 0) currentVel = (lastY - clientY) / dt;
-            
-            pathData.push({ y: deltaY, v: currentVel, t: now });
-            lastY = clientY;
-            lastTime = now;
-            velocityY = currentVel;
+            if (dt > 0) velocityY = (lastY - clientY) / dt;
+            pathData.push({ y: deltaY, v: velocityY, t: now });
+            lastY = clientY; lastTime = now;
 
-            if (deltaY < 0) deltaY = deltaY * 0.2; // Rubber band
+            if (deltaY < 0) deltaY = deltaY * 0.2; 
             totem.style.bottom = `${30 + deltaY}px`; 
             
-            // Visual Feedback
+            // Visuals
             if (deltaY > 150) {
                 totem.style.backgroundColor = "#fff";
                 totem.style.color = "#000";
+                totem.style.boxShadow = "0 0 50px #fff";
             } else {
-                totem.style.background = "radial-gradient(circle at 30% 30%, #aaffaa, #00ff41)";
-                totem.style.color = "#002200";
+                totem.style.boxShadow = "";
+                totem.style.background = ""; // Revert to CSS
+                totem.style.color = mode === 'REGISTER' ? "#001133" : "#002200";
             }
         }
 
         function release(e) {
             if (!isDragging) return;
             isDragging = false;
-            
             const currentBottom = parseFloat(totem.style.bottom);
             totem.style.transform = 'translateX(-50%) scale(1)';
             
-            // THROW THRESHOLD
+            // THRESHOLD
             if (currentBottom > 230 || (velocityY > 1.2 && currentBottom > 100)) {
-                launch();
+                if (mode === 'LOGIN') launchLogin();
+                else launchRegister();
             } else {
                 totem.classList.add('falling');
                 hud.innerText = "THROW HARDER";
-                setTimeout(() => { if(hud.innerText === "THROW HARDER") hud.innerText = "CAST TOTEM"; }, 1500);
+                setTimeout(() => { 
+                    if(hud.innerText === "THROW HARDER") hud.innerText = mode === 'LOGIN' ? "CAST TOTEM" : "IMPRINT TOTEM"; 
+                }, 1500);
             }
         }
 
-        async function launch() {
-            hud.innerText = "OPENING GATE...";
-            hud.className = "hud-status text-green-400";
+        // --- 3. ACTIONS ---
+
+        async function launchRegister() {
+            hud.innerText = "IMPRINTING...";
             totem.classList.add('launching');
-            
             try {
-                const asseResp = await startAuthentication({ publicKey: authOptions });
+                const opts = await (await fetch(`${API_BASE}/auth/register-options`, { headers: HEADERS })).json();
+                const regResp = await startRegistration(opts);
+                const verifyResp = await fetch(`${API_BASE}/auth/register-verify`, {
+                    method: 'POST', headers: HEADERS, body: JSON.stringify(regResp)
+                });
+                const result = await verifyResp.json();
+                if (result.verified) {
+                    // Show DNA
+                    const dna = result.adminDNA;
+                    const copyArea = document.createElement('textarea');
+                    copyArea.value = dna;
+                    document.body.appendChild(copyArea);
+                    copyArea.select();
+                    try { document.execCommand('copy'); alert("NEW DNA COPIED! SAVE THIS."); } catch(e) { alert("COPY FAILED. SEE SCREEN."); }
+                    
+                    hud.innerText = "IDENTITY LOCKED";
+                    setTimeout(() => location.reload(), 1000);
+                }
+            } catch(e) {
+                resetFail("SETUP FAILED");
+            }
+        }
+
+        async function launchLogin() {
+            hud.innerText = "OPENING GATE...";
+            totem.classList.add('launching');
+            try {
+                // Calc Average Velocity for Kinetic Check
+                const avgVel = pathData.reduce((a,b)=>a+b.v,0)/pathData.length;
                 
+                const asseResp = await startAuthentication({ publicKey: authOptions });
                 const payload = {
                     ...asseResp,
-                    kinetic_data: { velocity: velocityY, entropy: pathData.length }
+                    kinetic_data: { velocity: avgVel, distance: pathData.length }
                 };
 
                 const verifyResp = await fetch(`${API_BASE}/auth/login-verify`, {
                     method: 'POST', headers: HEADERS, body: JSON.stringify(payload)
                 });
-                
                 const result = await verifyResp.json();
                 if (result.verified) {
                     hud.innerText = "IDENTITY CONFIRMED";
                     sessionStorage.setItem('chaos_session', result.token);
                     setTimeout(() => location.href = '/dashboard.html', 1000);
-                } else { throw new Error("Rejected"); }
-            } catch (e) {
-                hud.innerText = "ACCESS DENIED";
-                hud.className = "hud-status text-red-500";
-                setTimeout(() => {
-                    totem.classList.remove('launching');
-                    totem.classList.add('falling');
-                    hud.innerText = "CAST TOTEM";
-                    hud.className = "hud-status text-green-500";
-                }, 2000);
+                } else throw new Error("Rejected");
+            } catch(e) {
+                resetFail("ACCESS DENIED");
             }
+        }
+
+        function resetFail(msg) {
+            hud.innerText = msg;
+            hud.className = "hud-status text-red-500";
+            setTimeout(() => {
+                totem.classList.remove('launching');
+                totem.classList.add('falling');
+                hud.innerText = mode === 'LOGIN' ? "CAST TOTEM" : "IMPRINT TOTEM";
+                hud.className = mode === 'LOGIN' ? "hud-status text-green-500" : "hud-status text-blue-400";
+            }, 2000);
         }
     </script>
 </body>
