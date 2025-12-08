@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <title>A+ CHAOS | EAGLE EYE</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
+    <link href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css)" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono:wght@400;700&display=swap');
+        @import url('[https://fonts.googleapis.com/css2?family=Share+Tech+Mono:wght@400;700&display=swap](https://fonts.googleapis.com/css2?family=Share+Tech+Mono:wght@400;700&display=swap)');
         body { background-color: #000; color: #00ff41; font-family: 'Share Tech Mono', monospace; }
         .panel { border: 1px solid #1a4d1a; background: rgba(0, 15, 0, 0.95); box-shadow: 0 0 15px rgba(0, 255, 65, 0.1); }
         .scroll-box { scrollbar-width: none; }
         .log-FEEDBACK { color: #3388ff; border-left: 3px solid #3388ff; padding-left: 8px; margin-bottom: 5px; background: rgba(0,0,50,0.5); }
     </style>
 </head>
-<body class="h-screen flex flex-col p-4 overflow-hidden bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
+<body class="h-screen flex flex-col p-4 overflow-hidden bg-black">
 
     <div class="flex justify-between items-center mb-4 border-b border-green-900 pb-2 bg-black/80 p-2 rounded">
         <h1 class="text-2xl font-bold tracking-widest text-white">EAGLE EYE <span class="text-xs text-gray-500">V121</span></h1>
@@ -68,34 +68,55 @@
 
                 // 1. Stats
                 const res = await fetch(`${API_BASE}/admin/telemetry`, { headers });
-                if (!res.ok) throw new Error("Auth Failed");
+                
+                // CRASH PROTECTION: Handle 401/403 Gracefully
+                if (!res.ok) {
+                    throw new Error(`Server Error: ${res.status}`);
+                }
+                
                 const data = await res.json();
                 document.getElementById('stat-reqs').innerText = data.stats.requests;
 
                 // 2. Feedback
                 const feedRes = await fetch(`${API_BASE}/admin/feedback`, { headers });
+                
+                // CRASH PROTECTION
+                if (!feedRes.ok) {
+                     console.warn("Feedback endpoint unavailable");
+                     return;
+                }
+
                 const feedData = await feedRes.json();
                 
-                // SAFE CHECK: Ensure array exists before reading length
+                // SAFETY CHECK: Ensure array exists before reading .length
+                // This fixes the "reading 'length' of undefined" error
                 const messages = feedData.feedback || [];
                 
                 document.getElementById('stat-inbox').innerText = messages.length;
                 
                 const comms = document.getElementById('comms-feed');
-                if(messages.length > 0) comms.innerHTML = '';
-                else comms.innerHTML = '<div class="text-gray-500 text-center mt-10">Inbox Empty</div>';
-                
-                messages.forEach(msg => {
-                    const div = document.createElement('div');
-                    div.className = "log-FEEDBACK p-2 rounded";
-                    div.innerHTML = `<strong class="text-white">${msg.name}</strong> <span class="text-gray-500 text-[9px]">${new Date(msg.timestamp).toLocaleTimeString()}</span><br><span class="text-gray-300">${msg.message}</span>`;
-                    comms.prepend(div);
-                });
+                if(messages.length > 0) {
+                    comms.innerHTML = '';
+                    messages.forEach(msg => {
+                        const div = document.createElement('div');
+                        div.className = "log-FEEDBACK p-2 rounded";
+                        div.innerHTML = `<strong class="text-white">${msg.name}</strong> <span class="text-gray-500 text-[9px]">${new Date(msg.timestamp).toLocaleTimeString()}</span><br><span class="text-gray-300">${msg.message}</span>`;
+                        comms.prepend(div);
+                    });
+                } else {
+                    comms.innerHTML = '<div class="text-gray-500 text-center mt-10">Inbox Empty</div>';
+                }
 
             } catch(e) { 
-                console.error(e);
+                console.error("Sync Error:", e);
                 document.getElementById('connection-status').className = "text-red-500";
                 document.getElementById('connection-status').innerText = "● DISCONNECTED";
+                
+                // Show error in feed if empty
+                const comms = document.getElementById('comms-feed');
+                if(comms.innerText.includes("Waiting")) {
+                    comms.innerHTML = `<div class="text-red-500 text-center mt-10">${e.message}</div>`;
+                }
             }
         }
 
