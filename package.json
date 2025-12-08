@@ -9,6 +9,8 @@
   },
   "scripts": {
     "start": "node index.js",
+    "dev": "node --watch index.js",
+    "lint": "eslint .",
     "build:sdk": "esbuild public/chaos-sdk.js --bundle --minify --outfile=public/chaos-sdk.min.js --format=iife --global-name=ChaosSDK"
   },
   "dependencies": {
