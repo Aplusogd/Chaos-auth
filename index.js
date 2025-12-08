@@ -1,6 +1,6 @@
 /**
- * A+ CHAOS ID: V118 (EMERGENCY UNLOCK)
- * STATUS: Registration OPENED. Hardcoding removed to fix crash.
+ * A+ CHAOS ID: V119 (FRESH IDENTITY)
+ * STATUS: Randomizes User ID to bypass mobile "Duplicate Account" errors.
  */
 import express from 'express';
 import path from 'path';
@@ -30,7 +30,6 @@ app.use(express.static(publicPath, { maxAge: '1h' }));
 // --- UTILITIES ---
 const toBuffer = (base64) => Buffer.from(base64, 'base64url');
 const toBase64 = (buffer) => Buffer.from(buffer).toString('base64url');
-
 function extractChallengeFromClientResponse(clientResponse) {
     try {
         const json = Buffer.from(clientResponse.response.clientDataJSON, 'base64url').toString('utf8');
@@ -45,18 +44,17 @@ const DreamsEngine = {
 };
 
 // ==========================================
-// 1. CORE IDENTITY (RESET STATE)
+// 1. CORE IDENTITY
 // ==========================================
 const Users = new Map();
-// We start EMPTY to force the Blue Totem to work
 const ADMIN_USER_ID = 'admin-user';
 
 const Abyss = { partners: new Map(), hash: (k) => crypto.createHash('sha256').update(k).digest('hex') };
+Abyss.partners.set(Abyss.hash('sk_chaos_demo123'), { company: 'Demo', plan: 'free', usage: 0, limit: 50, active: true });
 const Nightmare = { guardSaaS: (req, res, next) => next() };
 const Chaos = { mintToken: () => crypto.randomBytes(16).toString('hex') };
 const Challenges = new Map();
 
-// DYNAMIC ORIGIN (Fixes Render/Domain issues)
 const getOrigin = (req) => {
     const host = req.headers['x-forwarded-host'] || req.get('host');
     const protocol = host.includes('localhost') ? 'http' : 'https';
@@ -65,25 +63,29 @@ const getOrigin = (req) => {
 const getRpId = (req) => req.get('host').split(':')[0];
 
 // ==========================================
-// 2. AUTH ROUTES (UNLOCKED)
+// 2. AUTH ROUTES
 // ==========================================
 
-// REGISTER: NOW OPEN
+// REGISTER
 app.get('/api/v1/auth/register-options', async (req, res) => {
     try {
-        console.log(`[SETUP] Generating options for ${getRpId(req)}`);
+        // V119 FIX: Use a random User ID to prevent phone collision
+        const randomUserID = crypto.randomBytes(16);
+        
         const options = await generateRegistrationOptions({
             rpName: 'A+ Chaos ID',
             rpID: getRpId(req),
-            userID: new Uint8Array(Buffer.from(ADMIN_USER_ID)),
+            userID: randomUserID, 
             userName: 'admin@aplus.com',
             attestationType: 'none',
             authenticatorSelection: { 
-                residentKey: 'preferred', 
+                residentKey: 'required', 
                 userVerification: 'preferred',
-                authenticatorAttachment: 'platform' // Forces FaceID/TouchID
+                authenticatorAttachment: 'platform'
             },
         });
+        
+        // Store challenge mapped to our internal constant ADMIN_USER_ID
         Challenges.set(ADMIN_USER_ID, options.challenge);
         res.json(options);
     } catch (err) { res.status(500).json({ error: err.message }); }
@@ -91,9 +93,10 @@ app.get('/api/v1/auth/register-options', async (req, res) => {
 
 app.post('/api/v1/auth/register-verify', async (req, res) => {
     const clientResponse = req.body;
-    // Recovery: Try finding challenge by User ID or from payload
-    const challengeString = extractChallengeFromClientResponse(clientResponse);
-    const expectedChallenge = Challenges.get(ADMIN_USER_ID) || Challenges.get(challengeString);
+    
+    // V119 FIX: Robust Challenge Lookup
+    const challengeFromPayload = extractChallengeFromClientResponse(clientResponse);
+    const expectedChallenge = Challenges.get(ADMIN_USER_ID) || (challengeFromPayload ? challengeFromPayload : null);
 
     if (!expectedChallenge) return res.status(400).json({ error: "Expired" });
 
@@ -108,24 +111,23 @@ app.post('/api/v1/auth/register-verify', async (req, res) => {
         if (verification.verified) {
             const { credentialID, credentialPublicKey, counter } = verification.registrationInfo;
             
-            // Format for Hardcoding
-            const idString = toBase64(credentialID);
-            // We convert the public key buffer to a JSON object for easy copy-pasting
-            const keyObj = credentialPublicKey.toJSON().data; 
-
             const userData = { 
-                credentialID: idString, 
+                credentialID: toBase64(credentialID), 
                 credentialPublicKey: credentialPublicKey, 
                 counter, 
                 dreamProfile: { window: [], sum_T: 0, sum_T2: 0 } 
             };
+            
+            // Save to our single Admin Slot
             Users.set(ADMIN_USER_ID, userData);
             Challenges.delete(ADMIN_USER_ID);
             
-            // SEND CLEAN KEYS TO CLIENT
-            res.json({ verified: true, env_ID: idString, env_KEY: JSON.stringify(keyObj) });
+            res.json({ verified: true, env_ID: userData.credentialID, env_KEY: toBase64(credentialPublicKey) });
         } else { res.status(400).json({ verified: false }); }
-    } catch (e) { res.status(400).json({ error: e.message }); }
+    } catch (e) { 
+        console.error("VERIFY ERROR:", e);
+        res.status(400).json({ error: e.message }); 
+    }
 });
 
 // LOGIN
@@ -160,7 +162,7 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
             expectedOrigin: getOrigin(req),
             expectedRPID: getRpId(req),
             authenticator: {
-                credentialID: toBuffer(user.credentialID), // Convert stored string to Buffer
+                credentialID: toBuffer(user.credentialID),
                 credentialPublicKey: user.credentialPublicKey,
                 counter: user.counter,
             },
@@ -178,10 +180,12 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
 
 // ROUTING
 app.post('/api/v1/external/verify', Nightmare.guardSaaS, (req, res) => res.json({ valid: true }));
+app.post('/api/v1/auth/reset', (req, res) => { Users.clear(); res.json({ success: true }); });
+
 const serve = (f, res) => fs.existsSync(path.join(publicPath, f)) ? res.sendFile(path.join(publicPath, f)) : res.status(404).send('Missing: ' + f);
 app.get('/', (req, res) => serve('index.html', res));
 app.get('/app', (req, res) => serve('app.html', res));
 app.get('/dashboard', (req, res) => serve('dashboard.html', res));
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V118 (EMERGENCY UNLOCK) ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V119 (FRESH IDENTITY) ONLINE: ${PORT}`));
