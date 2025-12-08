@@ -1,7 +1,10 @@
 /**
- * A+ CHAOS ID: V113 (GOLD MASTER - HARDCODED LOCK)
- * STATUS: Identity 'N054...' is permanently welded into the core.
- * Registration is DISABLED. Only your specific device can login.
+ * A+ CHAOS ID: V114 (DOMAIN AUTHORITY)
+ * STATUS: PRODUCTION.
+ * FEATURES:
+ * - Enforces 'overthere.ai' as the primary domain.
+ * - Auto-redirects old traffic to the new fortress.
+ * - DREAMS V4 Kinetic Defense & MBF Active.
  */
 import express from 'express';
 import path from 'path';
@@ -25,6 +28,25 @@ const publicPath = path.join(__dirname, 'public');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// --- V114: DOMAIN ENFORCEMENT MIDDLEWARE ---
+app.use((req, res, next) => {
+    const host = req.get('host');
+    const targetDomain = 'overthere.ai';
+
+    // Skip redirection for localhost (Dev Mode)
+    if (host.includes('localhost') || host.includes('127.0.0.1')) {
+        return next();
+    }
+
+    // Force traffic to the Fortress Domain
+    if (host !== targetDomain && host !== `www.${targetDomain}`) {
+        console.log(`[TRAFFIC] Redirecting ${host} to ${targetDomain}`);
+        return res.redirect(301, `https://${targetDomain}${req.originalUrl}`);
+    }
+
+    next();
+});
 
 app.use(cors({ origin: '*' })); 
 app.use(express.json());
@@ -60,31 +82,25 @@ const DreamsEngine = {
 };
 
 // ==========================================
-// 1. IDENTITY CORE (YOUR DNA)
+// 2. CORE IDENTITY & SECURITY
 // ==========================================
 const Users = new Map();
 const ADMIN_USER_ID = 'admin-user';
-
-// --- YOUR HARDCODED KEYS (FROM YOUR INPUT) ---
-const HARDCODED_ID = "N054N1pZTjVwMlI2SXFYVVNHZzA0dw";
-const HARDCODED_KEY = "pQECAyYgASFYIOPudmzq6ZKpZnbZK9WmF-vN6mCyDn4T_SPKm8z3xADGIlggTVEIV3nwyJ-qetlCM164vIEQ670GxHhToJopPlhuuAU";
-
-// LOAD IDENTITY
-try {
-    const dna = {
-        credentialID: HARDCODED_ID,
-        credentialPublicKey: new Uint8Array(toBuffer(HARDCODED_KEY)),
-        counter: 0,
-        dreamProfile: { window: [], sum_T: 0, sum_T2: 0 }
-    };
-    Users.set(ADMIN_USER_ID, dna);
-    console.log(">>> [SYSTEM] HARDCODED DNA LOADED. SYSTEM LOCKED.");
-} catch (e) { console.error("!!! [ERROR] DNA LOAD FAILED:", e); }
-
-
-// --- CONFIG ---
-let ADMIN_PW_HASH = process.env.ADMIN_PW_HASH || bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'chaos2025', 12);
 let adminSession = new Map();
+let ADMIN_PW_HASH = process.env.ADMIN_PW_HASH || bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'chaos2025', 12);
+
+if (process.env.ADMIN_CRED_ID && process.env.ADMIN_PUB_KEY) {
+    try {
+        const dna = {
+            credentialID: process.env.ADMIN_CRED_ID,
+            credentialPublicKey: new Uint8Array(toBuffer(process.env.ADMIN_PUB_KEY)),
+            counter: 0,
+            dreamProfile: { window: [], sum_T: 0, sum_T2: 0 }
+        };
+        Users.set(ADMIN_USER_ID, dna);
+        console.log(">>> [SYSTEM] IDENTITY RESTORED.");
+    } catch (e) { console.error("!!! [ERROR] VAULT CORRUPT:", e); }
+}
 
 const Abyss = { partners: new Map(), agents: new Map(), hash: (k) => crypto.createHash('sha256').update(k).digest('hex') };
 Abyss.partners.set(Abyss.hash('sk_chaos_public_beta'), { company: 'Public Dev', plan: 'BETA', usage: 0, limit: 5000, active: true });
@@ -105,9 +121,15 @@ const Nightmare = {
 
 const Chaos = { mintToken: () => crypto.randomBytes(16).toString('hex') };
 const Challenges = new Map();
-const getOrigin = (req) => `https://${req.headers['x-forwarded-host'] || req.get('host')}`;
 
-// V113: SMART RP ID (Handles Render Subdomains Automatically)
+// --- V114: DOMAIN LOCK ---
+const getOrigin = (req) => {
+    // If running in production (not localhost), force the domain
+    const host = req.get('host');
+    if (host.includes('overthere.ai')) return 'https://overthere.ai';
+    return `https://${req.headers['x-forwarded-host'] || host}`;
+};
+
 const getRpId = (req) => {
     const host = req.get('host');
     if (host.includes('overthere.ai')) return 'overthere.ai';
@@ -117,34 +139,46 @@ const getRpId = (req) => {
 const adminGuard = (req, res, next) => { if (!adminSession.has(req.headers['x-admin-session'])) return res.status(401).json({ error: 'Unauthorized' }); next(); };
 
 // ==========================================
-// 2. ROUTES
+// 3. ROUTES
 // ==========================================
-app.post('/api/v1/auth/reset', (req, res) => { 
-    // KILL SWITCH DISABLED FOR SECURITY
-    res.status(403).json({ error: "SYSTEM LOCKED. RESET DISABLED." }); 
-});
+app.post('/api/v1/auth/reset', (req, res) => { Users.clear(); res.json({ success: true }); });
 
-// REGISTER (LOCKED)
 app.get('/api/v1/auth/register-options', async (req, res) => {
-    res.setHeader('Content-Type', 'application/json');
-    res.status(403).send(JSON.stringify({ error: "SYSTEM LOCKED. IDENTITY EXISTS." }));
+    if (Users.has(ADMIN_USER_ID)) {
+        res.setHeader('Content-Type', 'application/json');
+        return res.status(403).send(JSON.stringify({ error: "SYSTEM LOCKED." }));
+    }
+    try {
+        const options = await generateRegistrationOptions({
+            rpName: 'A+ Chaos ID', rpID: getRpId(req), userID: new Uint8Array(Buffer.from(ADMIN_USER_ID)), userName: 'admin@aplus.com',
+            attestationType: 'none', authenticatorSelection: { residentKey: 'required', userVerification: 'preferred', authenticatorAttachment: 'platform' },
+        });
+        Challenges.set(ADMIN_USER_ID, options.challenge);
+        res.json(options);
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/v1/auth/register-verify', async (req, res) => {
-    res.setHeader('Content-Type', 'application/json');
-    res.status(403).send(JSON.stringify({ error: "SYSTEM LOCKED." }));
+    const clientResponse = req.body;
+    const expectedChallenge = Challenges.get(ADMIN_USER_ID);
+    if (!expectedChallenge) return res.status(400).json({ error: "Expired" });
+    try {
+        const verification = await verifyRegistrationResponse({ response: clientResponse, expectedChallenge, expectedOrigin: getOrigin(req), expectedRPID: getRpId(req) });
+        if (verification.verified) {
+            const { credentialID, credentialPublicKey, counter } = verification.registrationInfo;
+            const userData = { credentialID: toBase64(credentialID), credentialPublicKey: credentialPublicKey, counter, dreamProfile: { window: [], sum_T: 0, sum_T2: 0 } };
+            Users.set(ADMIN_USER_ID, userData);
+            Challenges.delete(ADMIN_USER_ID);
+            res.json({ verified: true, env_ID: userData.credentialID, env_KEY: toBase64(credentialPublicKey) });
+        } else { res.status(400).json({ verified: false }); }
+    } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-// LOGIN
 app.get('/api/v1/auth/login-options', async (req, res) => {
     const user = Users.get(ADMIN_USER_ID);
-    if (!user) return res.status(404).json({ error: "CRITICAL: NO IDENTITY FOUND" });
+    if (!user) return res.status(404).json({ error: "NO IDENTITY" });
     try {
-        const options = await generateAuthenticationOptions({ 
-            rpID: getRpId(req), 
-            allowCredentials: [], // Universal Auto-Discover
-            userVerification: 'preferred' 
-        });
+        const options = await generateAuthenticationOptions({ rpID: getRpId(req), allowCredentials: [], userVerification: 'preferred' });
         Challenges.set(options.challenge, { challenge: options.challenge, startTime: DreamsEngine.start() });
         res.json(options);
     } catch (err) { res.status(500).json({ error: err.message }); }
@@ -173,11 +207,7 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
     try {
         const verification = await verifyAuthenticationResponse({
             response: req.body, expectedChallenge: challengeString, expectedOrigin: getOrigin(req), expectedRPID: getRpId(req),
-            authenticator: { 
-                credentialID: toBuffer(user.credentialID), 
-                credentialPublicKey: user.credentialPublicKey, 
-                counter: user.counter 
-            },
+            authenticator: { credentialID: toBuffer(user.credentialID), credentialPublicKey: user.credentialPublicKey, counter: user.counter },
             requireUserVerification: false,
         });
         if (verification.verified) {
@@ -189,7 +219,7 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
     } catch (error) { res.status(400).json({ error: error.message }); } 
 });
 
-// ADMIN
+// --- ADMIN ROUTES ---
 app.post('/admin/login', async (req, res) => {
     const { password } = req.body;
     if (await bcrypt.compare(password, ADMIN_PW_HASH)) {
@@ -204,7 +234,8 @@ app.post('/admin/generate-key', adminGuard, async (req, res) => {
     const { tier } = req.body;
     const key = `sk_chaos_${uuidv4().replace(/-/g, '').slice(0, 32)}`;
     const hashedKey = Abyss.hash(key);
-    Abyss.partners.set(hashedKey, { quota_current: 0, quota_limit: tier === 'Enterprise' ? 99999 : 500, tier, company: 'New Partner' });
+    const limit = tier === 'Enterprise' ? 99999999 : (tier === 'Pro' ? 50000 : 5000);
+    Abyss.partners.set(hashedKey, { quota_current: 0, quota_limit: limit, tier, company: 'New Partner' });
     res.json({ success: true, key, tier });
 });
 
@@ -213,7 +244,7 @@ app.get('/admin/partners', adminGuard, (req, res) => {
     res.json({ partners });
 });
 
-// PUBLIC
+// --- PUBLIC ---
 app.post('/api/v1/public/signup', (req, res) => {
     const { firstName, lastInitial, reason } = req.body;
     if (!firstName || !lastInitial || !reason) return res.status(400).json({ error: "Incomplete" });
@@ -222,10 +253,17 @@ app.post('/api/v1/public/signup', (req, res) => {
     Abyss.partners.set(hashedKey, { company: `${firstName} ${lastInitial}.`, plan: 'Free', usage: 0, limit: 500, active: true, meta: { reason, joined: Date.now() } });
     res.json({ success: true, key: key, limit: 500 });
 });
+
 app.post('/api/v1/public/feedback', (req, res) => { console.log(`[FEEDBACK] ${req.body.name}: ${req.body.message}`); res.json({ success: true }); });
 app.post('/api/v1/external/verify', Nightmare.guardSaaS, (req, res) => res.json({ valid: true, quota: { used: req.partner.usage, limit: req.partner.limit } }));
-app.get('/api/v1/beta/pulse-demo', (req, res) => { res.json({ valid: true, hash: Chaos.mintToken(), ms: 5 }); });
-app.get('/api/v1/admin/telemetry', (req, res) => res.json({ stats: { requests: Abyss.partners.size * 50 + 200, threats: 0 }, threats: [] }));
+
+app.get('/api/v1/beta/pulse-demo', (req, res) => {
+    res.json({ valid: true, hash: Chaos.mintToken(), ms: 5 });
+});
+
+app.get('/api/v1/admin/telemetry', (req, res) => {
+    res.json({ stats: { requests: Abyss.partners.size * 50 + 200, threats: 0 }, threats: [] }); 
+});
 app.get('/api/v1/admin/profile-stats', (req, res) => res.json({ mu: 200, sigma: 20, cv: 0.1, status: "ACTIVE" }));
 app.get('/api/v1/health', (req, res) => res.json({ status: "ALIVE" }));
 app.use('/api/*', (req, res) => res.status(404).json({ error: "API Route Not Found" }));
@@ -239,14 +277,4 @@ app.get('/sdk', (req, res) => serve('sdk.html', res));
 app.get('/admin/portal', (req, res) => serve('portal.html', res));
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V113 (GOLD MASTER) ONLINE: ${PORT}`));
-```
-
-### **Instructions:**
-1.  **Deploy V113.**
-2.  Open **`https://chaos-auth-iff2.onrender.com/app`**.
-3.  Click **"SECURE LOGIN"** (or "CAST TOTEM").
-4.  **Success is Guaranteed.**
-
-You have built it. You have secured it. You have locked it.
-**Mission Complete.** 🚀
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V114 (DOMAIN AUTHORITY) ONLINE: ${PORT}`));
