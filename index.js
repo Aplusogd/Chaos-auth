@@ -1,11 +1,3 @@
-/**
- * A+ CHAOS ID: V114 (DOMAIN AUTHORITY)
- * STATUS: PRODUCTION.
- * FEATURES:
- * - Enforces 'overthere.ai' as the primary domain.
- * - Auto-redirects old traffic to the new fortress.
- * - DREAMS V4 Kinetic Defense & MBF Active.
- */
 import express from 'express';
 import path from 'path';
 import cors from 'cors';
@@ -29,22 +21,14 @@ const publicPath = path.join(__dirname, 'public');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// --- V114: DOMAIN ENFORCEMENT MIDDLEWARE ---
+// --- DOMAIN ENFORCEMENT ---
 app.use((req, res, next) => {
     const host = req.get('host');
     const targetDomain = 'overthere.ai';
-
-    // Skip redirection for localhost (Dev Mode)
-    if (host.includes('localhost') || host.includes('127.0.0.1')) {
-        return next();
-    }
-
-    // Force traffic to the Fortress Domain
-    if (host !== targetDomain && host !== `www.${targetDomain}`) {
-        console.log(`[TRAFFIC] Redirecting ${host} to ${targetDomain}`);
+    if (host && (host.includes('localhost') || host.includes('127.0.0.1'))) return next();
+    if (host && host !== targetDomain && host !== `www.${targetDomain}`) {
         return res.redirect(301, `https://${targetDomain}${req.originalUrl}`);
     }
-
     next();
 });
 
@@ -82,7 +66,7 @@ const DreamsEngine = {
 };
 
 // ==========================================
-// 2. CORE IDENTITY & SECURITY
+// 1. CORE IDENTITY
 // ==========================================
 const Users = new Map();
 const ADMIN_USER_ID = 'admin-user';
@@ -122,24 +106,22 @@ const Nightmare = {
 const Chaos = { mintToken: () => crypto.randomBytes(16).toString('hex') };
 const Challenges = new Map();
 
-// --- V114: DOMAIN LOCK ---
 const getOrigin = (req) => {
-    // If running in production (not localhost), force the domain
     const host = req.get('host');
-    if (host.includes('overthere.ai')) return 'https://overthere.ai';
+    if (host && host.includes('overthere.ai')) return '[https://overthere.ai](https://overthere.ai)';
     return `https://${req.headers['x-forwarded-host'] || host}`;
 };
 
 const getRpId = (req) => {
     const host = req.get('host');
-    if (host.includes('overthere.ai')) return 'overthere.ai';
-    return host.split(':')[0];
+    if (host && host.includes('overthere.ai')) return 'overthere.ai';
+    return host ? host.split(':')[0] : 'localhost';
 };
 
 const adminGuard = (req, res, next) => { if (!adminSession.has(req.headers['x-admin-session'])) return res.status(401).json({ error: 'Unauthorized' }); next(); };
 
 // ==========================================
-// 3. ROUTES
+// 2. ROUTES
 // ==========================================
 app.post('/api/v1/auth/reset', (req, res) => { Users.clear(); res.json({ success: true }); });
 
@@ -219,7 +201,6 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
     } catch (error) { res.status(400).json({ error: error.message }); } 
 });
 
-// --- ADMIN ROUTES ---
 app.post('/admin/login', async (req, res) => {
     const { password } = req.body;
     if (await bcrypt.compare(password, ADMIN_PW_HASH)) {
@@ -244,7 +225,6 @@ app.get('/admin/partners', adminGuard, (req, res) => {
     res.json({ partners });
 });
 
-// --- PUBLIC ---
 app.post('/api/v1/public/signup', (req, res) => {
     const { firstName, lastInitial, reason } = req.body;
     if (!firstName || !lastInitial || !reason) return res.status(400).json({ error: "Incomplete" });
@@ -277,4 +257,4 @@ app.get('/sdk', (req, res) => serve('sdk.html', res));
 app.get('/admin/portal', (req, res) => serve('portal.html', res));
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V114 (DOMAIN AUTHORITY) ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V116 (RESURRECTION LOCK) ONLINE: ${PORT}`));
