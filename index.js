@@ -1,9 +1,9 @@
 /**
- * A+ CHAOS ID: V113 (HYBRID TECH ACCESS)
+ * A+ CHAOS ID: V114 (DOMAIN AUTHORITY)
  * STATUS: PRODUCTION.
  * FEATURES:
- * - Tech Hub Passcode Fallback added.
- * - Standard Chaos Core active.
+ * - Enforces 'overthere.ai' as the primary domain.
+ * - Auto-redirects old traffic to the new fortress.
  */
 import express from 'express';
 import path from 'path';
@@ -28,8 +28,24 @@ const publicPath = path.join(__dirname, 'public');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// PRIMARY DOMAIN CONFIG
+const PRIMARY_DOMAIN = 'overthere.ai';
+
 app.use(cors({ origin: '*' })); 
 app.use(express.json());
+
+// --- V112/V114: CANONICAL REDIRECT MIDDLEWARE ---
+// Forces all traffic to the AI domain for professionalism
+app.use((req, res, next) => {
+    const host = req.get('host');
+    // If we are on the old render domain, move to the new one
+    // Only redirect if we are NOT on localhost (to allow dev testing)
+    if (host && host.includes('onrender.com') && process.env.NODE_ENV === 'production') {
+        return res.redirect(301, `https://${PRIMARY_DOMAIN}${req.url}`);
+    }
+    next();
+});
+
 app.use(express.static(publicPath, { maxAge: '1h' })); 
 
 // --- UTILITIES ---
@@ -49,32 +65,25 @@ const DreamsEngine = {
         let score = 100;
         if (durationMs < 100) score -= 50; 
         if (kinetic) {
-            if (kinetic.velocity > 15.0) score -= 40; 
-            if (kinetic.entropy < 0.1) score -= 60;  
+            if (kinetic.velocity > 10.0) score -= 40; 
+            if (kinetic.entropy < 0.2) score -= 60;  
         } else { score -= 10; }
         return Math.max(0, score);
     },
     check: (durationMs, kinetic) => {
         const s = DreamsEngine.score(durationMs, kinetic);
-        if (s < 20) return false; 
+        if (s < 20) return false;
         return true; 
     }
 };
 
 // ==========================================
-// 1. IDENTITY & TECH REGISTRY
+// 2. CORE IDENTITY
 // ==========================================
 const Users = new Map();
 const ADMIN_USER_ID = 'admin-user';
 let adminSession = new Map();
 let ADMIN_PW_HASH = process.env.ADMIN_PW_HASH || bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'chaos2025', 12);
-
-// --- NEW: TECH HUB PASSCODES (For the 3 Users) ---
-// In production, these should be hashed or in DB. For trial, memory is fine.
-const TechRegistry = new Map();
-TechRegistry.set('TECH-01', 'garage2026'); // Example Passcode
-TechRegistry.set('TECH-02', 'springs247');
-TechRegistry.set('TECH-03', 'opener55');
 
 if (process.env.ADMIN_CRED_ID && process.env.ADMIN_PUB_KEY) {
     try {
@@ -107,36 +116,23 @@ const Nightmare = {
 
 const Chaos = { mintToken: () => crypto.randomBytes(16).toString('hex') };
 const Challenges = new Map();
+
+// --- DOMAIN AUTHORITY HELPERS ---
 const getOrigin = (req) => `https://${req.headers['x-forwarded-host'] || req.get('host')}`;
-const getRpId = (req) => req.get('host').split(':')[0];
+
+const getRpId = (req) => {
+    const host = req.get('host');
+    // If the request is coming to overthere.ai, use that explicitly
+    if (host.includes(PRIMARY_DOMAIN)) return PRIMARY_DOMAIN;
+    // Otherwise fallback to whatever host we are on (e.g. localhost)
+    return host.split(':')[0];
+};
+
 const adminGuard = (req, res, next) => { if (!adminSession.has(req.headers['x-admin-session'])) return res.status(401).json({ error: 'Unauthorized' }); next(); };
 
 // ==========================================
-// 2. ROUTES
+// 3. AUTH ROUTES
 // ==========================================
-
-// --- TECH HUB PASSCODE LOGIN (NEW) ---
-app.post('/api/v1/auth/tech-login', (req, res) => {
-    const { id, passcode } = req.body;
-    
-    // Normalize ID
-    const techID = id.toUpperCase();
-    
-    if (TechRegistry.has(techID)) {
-        const validPass = TechRegistry.get(techID);
-        if (passcode === validPass) {
-            console.log(`[TECH HUB] Access Granted: ${techID}`);
-            return res.json({ success: true, token: Chaos.mintToken() });
-        }
-    }
-    
-    // Fake delay to prevent brute force
-    setTimeout(() => {
-        res.status(401).json({ error: "INVALID PASSCODE" });
-    }, 1000);
-});
-
-// AUTH ROUTES
 app.post('/api/v1/auth/reset', (req, res) => { Users.clear(); res.json({ success: true }); });
 
 app.get('/api/v1/auth/register-options', async (req, res) => {
@@ -233,11 +229,11 @@ app.post('/admin/generate-key', adminGuard, async (req, res) => {
     res.json({ success: true, key, tier });
 });
 app.get('/admin/partners', adminGuard, (req, res) => {
-    const partners = Array.from(Abyss.partners.entries()).map(([hash, p]) => ({ 
-        id: p.company, tier: p.tier, usage: p.quota_current, limit: p.quota_limit, reason: p.meta ? p.meta.reason : 'Legacy'
-    }));
+    const partners = Array.from(Abyss.partners.entries()).map(([hash, p]) => ({ id: p.company, tier: p.tier, usage: p.quota_current, limit: p.quota_limit }));
     res.json({ partners });
 });
+
+// PUBLIC API
 app.post('/api/v1/public/signup', (req, res) => {
     const { firstName, lastInitial, reason } = req.body;
     const key = `sk_chaos_${uuidv4().replace(/-/g, '').slice(0, 32)}`;
@@ -261,7 +257,7 @@ app.get('/dashboard', (req, res) => serve('dashboard.html', res));
 app.get('/admin', (req, res) => serve('admin.html', res));
 app.get('/sdk', (req, res) => serve('sdk.html', res));
 app.get('/admin/portal', (req, res) => serve('portal.html', res));
-app.get('/tech', (req, res) => serve('tech-hub.html', res)); // Renamed route for ease
+app.get('/tech', (req, res) => serve('tech-hub.html', res));
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V113 (HYBRID TECH) ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V114 (DOMAIN AUTHORITY) ONLINE: ${PORT}`));
