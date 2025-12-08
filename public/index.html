@@ -160,6 +160,7 @@
             <h2 class="text-2xl md:text-3xl font-bold text-white mb-4">DEPLOYING CHAOS INTO THE WILD</h2>
         </div>
         <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- SECTOR 1 -->
             <div class="sector-card p-6 rounded-xl">
                 <i class="fas fa-book icon-bg"></i>
                 <div class="text-xs text-blue-400 font-bold mb-2 uppercase">Knowledge</div>
@@ -173,7 +174,7 @@
                 <div class="text-xs text-yellow-400 font-bold mb-2 uppercase">Logistics</div>
                 <h3 class="text-lg font-bold text-white mb-3">Uber & DoorDash</h3>
                 <div class="bg-green-900/20 border-l-2 border-green-500 p-2 text-[10px] text-gray-300">
-                    <strong class="text-green-400 block">FIX: MBF FUSION</strong> Stops account renting.
+                    <strong class="text-green-400 block">FIX: MBF FUSION</strong> Identity cannot be rented.
                 </div>
             </div>
              <div class="sector-card p-6 rounded-xl">
@@ -218,7 +219,7 @@
                 <i class="fas fa-comment-dots mr-2"></i> SEND FEEDBACK
             </button>
         </div>
-        <p>© 2026 A+ Overhead Garage Doors / CHAOS ID Core.</p>
+        <p>© 2026 A+ Overhead Garage Doors / CHAOS ID Core. All Rights Reserved.</p>
     </footer>
 
     <!-- MODALS -->
@@ -397,6 +398,7 @@
                 });
                 alert("RECEIVED."); closeModal('feedback-modal'); e.target.reset();
             } catch(err) { alert("Failed"); }
+            btn.disabled = false; btn.innerText = "TRANSMIT";
         }
 
         // MATRIX
