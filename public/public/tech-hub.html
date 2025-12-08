@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A+ HUB | TECHNICIAN PORTAL</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="/chaos-sdk.js"></script> 
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+        body { background-color: #050505; color: #e5e5e5; font-family: 'JetBrains Mono', monospace; }
+        .panel { border: 1px solid #113311; background: rgba(0, 15, 0, 0.95); }
+        .hidden { display: none; }
+        .blur-lock { filter: blur(5px); pointer-events: none; opacity: 0.3; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- SECURITY GATE -->
+    <div id="security-gate" class="fixed inset-0 z-50 flex items-center justify-center bg-black p-4">
+        <div class="w-full max-w-sm text-center">
+            <div class="mb-8">
+                <h1 class="text-3xl font-bold text-white tracking-widest">A+ <span class="text-green-500">HUB</span></h1>
+                <p class="text-xs text-gray-500 mt-2">SECURE FIELD OPERATIONS</p>
+            </div>
+
+            <div class="panel p-6 rounded-xl shadow-[0_0_30px_rgba(0,255,65,0.1)]">
+                <label class="text-[10px] text-green-500 uppercase block text-left mb-1">Employee ID</label>
+                <input type="text" id="employee-id" placeholder="e.g. TECH-01" class="w-full bg-black border border-green-900 text-white p-3 rounded mb-4 focus:border-green-500 outline-none text-center tracking-widest uppercase">
+                
+                <!-- BIOMETRIC MODE -->
+                <div id="bio-mode">
+                    <button onclick="authenticateBio()" id="auth-btn" class="w-full py-4 bg-green-600 text-black font-bold rounded shadow-lg hover:bg-green-500 transition">
+                        <i class="fas fa-fingerprint mr-2"></i> BIOMETRIC ACCESS
+                    </button>
+                    <p class="mt-4 text-xs text-gray-500 cursor-pointer hover:text-white" onclick="toggleMode()">
+                        <i class="fas fa-key mr-1"></i> Use Passcode
+                    </p>
+                </div>
+
+                <!-- PASSCODE MODE -->
+                <div id="pass-mode" class="hidden">
+                    <input type="password" id="passcode" placeholder="ENTER PASSCODE" class="w-full bg-black border border-green-900 text-white p-3 rounded mb-4 focus:border-green-500 outline-none text-center">
+                    <button onclick="authenticatePass()" id="pass-btn" class="w-full py-4 bg-blue-600 text-white font-bold rounded shadow-lg hover:bg-blue-500 transition">
+                        <i class="fas fa-unlock mr-2"></i> UNLOCK
+                    </button>
+                    <p class="mt-4 text-xs text-gray-500 cursor-pointer hover:text-white" onclick="toggleMode()">
+                        <i class="fas fa-fingerprint mr-1"></i> Use Biometrics
+                    </p>
+                </div>
+
+                <div id="auth-status" class="mt-4 text-xs text-gray-500">WAITING FOR INPUT...</div>
+            </div>
+            
+            <p class="mt-8 text-[10px] text-gray-600">PROTECTED BY CHAOS ID CORE</p>
+        </div>
+    </div>
+
+    <!-- TECH HUB CONTENT (Protected) -->
+    <div id="hub-content" class="flex-grow p-4 blur-lock transition duration-500">
+        <nav class="flex justify-between items-center mb-8 pb-4 border-b border-gray-800">
+            <div>
+                <h2 class="text-lg font-bold text-white">FIELD OPS</h2>
+                <p class="text-xs text-green-500">ONLINE: <span id="tech-name">...</span></p>
+            </div>
+            <button onclick="logout()" class="text-xs text-red-500 border border-red-900 px-3 py-1 rounded">LOCK</button>
+        </nav>
+
+        <div class="grid grid-cols-2 gap-4 mb-8">
+            <button class="panel p-4 rounded-lg text-center hover:border-green-500 transition"><i class="fas fa-calendar-check text-2xl text-blue-400 mb-2"></i><div class="text-xs font-bold text-gray-300">SCHEDULE</div></button>
+            <button class="panel p-4 rounded-lg text-center hover:border-green-500 transition"><i class="fas fa-file-invoice-dollar text-2xl text-green-400 mb-2"></i><div class="text-xs font-bold text-gray-300">INVOICES</div></button>
+            <button class="panel p-4 rounded-lg text-center hover:border-green-500 transition"><i class="fas fa-warehouse text-2xl text-yellow-400 mb-2"></i><div class="text-xs font-bold text-gray-300">INVENTORY</div></button>
+            <button class="panel p-4 rounded-lg text-center hover:border-green-500 transition"><i class="fas fa-map-location-dot text-2xl text-purple-400 mb-2"></i><div class="text-xs font-bold text-gray-300">ROUTE MAP</div></button>
+        </div>
+
+        <h3 class="text-sm font-bold text-white mb-4 border-l-2 border-green-500 pl-2">TODAY'S TICKETS</h3>
+        <div class="space-y-4">
+            <div class="panel p-4 rounded-lg flex justify-between items-center">
+                <div><div class="text-xs text-blue-400 font-bold">09:00 AM</div><div class="text-sm text-white">Spring Replacement</div><div class="text-[10px] text-gray-500">123 Alamo Heights Dr.</div></div>
+                <button class="px-3 py-1 bg-green-900/50 text-green-400 text-[10px] rounded border border-green-700">VIEW</button>
+            </div>
+            <div class="panel p-4 rounded-lg flex justify-between items-center">
+                <div><div class="text-xs text-blue-400 font-bold">11:30 AM</div><div class="text-sm text-white">Opener Install (LiftMaster)</div><div class="text-[10px] text-gray-500">450 Stone Oak Pkwy.</div></div>
+                <button class="px-3 py-1 bg-green-900/50 text-green-400 text-[10px] rounded border border-green-700">VIEW</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const sdk = new ChaosSDK({ apiKey: 'sk_chaos_INTERNAL_TEAM_KEY', tier: 'Enterprise', endpoint: '/api/v1' });
+
+        function toggleMode() {
+            const bio = document.getElementById('bio-mode');
+            const pass = document.getElementById('pass-mode');
+            if (bio.classList.contains('hidden')) {
+                bio.classList.remove('hidden'); pass.classList.add('hidden');
+            } else {
+                bio.classList.add('hidden'); pass.classList.remove('hidden');
+            }
+        }
+
+        async function authenticateBio() {
+            const btn = document.getElementById('auth-btn');
+            const status = document.getElementById('auth-status');
+            const techId = document.getElementById('employee-id').value;
+
+            if(!techId) return status.innerText = "ENTER EMPLOYEE ID";
+            
+            btn.disabled = true; btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> VERIFYING...';
+            status.innerText = "INITIATING DREAMS PROTOCOL...";
+            status.classList.remove("text-red-500");
+
+            try {
+                const result = await sdk.mbfLogin(techId);
+                if (result.success) unlockHub(techId);
+            } catch (e) {
+                status.innerText = "BIO FAIL: " + e.message;
+                status.classList.add("text-red-500");
+                btn.disabled = false; btn.innerHTML = '<i class="fas fa-fingerprint mr-2"></i> RETRY ACCESS';
+            }
+        }
+
+        async function authenticatePass() {
+            const btn = document.getElementById('pass-btn');
+            const status = document.getElementById('auth-status');
+            const techId = document.getElementById('employee-id').value;
+            const passcode = document.getElementById('passcode').value;
+
+            if(!techId || !passcode) return status.innerText = "ENTER ID & CODE";
+
+            btn.disabled = true; btn.innerHTML = 'CHECKING...';
+            
+            try {
+                const res = await fetch('/api/v1/auth/tech-login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: techId, passcode: passcode })
+                });
+                const data = await res.json();
+                
+                if (data.success) unlockHub(techId);
+                else throw new Error("Invalid Code");
+            } catch (e) {
+                status.innerText = "ACCESS DENIED";
+                status.classList.add("text-red-500");
+                btn.disabled = false; btn.innerHTML = '<i class="fas fa-unlock mr-2"></i> UNLOCK';
+            }
+        }
+
+        function unlockHub(id) {
+            const gate = document.getElementById('security-gate');
+            const hub = document.getElementById('hub-content');
+            gate.style.transition = "opacity 0.5s"; gate.style.opacity = "0";
+            setTimeout(() => gate.style.display = "none", 500);
+            hub.classList.remove('blur-lock');
+            document.getElementById('tech-name').innerText = id.toUpperCase();
+        }
+
+        function logout() { location.reload(); }
+    </script>
+</body>
+</html>
