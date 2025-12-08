@@ -1,7 +1,7 @@
 {
   "name": "aplus-chaos-core",
-  "version": "39.0.0",
-  "description": "A+ CHAOS ID Core — Quantum-Resistant, Behavior-Aware, ZKP-Audited Identity Platform",
+  "version": "1.16.0",
+  "description": "A+ Chaos Security Core - Production V116",
   "main": "index.js",
   "type": "module",
   "engines": {
@@ -9,8 +9,6 @@
   },
   "scripts": {
     "start": "node index.js",
-    "dev": "node --watch index.js",
-    "lint": "eslint .",
     "build:sdk": "esbuild public/chaos-sdk.js --bundle --minify --outfile=public/chaos-sdk.min.js --format=iife --global-name=ChaosSDK"
   },
   "dependencies": {
@@ -19,15 +17,15 @@
     "cors": "^2.8.5",
     "bcrypt": "^5.1.1",
     "uuid": "^9.0.1",
-    "@noble/bls12-381": "^1.4.0",           
-    "@noble/curves": "^1.2.0",              
-    "snarkjs": "^0.7.4",                    
-    "circomlibjs": "^0.1.7",                
-    "pg": "^8.12.0",                        
-    "redis": "^4.6.15",                     
-    "helmet": "^7.1.0",                     
-    "rate-limit-redis": "^4.1.0",           
-    "express-rate-limit": "^7.1.5"          
+    "@noble/bls12-381": "^1.4.0",
+    "@noble/curves": "^1.2.0",
+    "snarkjs": "^0.7.4",
+    "circomlibjs": "^0.1.7",
+    "pg": "^8.12.0",
+    "redis": "^4.6.15",
+    "helmet": "^7.1.0",
+    "rate-limit-redis": "^4.1.0",
+    "express-rate-limit": "^7.1.5"
   },
   "devDependencies": {
     "esbuild": "^0.21.5",
@@ -35,4 +33,3 @@
   },
   "private": true
 }
-
