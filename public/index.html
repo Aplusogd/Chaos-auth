@@ -4,51 +4,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CHAOS ID — AI-Native Identity Provider</title>
-    <meta name="description" content="The world's first Quantum-Resistant, Behavior-Aware Identity Platform.">
-    
-    <!-- OPTIMIZATION: Pre-connect to external assets -->
-    <link rel="preconnect" href="https://cdn.tailwindcss.com">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    
-    <!-- Heavy Script -->
+    <meta name="description" content="Quantum-Resistant, Behavior-Aware Identity. The new standard for AI security.">
     <script src="https://cdn.tailwindcss.com"></script>
-    
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* CRITICAL CSS (Loads Instantly) */
+        /* CORE STYLES */
         @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono:wght@400;700&display=swap');
-        
         body { 
             background-color: #000; 
             color: #E5E7EB; 
             font-family: 'Share Tech Mono', monospace; 
             overflow-x: hidden; 
-            margin: 0;
         }
-
-        /* NATIVE PRELOADER (Shows before Tailwind) */
-        #preloader {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; z-index: 9999;
-            display: flex; justify-content: center; align-items: center;
-            flex-direction: column;
-            transition: opacity 0.5s ease-out;
-        }
-        .loader-text { color: #00ff41; font-size: 20px; letter-spacing: 5px; margin-bottom: 10px; font-family: monospace; }
-        .loader-bar { width: 200px; height: 2px; background: #111; overflow: hidden; }
-        .loader-progress { width: 100%; height: 100%; background: #00ff41; animation: loading 1.5s infinite; transform-origin: left; }
-        @keyframes loading { 0% { transform: scaleX(0); } 50% { transform: scaleX(1); } 100% { transform: scaleX(0); transform-origin: right; } }
         
-        .hidden-loader { opacity: 0; pointer-events: none; }
-
-        /* CORE STYLES */
         .neon-text { text-shadow: 0 0 5px #00ff41, 0 0 10px #00ff41; }
         .neon-border { border: 1px solid rgba(0, 255, 65, 0.3); box-shadow: 0 0 15px rgba(0, 255, 65, 0.1); }
         .terminal-bg { background: rgba(0, 15, 0, 0.95); }
         
         /* MATRIX RAIN */
-        #matrix-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.1; }
+        #matrix-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.15; }
 
         /* BENCHMARK VISUALIZERS */
         #entropy-map { image-rendering: pixelated; width: 100%; height: 60px; background: #050505; border-bottom: 1px solid #333; }
@@ -60,24 +34,14 @@
         /* MODALS */
         #reg-modal, #feedback-modal { display: none; background: rgba(0,0,0,0.95); }
         .modal-active { display: flex !important; }
-        
-        .blink { animation: blink 1s step-end infinite; }
-        @keyframes blink { 50% { opacity: 0; } }
-        
+        .progress-bar { transition: width 0.1s linear; }
+
         /* SECTOR CARDS */
         .sector-card { background: rgba(10, 20, 10, 0.6); border: 1px solid #113311; transition: all 0.3s ease; position: relative; overflow: hidden; }
         .sector-card:hover { border-color: #00ff41; transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0, 255, 65, 0.1); }
-        .icon-bg { position: absolute; top: -10px; right: -10px; font-size: 5rem; opacity: 0.05; color: white; transform: rotate(15deg); }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
-
-    <!-- PRELOADER -->
-    <div id="preloader">
-        <div class="loader-text">INITIALIZING CHAOS...</div>
-        <div class="loader-bar"><div class="loader-progress"></div></div>
-    </div>
-
     <canvas id="matrix-canvas"></canvas>
 
     <!-- NAV BAR -->
@@ -95,13 +59,13 @@
     <!-- HERO SECTION -->
     <header class="text-center py-20 px-4 relative z-10">
         <div class="inline-block mb-4 text-[10px] md:text-xs border border-green-500 text-green-500 px-3 py-1 rounded-full bg-green-900/10">
-            V109 PRODUCTION LIVE
+            V120 GOLD MASTER
         </div>
         <h1 class="text-4xl md:text-7xl font-extrabold text-white mb-6 tracking-tight leading-tight">
             THE AGE OF PASSKEYS<br><span class="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500 neon-text">IS OVER.</span>
         </h1>
         <p class="text-lg md:text-xl text-gray-400 mb-10 max-w-2xl mx-auto">
-            Unbreakable, AI-Native Identity. Secured by <strong class="text-white">Multi-Factor Biometric Fusion</strong>.
+            Unbreakable, AI-Native Identity. Secured by <strong class="text-white">Multi-Factor Biometric Fusion</strong> and <strong class="text-white">DREAMS V4 Cognitive Entropy</strong>.
         </p>
 
         <div class="flex flex-col md:flex-row justify-center gap-4">
@@ -114,7 +78,7 @@
         </div>
     </header>
 
-    <!-- LIVE BENCHMARK SUITE -->
+    <!-- BENCHMARK SUITE (The Proof) -->
     <section id="benchmark" class="max-w-6xl mx-auto px-4 mb-20 relative z-10 border-t border-gray-900 pt-16">
         <div class="text-center mb-10">
             <h2 class="text-2xl font-bold text-white mb-2">LIVE CRYPTOGRAPHIC AUDIT</h2>
@@ -122,7 +86,7 @@
         </div>
 
         <div class="grid md:grid-cols-12 gap-6">
-            <!-- LEFT: SCRIPT SELECTOR -->
+            <!-- SCRIPT SELECTOR -->
             <div class="md:col-span-4 space-y-4">
                 <div class="p-4 border border-green-900 rounded bg-gray-900/20">
                     <h3 class="text-green-500 font-bold mb-4 text-xs border-b border-green-900 pb-2 tracking-widest">AVAILABLE SCRIPTS</h3>
@@ -131,12 +95,10 @@
                         <div class="font-bold text-sm text-white">1. AUDIT_ENTROPY.JS</div>
                         <div class="text-[10px] text-gray-500">Chi-Squared Randomness Test</div>
                     </button>
-
                     <button onclick="selectScript('defense')" id="btn-defense" class="script-btn w-full p-3 mb-2 rounded">
                         <div class="font-bold text-sm text-white">2. SIM_BOT_SWARM.JS</div>
                         <div class="text-[10px] text-gray-500">Test DREAMS V4 vs AI Agents</div>
                     </button>
-
                     <button onclick="selectScript('speed')" id="btn-speed" class="script-btn w-full p-3 rounded">
                         <div class="font-bold text-sm text-white">3. TEST_THROUGHPUT.JS</div>
                         <div class="text-[10px] text-gray-500">Latency & Jitter Analysis</div>
@@ -144,10 +106,9 @@
                 </div>
             </div>
 
-            <!-- RIGHT: EXECUTION TERMINAL -->
+            <!-- TERMINAL -->
             <div class="md:col-span-8">
                 <div class="neon-border rounded-lg bg-black overflow-hidden flex flex-col h-[450px]">
-                    <!-- Toolbar -->
                     <div class="bg-gray-900 p-2 flex justify-between items-center border-b border-gray-800">
                         <div class="text-xs text-gray-400 flex gap-2 font-mono">
                             <span class="text-green-500">●</span> <span id="script-name">audit_entropy.js</span>
@@ -157,43 +118,31 @@
                         </button>
                     </div>
 
-                    <!-- Visualizer Canvas -->
                     <div id="viz-container" class="border-b border-gray-800 bg-gray-900/50 hidden">
                         <canvas id="entropy-map" width="600" height="60"></canvas>
                     </div>
 
-                    <!-- Terminal Output -->
                     <div id="terminal" class="flex-grow p-4 font-mono text-xs overflow-y-auto text-green-400 space-y-1">
                         <div class="text-gray-500">// Select a script to begin audit...</div>
                     </div>
                     
-                    <!-- Footer Stats -->
                     <div class="bg-gray-900 p-2 grid grid-cols-3 border-t border-gray-800 text-center text-[10px] font-mono">
-                        <div>
-                            <span class="text-gray-500">STATUS</span><br>
-                            <span id="stat-status" class="text-white">IDLE</span>
-                        </div>
-                        <div>
-                            <span class="text-gray-500">DATA POINTS</span><br>
-                            <span id="stat-points" class="text-blue-400">0</span>
-                        </div>
-                        <div>
-                            <span class="text-gray-500">METRIC</span><br>
-                            <span id="stat-score" class="text-white">--</span>
-                        </div>
+                        <div><span class="text-gray-500">STATUS</span><br><span id="stat-status" class="text-white">IDLE</span></div>
+                        <div><span class="text-gray-500">DATA POINTS</span><br><span id="stat-points" class="text-blue-400">0</span></div>
+                        <div><span class="text-gray-500">METRIC</span><br><span id="stat-score" class="text-white">--</span></div>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- STRATEGIC SECTORS -->
+    <!-- STRATEGIC SECTORS (The Value) -->
     <section class="py-16 max-w-7xl mx-auto px-4 relative z-10 border-t border-gray-900">
         <div class="text-center mb-12">
             <h2 class="text-2xl md:text-3xl font-bold text-white mb-4">DEPLOYING CHAOS INTO THE WILD</h2>
+            <p class="text-gray-500 text-sm">Universal solutions for critical industries.</p>
         </div>
         <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- SECTOR 1 -->
             <div class="sector-card p-6 rounded-xl">
                 <i class="fas fa-book icon-bg"></i>
                 <div class="text-xs text-blue-400 font-bold mb-2 uppercase">Knowledge</div>
@@ -207,7 +156,7 @@
                 <div class="text-xs text-yellow-400 font-bold mb-2 uppercase">Logistics</div>
                 <h3 class="text-lg font-bold text-white mb-3">Uber & DoorDash</h3>
                 <div class="bg-green-900/20 border-l-2 border-green-500 p-2 text-[10px] text-gray-300">
-                    <strong class="text-green-400 block">FIX: MBF FUSION</strong> Identity cannot be rented.
+                    <strong class="text-green-400 block">FIX: MBF FUSION</strong> Stops account renting.
                 </div>
             </div>
              <div class="sector-card p-6 rounded-xl">
@@ -218,40 +167,14 @@
                     <strong class="text-green-400 block">FIX: PQC HYBRID</strong> Quantum-proof encryption.
                 </div>
             </div>
-             <div class="sector-card p-6 rounded-xl">
-                <i class="fas fa-gamepad icon-bg"></i>
-                <div class="text-xs text-cyan-400 font-bold mb-2 uppercase">Gaming</div>
-                <h3 class="text-lg font-bold text-white mb-3">Anti-Cheat</h3>
-                <div class="bg-green-900/20 border-l-2 border-green-500 p-2 text-[10px] text-gray-300">
-                    <strong class="text-green-400 block">FIX: KINETIC TOTEM</strong> Physics-based bot detection.
-                </div>
-            </div>
-             <div class="sector-card p-6 rounded-xl">
-                <i class="fas fa-university icon-bg"></i>
-                <div class="text-xs text-purple-400 font-bold mb-2 uppercase">Finance</div>
-                <h3 class="text-lg font-bold text-white mb-3">Banking</h3>
-                <div class="bg-green-900/20 border-l-2 border-green-500 p-2 text-[10px] text-gray-300">
-                    <strong class="text-green-400 block">FIX: CHAOS PULSE</strong> Rolling keys prevent phishing.
-                </div>
-            </div>
-             <div class="sector-card p-6 rounded-xl">
-                <i class="fas fa-heartbeat icon-bg"></i>
-                <div class="text-xs text-red-400 font-bold mb-2 uppercase">Healthcare</div>
-                <h3 class="text-lg font-bold text-white mb-3">Privacy</h3>
-                <div class="bg-green-900/20 border-l-2 border-green-500 p-2 text-[10px] text-gray-300">
-                    <strong class="text-green-400 block">FIX: ZKP AUDITS</strong> Zero-Knowledge compliance.
-                </div>
-            </div>
         </div>
     </section>
 
     <!-- FOOTER -->
     <footer class="py-12 border-t border-gray-800 mt-auto bg-black relative z-10 text-center text-gray-600 text-xs">
-        <div class="flex justify-center gap-6 mb-8">
-            <button onclick="openModal('feedback-modal')" class="text-green-500 hover:text-white border border-green-900 px-4 py-2 rounded hover:bg-green-900/30 transition">
-                <i class="fas fa-comment-dots mr-2"></i> SEND FEEDBACK
-            </button>
-        </div>
+        <button onclick="openModal('feedback-modal')" class="mb-6 text-green-500 hover:text-white border border-green-900 px-4 py-2 rounded hover:bg-green-900/30 transition">
+            <i class="fas fa-comment-dots mr-2"></i> SEND FEEDBACK
+        </button>
         <p>© 2026 A+ Overhead Garage Doors / CHAOS ID Core. All Rights Reserved.</p>
     </footer>
 
@@ -289,12 +212,6 @@
 
     <!-- LOGIC -->
     <script>
-        // HIDE PRELOADER
-        window.addEventListener('load', () => {
-            const pre = document.getElementById('preloader');
-            if(pre) { pre.style.opacity = '0'; setTimeout(() => pre.remove(), 500); }
-        });
-
         let currentScript = 'entropy';
         const term = document.getElementById('terminal');
         const API = '/api/v1';
@@ -337,7 +254,7 @@
                 drawNoise(ctx, data.hash); // Visual noise
                 
                 if(i % 5 === 0) log(`> Harvested Block: ${data.hash.substring(0, 16)}...`, "text-gray-500");
-                await new Promise(r => setTimeout(r, 20)); // tiny delay for visual effect
+                await new Promise(r => setTimeout(r, 20)); 
             }
             
             const unique = new Set(samples).size;
@@ -370,7 +287,6 @@
             for(let i=1; i<=10; i++) {
                 log(`> Bot_v${i} attempting login (Velocity: 20.0, Entropy: 0)...`, "text-gray-500");
                 await new Promise(r => setTimeout(r, 100)); // Sim delay
-                // Note: We use the pulse demo as proxy since we can't spoof login easily here
                 log(`> Nightmare Firewall: [BLOCKED] - Kinetic Anomaly Detected`, "text-red-500");
                 updateStats(i, "ENGAGED");
             }
@@ -437,7 +353,6 @@
                 });
                 alert("RECEIVED."); closeModal('feedback-modal'); e.target.reset();
             } catch(err) { alert("Failed"); }
-            btn.disabled = false; btn.innerText = "TRANSMIT";
         }
 
         // MATRIX
