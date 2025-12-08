@@ -3,32 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>A+ CHAOS | GATE</title>
+    <title>A+ CHAOS | SECURE GATE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@simplewebauthn/browser@10.0.0/dist/bundle/index.umd.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
-        body { background-color: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; touch-action: none; overflow: hidden; user-select: none; }
-        .hud-status { font-size: 1.5rem; font-weight: 800; text-align: center; margin-top: 20vh; text-shadow: 0 0 10px #00ff41; pointer-events: none; transition: all 0.5s; }
-        .well-container { position: absolute; bottom: 140px; left: 50%; transform: translateX(-50%); width: 120px; height: 160px; border-left: 2px solid #004400; border-right: 2px solid #004400; border-bottom: 2px solid #004400; border-radius: 0 0 30px 30px; border-top: none; background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0, 255, 65, 0.05)); pointer-events: none; z-index: 10; }
-        .totem { width: 90px; height: 90px; background: #00ff41; border-radius: 50%; position: absolute; bottom: 130px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; font-size: 36px; color: #002200; box-shadow: 0 0 25px #00ff41; cursor: pointer; z-index: 50; transition: filter 0.5s, box-shadow 0.5s, background-color 0.5s; }
-        .totem.offline { filter: grayscale(100%); opacity: 0.3; cursor: wait; }
+        body { 
+            background-color: #000; 
+            color: #00ff41; 
+            font-family: 'JetBrains Mono', monospace; 
+            touch-action: none; /* Disables scrolling globally */
+            overflow: hidden; 
+            user-select: none;
+        }
+
+        .hud-status { 
+            font-size: 1.5rem; 
+            font-weight: 800; 
+            text-align: center; 
+            margin-top: 20vh; 
+            text-shadow: 0 0 10px #00ff41; 
+            transition: all 0.5s;
+        }
+
+        .well-container { 
+            position: absolute; bottom: 140px; left: 50%; transform: translateX(-50%); 
+            width: 120px; height: 160px; 
+            border-left: 2px solid #004400; border-right: 2px solid #004400; border-bottom: 2px solid #004400; 
+            border-radius: 0 0 30px 30px; border-top: none; 
+            background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0, 255, 65, 0.05)); 
+            pointer-events: none; z-index: 10; 
+        }
+
+        .totem { 
+            width: 100px; height: 100px; /* Bigger Hitbox */
+            background: #00ff41; 
+            border-radius: 50%; 
+            position: absolute; bottom: 130px; left: 50%; transform: translateX(-50%); 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 40px; color: #002200; 
+            box-shadow: 0 0 25px #00ff41; 
+            cursor: pointer; z-index: 50; 
+            touch-action: none; /* CRITICAL FIX */
+            transition: filter 0.5s, box-shadow 0.5s, background-color 0.5s, transform 0.1s; 
+        }
+        
+        /* Loading/Offline State */
+        .totem.offline { 
+            filter: grayscale(100%); 
+            opacity: 0.3; 
+            cursor: wait; 
+            pointer-events: none; /* Prevents clicks while loading */
+        }
+        
         .totem.imprint { background: #0088ff; box-shadow: 0 0 25px #0088ff; color: #001133; }
-        .totem:active:not(.offline) { transform: translateX(-50%) scale(1.15); }
+        
+        .totem:active { transform: translateX(-50%) scale(0.9); } /* Press Effect */
+        
         .launching { transition: bottom 0.4s cubic-bezier(0.1, 0.7, 0.1, 1), opacity 0.4s; bottom: 120vh !important; opacity: 0; }
         .falling { transition: bottom 0.6s cubic-bezier(0.5, 0, 0.5, 1.5); bottom: 130px !important; }
-        .status-dot { position: absolute; top: 20px; right: 20px; width: 8px; height: 8px; border-radius: 50%; background: #330000; border: 1px solid #550000; transition: all 0.5s; }
-        .status-dot.online { background: #00ff41; border-color: #aaffaa; box-shadow: 0 0 10px #00ff41; }
-        #dna-zone { display: none; } /* Hidden by default */
+
+        #dna-zone { display: none; }
+        .status-dot { position: absolute; top: 20px; right: 20px; width: 10px; height: 10px; border-radius: 50%; background: #333; transition: background 0.5s; }
+        .status-dot.online { background: #00ff41; box-shadow: 0 0 10px #00ff41; }
+        .status-dot.error { background: #ff0000; box-shadow: 0 0 10px #ff0000; }
+        
+        /* Debug Text */
+        #debug-msg { position: absolute; bottom: 20px; width: 100%; text-align: center; font-size: 10px; color: #333; }
     </style>
 </head>
 <body class="h-screen w-screen">
 
     <div id="status-dot" class="status-dot"></div>
-    <div id="hud" class="hud-status text-yellow-500">...</div>
+    <div id="hud" class="hud-status text-yellow-500">CONNECTING...</div>
+    
     <div class="well-container"></div>
+    <!-- Totem starts offline -->
     <div class="totem offline" id="totem"><i class="fas fa-fingerprint"></i></div>
     
+    <div id="debug-msg">Initializing...</div>
+
+    <!-- DNA Copy Zone -->
     <div id="dna-zone" class="fixed top-0 left-0 w-full h-full bg-black/95 p-6 z-50 flex flex-col justify-center">
         <p class="text-white text-xs mb-2">SECURE STORAGE REQUIRED:</p>
         <textarea id="dna-text" class="w-full h-40 bg-gray-900 text-green-400 text-xs p-2 rounded font-mono mb-4" readonly></textarea>
@@ -36,58 +91,97 @@
     </div>
 
     <script>
-        // V92 SILENT MONOLITH
         const { startRegistration, startAuthentication } = SimpleWebAuthnBrowser;
         const API = '/api/v1';
         const HEADERS = { 'Content-Type': 'application/json' };
         
         let mode = 'LOGIN';
-        let isDragging = false; let startY = 0; let lastTime = 0; let lastY = 0; let velocityY = 0;
+        let isDragging = false; 
+        let startY = 0; 
         const totem = document.getElementById('totem');
+        const debug = document.getElementById('debug-msg');
 
-        // GROK DEFENSE: Prevent Debug Tampering
-        try { localStorage.removeItem('debugMode'); } catch(e){}
-
+        // --- 1. CONNECTION CHECK ---
         async function preheat() {
             try {
+                debug.innerText = "Pinging Server...";
+                // Wake up server
+                const health = await fetch(`${API}/health`);
+                if(!health.ok) throw new Error("Server Sleep");
+
+                // Check Auth Mode
                 const resp = await fetch(`${API}/auth/login-options`, { headers: HEADERS });
+                
                 if(resp.ok) {
                     mode = 'LOGIN';
-                    document.getElementById('hud').innerText = "CAST TOTEM";
+                    document.getElementById('hud').innerText = "TAP TO VERIFY"; // Instruction changed to TAP
                     document.getElementById('hud').className = "hud-status text-green-500";
                     totem.classList.remove('offline', 'imprint');
                     document.getElementById('status-dot').className = "status-dot online";
+                    debug.innerText = "Online (Login Mode)";
                 } else if (resp.status === 404) {
                     mode = 'REGISTER';
-                    document.getElementById('hud').innerText = "IMPRINT";
+                    document.getElementById('hud').innerText = "TAP TO IMPRINT";
                     document.getElementById('hud').className = "hud-status text-blue-400";
                     totem.classList.remove('offline');
                     totem.classList.add('imprint');
                     document.getElementById('status-dot').className = "status-dot online";
+                    debug.innerText = "Online (Register Mode)";
                 }
-            } catch(e) { setTimeout(preheat, 3000); }
+            } catch(e) { 
+                document.getElementById('hud').innerText = "WAKING ABYSS...";
+                document.getElementById('status-dot').className = "status-dot error";
+                debug.innerText = "Retrying Connection...";
+                setTimeout(preheat, 3000); 
+            }
         }
         setTimeout(preheat, 100);
 
-        // PHYSICS ENGINE (Minified Logic)
-        totem.addEventListener('touchstart', (e) => { isDragging=true; startY=e.touches[0].clientY; totem.classList.remove('falling', 'launching'); totem.style.transition='none'; });
+        // --- 2. INTERACTION HANDLERS ---
+        
+        // CLICK / TAP HANDLER (Fallback for sliding)
+        totem.addEventListener('click', (e) => {
+            if(totem.classList.contains('offline')) return;
+            // Prevent double-fire if drag was small
+            if(!isDragging) launch();
+        });
+
+        // DRAG HANDLERS
+        totem.addEventListener('touchstart', (e) => { 
+            isDragging = false; 
+            startY = e.touches[0].clientY; 
+            totem.classList.remove('falling', 'launching'); 
+            totem.style.transition = 'none'; 
+        }, { passive: false });
+
         totem.addEventListener('touchmove', (e) => {
-            if(!isDragging) return; e.preventDefault();
+            e.preventDefault(); // Stop scroll
             const y = e.touches[0].clientY;
             const delta = startY - y;
-            if(delta > 0) totem.style.bottom = (130 + delta) + 'px';
+            
+            // If moved more than 5px, it's a drag, not a click
+            if (Math.abs(delta) > 5) isDragging = true;
+
+            if (delta > 0) totem.style.bottom = (130 + delta) + 'px';
         }, { passive: false });
         
         totem.addEventListener('touchend', (e) => {
-            isDragging=false;
             const b = parseFloat(totem.style.bottom);
-            if(b > 280) launch();
-            else { totem.classList.add('falling'); totem.style.bottom='130px'; }
+            // If dragged high enough, launch. Otherwise reset.
+            if (isDragging && b > 250) {
+                launch();
+            } else {
+                totem.classList.add('falling'); 
+                totem.style.bottom = '130px'; 
+                // Note: If isDragging was false (just a tap), the 'click' listener handles launch
+            }
+            setTimeout(() => isDragging = false, 100);
         });
-        
-        totem.addEventListener('mousedown', () => launch());
 
+        // --- 3. EXECUTION ---
         async function launch() {
+            if(totem.classList.contains('offline')) return;
+            
             totem.classList.add('launching');
             document.getElementById('hud').innerText = "PROCESSING...";
             
@@ -117,15 +211,14 @@
             } catch(e) {
                 document.getElementById('hud').innerText = "DENIED";
                 document.getElementById('hud').className = "hud-status text-red-500";
+                debug.innerText = "Error: " + e.message;
                 setTimeout(() => {
                     totem.classList.remove('launching');
                     totem.classList.add('falling');
-                    preheat();
+                    preheat(); // Reset state
                 }, 2000);
             }
         }
     </script>
 </body>
 </html>
-
-
