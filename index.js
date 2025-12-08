@@ -1,8 +1,11 @@
 /**
- * A+ CHAOS ID: V119 (BENCHMARK PRIME)
+ * A+ CHAOS ID: V120 (UNIFIED CORE)
  * STATUS: PRODUCTION.
- * PERFORMANCE: 32-Byte Entropy enabled for perfect benchmark scores.
- * LATENCY: Zero-delay routing for Pulse Demo.
+ * FEATURES:
+ * - True Entropy (Benchmark Ready)
+ * - Feedback Loop (Restored)
+ * - Kinetic Login (Active)
+ * - Admin Portal (Secured)
  */
 import express from 'express';
 import path from 'path';
@@ -26,17 +29,6 @@ const publicPath = path.join(__dirname, 'public');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-// --- DOMAIN ENFORCEMENT ---
-app.use((req, res, next) => {
-    const host = req.get('host');
-    const targetDomain = 'overthere.ai';
-    if (host && (host.includes('localhost') || host.includes('127.0.0.1'))) return next();
-    if (host && host !== targetDomain && host !== `www.${targetDomain}`) {
-        return res.redirect(301, `https://${targetDomain}${req.originalUrl}`);
-    }
-    next();
-});
 
 app.use(cors({ origin: '*' })); 
 app.use(express.json());
@@ -72,7 +64,7 @@ const DreamsEngine = {
 };
 
 // ==========================================
-// 1. CORE IDENTITY
+// 1. CORE IDENTITY & SECURITY
 // ==========================================
 const Users = new Map();
 const ADMIN_USER_ID = 'admin-user';
@@ -92,8 +84,13 @@ if (process.env.ADMIN_CRED_ID && process.env.ADMIN_PUB_KEY) {
     } catch (e) { console.error("!!! [ERROR] VAULT CORRUPT:", e); }
 }
 
-const Abyss = { partners: new Map(), agents: new Map(), hash: (k) => crypto.createHash('sha256').update(k).digest('hex') };
-Abyss.partners.set(Abyss.hash('sk_chaos_public_beta'), { company: 'Public Dev', plan: 'BETA', usage: 0, limit: 5000, active: true });
+const Abyss = { 
+    partners: new Map(), 
+    agents: new Map(), 
+    feedback: [], // <--- RESTORED FEEDBACK ARRAY
+    hash: (k) => crypto.createHash('sha256').update(k).digest('hex') 
+};
+Abyss.partners.set(Abyss.hash('sk_chaos_demo123'), { company: 'Demo', plan: 'free', usage: 0, limit: 50, active: true });
 Abyss.agents.set('DEMO_AGENT_V1', { id: 'DEMO_AGENT_V1', usage: 0, limit: 500 });
 
 const Nightmare = { 
@@ -109,26 +106,14 @@ const Nightmare = {
     }
 };
 
-// V119 OPTIMIZATION: 32-BYTE ENTROPY (256-bit)
-const Chaos = { mintToken: () => crypto.randomBytes(32).toString('hex') };
-
+const Chaos = { mintToken: () => crypto.randomBytes(32).toString('hex') }; // 32-Byte Entropy
 const Challenges = new Map();
-const getOrigin = (req) => {
-    const host = req.get('host');
-    if (host && host.includes('overthere.ai')) return 'https://overthere.ai';
-    return `https://${req.headers['x-forwarded-host'] || host}`;
-};
-
-const getRpId = (req) => {
-    const host = req.get('host');
-    if (host && host.includes('overthere.ai')) return 'overthere.ai';
-    return host ? host.split(':')[0] : 'localhost';
-};
-
+const getOrigin = (req) => `https://${req.headers['x-forwarded-host'] || req.get('host')}`;
+const getRpId = (req) => req.get('host').split(':')[0];
 const adminGuard = (req, res, next) => { if (!adminSession.has(req.headers['x-admin-session'])) return res.status(401).json({ error: 'Unauthorized' }); next(); };
 
 // ==========================================
-// 2. ROUTES
+// 2. AUTH ROUTES
 // ==========================================
 app.post('/api/v1/auth/reset', (req, res) => { Users.clear(); res.json({ success: true }); });
 
@@ -208,6 +193,7 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
     } catch (error) { res.status(400).json({ error: error.message }); } 
 });
 
+// --- ADMIN ROUTES ---
 app.post('/admin/login', async (req, res) => {
     const { password } = req.body;
     if (await bcrypt.compare(password, ADMIN_PW_HASH)) {
@@ -222,8 +208,7 @@ app.post('/admin/generate-key', adminGuard, async (req, res) => {
     const { tier } = req.body;
     const key = `sk_chaos_${uuidv4().replace(/-/g, '').slice(0, 32)}`;
     const hashedKey = Abyss.hash(key);
-    const limit = tier === 'Enterprise' ? 99999999 : (tier === 'Pro' ? 50000 : 5000);
-    Abyss.partners.set(hashedKey, { quota_current: 0, quota_limit: limit, tier, company: 'New Partner' });
+    Abyss.partners.set(hashedKey, { quota_current: 0, quota_limit: tier === 'Enterprise' ? 99999 : 500, tier, company: 'New Partner' });
     res.json({ success: true, key, tier });
 });
 
@@ -232,6 +217,7 @@ app.get('/admin/partners', adminGuard, (req, res) => {
     res.json({ partners });
 });
 
+// --- PUBLIC ---
 app.post('/api/v1/public/signup', (req, res) => {
     const { firstName, lastInitial, reason } = req.body;
     if (!firstName || !lastInitial || !reason) return res.status(400).json({ error: "Incomplete" });
@@ -241,13 +227,22 @@ app.post('/api/v1/public/signup', (req, res) => {
     res.json({ success: true, key: key, limit: 500 });
 });
 
-app.post('/api/v1/public/feedback', (req, res) => { console.log(`[FEEDBACK] ${req.body.name}: ${req.body.message}`); res.json({ success: true }); });
+// V120 FIX: RESTORED FEEDBACK ENDPOINTS
+app.post('/api/v1/public/feedback', (req, res) => { 
+    console.log(`[FEEDBACK] ${req.body.name}: ${req.body.message}`);
+    const entry = { id: uuidv4(), name: req.body.name, message: req.body.message, timestamp: Date.now() };
+    Abyss.feedback.unshift(entry);
+    res.json({ success: true }); 
+});
+
+app.get('/api/v1/admin/feedback', adminGuard, (req, res) => {
+    res.json({ feedback: Abyss.feedback });
+});
+
 app.post('/api/v1/external/verify', Nightmare.guardSaaS, (req, res) => res.json({ valid: true, quota: { used: req.partner.usage, limit: req.partner.limit } }));
 
-// V119 OPTIMIZATION: RAW SPEED
 app.get('/api/v1/beta/pulse-demo', (req, res) => {
-    // Immediate return. No artificial delay.
-    res.json({ valid: true, hash: Chaos.mintToken(), ms: 0 }); // 32-byte entropy
+    res.json({ valid: true, hash: Chaos.mintToken(), ms: 0 }); // Zero delay for benchmark
 });
 
 app.get('/api/v1/admin/telemetry', (req, res) => {
@@ -266,4 +261,4 @@ app.get('/sdk', (req, res) => serve('sdk.html', res));
 app.get('/admin/portal', (req, res) => serve('portal.html', res));
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V119 (BENCHMARK PRIME) ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V120 (UNIFIED CORE) ONLINE: ${PORT}`));
