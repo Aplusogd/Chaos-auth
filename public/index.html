@@ -5,18 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CHAOS ID — AI-Native Identity Provider</title>
     <meta name="description" content="The world's first Quantum-Resistant, Behavior-Aware Identity Platform.">
-    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- OPTIMIZATION: Pre-connect to external assets -->
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Heavy Script -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
     <style>
-        /* CORE AESTHETICS */
+        /* CRITICAL CSS (Loads Instantly) */
         @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono:wght@400;700&display=swap');
+        
         body { 
             background-color: #000; 
             color: #E5E7EB; 
             font-family: 'Share Tech Mono', monospace; 
             overflow-x: hidden; 
+            margin: 0;
         }
+
+        /* NATIVE PRELOADER (Shows before Tailwind) */
+        #preloader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 9999;
+            display: flex; justify-content: center; align-items: center;
+            flex-direction: column;
+            transition: opacity 0.5s ease-out;
+        }
+        .loader-text { color: #00ff41; font-size: 20px; letter-spacing: 5px; margin-bottom: 10px; font-family: monospace; }
+        .loader-bar { width: 200px; height: 2px; background: #111; overflow: hidden; }
+        .loader-progress { width: 100%; height: 100%; background: #00ff41; animation: loading 1.5s infinite; transform-origin: left; }
+        @keyframes loading { 0% { transform: scaleX(0); } 50% { transform: scaleX(1); } 100% { transform: scaleX(0); transform-origin: right; } }
         
+        .hidden-loader { opacity: 0; pointer-events: none; }
+
+        /* CORE STYLES */
         .neon-text { text-shadow: 0 0 5px #00ff41, 0 0 10px #00ff41; }
         .neon-border { border: 1px solid rgba(0, 255, 65, 0.3); box-shadow: 0 0 15px rgba(0, 255, 65, 0.1); }
         .terminal-bg { background: rgba(0, 15, 0, 0.95); }
@@ -45,6 +71,13 @@
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
+
+    <!-- PRELOADER -->
+    <div id="preloader">
+        <div class="loader-text">INITIALIZING CHAOS...</div>
+        <div class="loader-bar"><div class="loader-progress"></div></div>
+    </div>
+
     <canvas id="matrix-canvas"></canvas>
 
     <!-- NAV BAR -->
@@ -256,6 +289,12 @@
 
     <!-- LOGIC -->
     <script>
+        // HIDE PRELOADER
+        window.addEventListener('load', () => {
+            const pre = document.getElementById('preloader');
+            if(pre) { pre.style.opacity = '0'; setTimeout(() => pre.remove(), 500); }
+        });
+
         let currentScript = 'entropy';
         const term = document.getElementById('terminal');
         const API = '/api/v1';
