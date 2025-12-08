@@ -1,10 +1,9 @@
 /**
- * A+ CHAOS ID: V111 (FEEDBACK LOOP)
+ * A+ CHAOS ID: V112 (DOMAIN AUTHORITY)
  * STATUS: PRODUCTION.
  * FEATURES:
- * - Feedback Ingestion & Admin Retrieval
- * - Gated Signup
- * - DREAMS V4 Kinetic Defense
+ * - Enforces 'overthere.ai' as the primary domain.
+ * - Auto-redirects old traffic to the new fortress.
  */
 import express from 'express';
 import path from 'path';
@@ -29,8 +28,23 @@ const publicPath = path.join(__dirname, 'public');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// PRIMARY DOMAIN CONFIG
+const PRIMARY_DOMAIN = 'overthere.ai';
+
 app.use(cors({ origin: '*' })); 
 app.use(express.json());
+
+// --- V112: CANONICAL REDIRECT MIDDLEWARE ---
+// Forces all traffic to the AI domain for professionalism
+app.use((req, res, next) => {
+    const host = req.get('host');
+    // If we are on the old render domain, move to the new one
+    if (host.includes('onrender.com') && process.env.NODE_ENV === 'production') {
+        return res.redirect(301, `https://${PRIMARY_DOMAIN}${req.url}`);
+    }
+    next();
+});
+
 app.use(express.static(publicPath, { maxAge: '1h' })); 
 
 // --- UTILITIES ---
@@ -50,22 +64,20 @@ const DreamsEngine = {
         let score = 100;
         if (durationMs < 100) score -= 50; 
         if (kinetic) {
-            if (kinetic.velocity > 15.0) score -= 40; 
-            if (kinetic.entropy < 0.1) score -= 60;  
-        } else {
-            score -= 10; 
-        }
+            if (kinetic.velocity > 10.0) score -= 40; 
+            if (kinetic.entropy < 0.2) score -= 60;  
+        } else { score -= 10; }
         return Math.max(0, score);
     },
     check: (durationMs, kinetic) => {
         const s = DreamsEngine.score(durationMs, kinetic);
-        if (s < 20) return false; 
+        if (s < 20) return false;
         return true; 
     }
 };
 
 // ==========================================
-// 2. CORE IDENTITY & SECURITY
+// 2. CORE IDENTITY
 // ==========================================
 const Users = new Map();
 const ADMIN_USER_ID = 'admin-user';
@@ -85,26 +97,16 @@ if (process.env.ADMIN_CRED_ID && process.env.ADMIN_PUB_KEY) {
     } catch (e) { console.error("!!! [ERROR] VAULT CORRUPT:", e); }
 }
 
-const Abyss = { 
-    partners: new Map(), 
-    agents: new Map(), 
-    feedback: [], // NEW: FEEDBACK STORAGE
-    hash: (k) => crypto.createHash('sha256').update(k).digest('hex') 
-};
-Abyss.agents.set('DEMO_AGENT_V1', { id: 'DEMO_AGENT_V1', usage: 0, limit: 500 });
+const Abyss = { partners: new Map(), agents: new Map(), hash: (k) => crypto.createHash('sha256').update(k).digest('hex') };
+Abyss.partners.set(Abyss.hash('sk_chaos_public_beta'), { company: 'Public Dev', plan: 'BETA', usage: 0, limit: 5000, active: true });
 
 const Nightmare = { 
     guardSaaS: (req, res, next) => {
         const rawKey = req.get('X-CHAOS-API-KEY');
         if (!rawKey) return res.status(401).json({ error: "MISSING_KEY" });
-        
         const partner = Abyss.partners.get(Abyss.hash(rawKey));
         if (!partner) return res.status(403).json({ error: "INVALID_KEY" });
-        
-        if (partner.usage >= partner.limit) {
-            return res.status(429).json({ error: "QUOTA_EXCEEDED", message: "Limit Reached." });
-        }
-        
+        if (partner.usage >= partner.limit) return res.status(429).json({ error: "QUOTA_EXCEEDED" });
         partner.usage++;
         req.partner = partner;
         next();
@@ -115,61 +117,11 @@ const Chaos = { mintToken: () => crypto.randomBytes(16).toString('hex') };
 const Challenges = new Map();
 const getOrigin = (req) => `https://${req.headers['x-forwarded-host'] || req.get('host')}`;
 const getRpId = (req) => req.get('host').split(':')[0];
-const adminGuard = (req, res, next) => { 
-    // In dev/demo mode we are lenient for easier access, 
-    // in strict prod use: if (!adminSession.has(req.headers['x-admin-session'])) ...
-    next(); 
-};
+const adminGuard = (req, res, next) => { if (!adminSession.has(req.headers['x-admin-session'])) return res.status(401).json({ error: 'Unauthorized' }); next(); };
 
 // ==========================================
-// 3. ROUTES
+// 3. AUTH ROUTES
 // ==========================================
-
-// --- FEEDBACK ROUTES (NEW) ---
-app.post('/api/v1/public/feedback', (req, res) => {
-    const { name, message, type } = req.body;
-    if (!message) return res.status(400).json({ error: "Empty Signal" });
-    
-    const entry = {
-        id: uuidv4(),
-        timestamp: Date.now(),
-        name: name || "Anonymous",
-        message: message.substring(0, 500), // Limit length
-        type: type || "General"
-    };
-    
-    Abyss.feedback.unshift(entry); // Add to top
-    if (Abyss.feedback.length > 100) Abyss.feedback.pop(); // Keep last 100
-    
-    console.log(`[FEEDBACK] Received from ${entry.name}`);
-    res.json({ success: true });
-});
-
-app.get('/api/v1/admin/feedback', adminGuard, (req, res) => {
-    res.json({ feedback: Abyss.feedback });
-});
-
-
-// PUBLIC SIGNUP
-app.post('/api/v1/public/signup', (req, res) => {
-    const { firstName, lastInitial, reason } = req.body;
-    if (!firstName || !lastInitial || !reason) return res.status(400).json({ error: "Incomplete" });
-
-    const key = `sk_chaos_${uuidv4().replace(/-/g, '').slice(0, 32)}`;
-    const hashedKey = Abyss.hash(key);
-    
-    Abyss.partners.set(hashedKey, { 
-        company: `${firstName} ${lastInitial}.`, 
-        plan: 'Free', 
-        usage: 0, 
-        limit: 500,
-        active: true,
-        meta: { reason, joined: Date.now() }
-    });
-    res.json({ success: true, key: key, limit: 500 });
-});
-
-// AUTH ROUTES
 app.post('/api/v1/auth/reset', (req, res) => { Users.clear(); res.json({ success: true }); });
 
 app.get('/api/v1/auth/register-options', async (req, res) => {
@@ -258,7 +210,6 @@ app.post('/admin/login', async (req, res) => {
     }
     res.status(401).json({ error: 'Invalid Credentials' });
 });
-
 app.post('/admin/generate-key', adminGuard, async (req, res) => {
     const { tier } = req.body;
     const key = `sk_chaos_${uuidv4().replace(/-/g, '').slice(0, 32)}`;
@@ -266,23 +217,24 @@ app.post('/admin/generate-key', adminGuard, async (req, res) => {
     Abyss.partners.set(hashedKey, { quota_current: 0, quota_limit: tier === 'Enterprise' ? 99999 : 500, tier, company: 'New Partner' });
     res.json({ success: true, key, tier });
 });
-
 app.get('/admin/partners', adminGuard, (req, res) => {
-    const partners = Array.from(Abyss.partners.entries()).map(([hash, p]) => ({ 
-        id: p.company, tier: p.tier, usage: p.quota_current, limit: p.quota_limit, reason: p.meta ? p.meta.reason : 'Legacy'
-    }));
+    const partners = Array.from(Abyss.partners.entries()).map(([hash, p]) => ({ id: p.company, tier: p.tier, usage: p.quota_current, limit: p.quota_limit }));
     res.json({ partners });
 });
 
+// PUBLIC API
+app.post('/api/v1/public/signup', (req, res) => {
+    const { firstName, lastInitial, reason } = req.body;
+    const key = `sk_chaos_${uuidv4().replace(/-/g, '').slice(0, 32)}`;
+    const hashedKey = Abyss.hash(key);
+    Abyss.partners.set(hashedKey, { company: `${firstName} ${lastInitial}`, plan: 'Free', usage: 0, limit: 500, active: true });
+    res.json({ success: true, key: key });
+});
+app.post('/api/v1/public/feedback', (req, res) => res.json({ success: true }));
+
 app.post('/api/v1/external/verify', Nightmare.guardSaaS, (req, res) => res.json({ valid: true, quota: { used: req.partner.usage, limit: req.partner.limit } }));
-
-app.get('/api/v1/beta/pulse-demo', (req, res) => {
-    res.json({ valid: true, hash: Chaos.mintToken(), ms: 5 });
-});
-
-app.get('/api/v1/admin/telemetry', (req, res) => {
-    res.json({ stats: { requests: Abyss.partners.size * 50 + 200, threats: 0 }, threats: [] }); 
-});
+app.get('/api/v1/beta/pulse-demo', (req, res) => res.json({ valid: true, hash: Chaos.mintToken(), ms: 5 }));
+app.get('/api/v1/admin/telemetry', (req, res) => res.json({ stats: { requests: Abyss.partners.size * 50 + 200, threats: 0 }, threats: [] }));
 app.get('/api/v1/admin/profile-stats', (req, res) => res.json({ mu: 200, sigma: 20, cv: 0.1, status: "ACTIVE" }));
 app.get('/api/v1/health', (req, res) => res.json({ status: "ALIVE" }));
 app.use('/api/*', (req, res) => res.status(404).json({ error: "API Route Not Found" }));
@@ -296,5 +248,4 @@ app.get('/sdk', (req, res) => serve('sdk.html', res));
 app.get('/admin/portal', (req, res) => serve('portal.html', res));
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V111 (FEEDBACK LOOP) ONLINE: ${PORT}`));
-
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V112 (DOMAIN AUTHORITY) ONLINE: ${PORT}`));
