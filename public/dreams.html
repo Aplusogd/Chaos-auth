@@ -2,144 +2,234 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>A+ DREAMS V5 | ACOUSTIC DIAGNOSTIC</title>
+    <title>A+ DREAMS V5.1 | LIVE ACOUSTICS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { background: #000; color: #00ff41; font-family: monospace; overflow: hidden; }
-        .visualizer { display: flex; align-items: flex-end; justify-content: center; height: 150px; gap: 2px; }
-        .bar { width: 6px; background: #003300; transition: height 0.05s, background 0.2s; }
-        .scan-line { position: absolute; top: 0; width: 100%; height: 2px; background: rgba(0, 255, 65, 0.2); animation: scan 3s linear infinite; }
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
+        body { background: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; overflow: hidden; }
+        .visualizer { display: flex; align-items: flex-end; justify-content: center; height: 200px; gap: 2px; }
+        .bar { width: 100%; background: #003300; transition: height 0.05s; }
+        .scan-line { position: absolute; top: 0; width: 100%; height: 2px; background: rgba(0, 255, 65, 0.2); animation: scan 3s linear infinite; pointer-events: none; }
         @keyframes scan { 0% {top:0;} 100% {top:100%;} }
         
         .status-box { border: 1px solid #333; padding: 20px; text-align: center; border-radius: 8px; background: #111; margin-top: 20px; }
-        .status-box.optimal { border-color: #00ff41; box-shadow: 0 0 15px rgba(0,255,65,0.1); }
-        .status-box.warning { border-color: #ff0000; box-shadow: 0 0 15px rgba(255,0,0,0.2); color: #ff5555; }
+        .status-box.optimal { border-color: #00ff41; box-shadow: 0 0 20px rgba(0,255,65,0.1); }
+        .status-box.warning { border-color: #ff0000; box-shadow: 0 0 20px rgba(255,0,0,0.2); color: #ff5555; }
+        
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
     </style>
 </head>
-<body class="flex flex-col items-center justify-center h-screen p-4">
+<body class="flex flex-col items-center justify-center h-screen p-4 relative">
     <div class="scan-line"></div>
 
-    <div class="max-w-md w-full">
-        <div class="flex justify-between items-end border-b border-gray-800 pb-2 mb-6">
-            <h1 class="text-2xl font-bold tracking-widest text-white">DREAMS V5</h1>
-            <div class="text-xs text-green-600">ACOUSTIC FINGERPRINTING</div>
+    <div class="max-w-2xl w-full z-10">
+        <div class="flex justify-between items-end border-b border-gray-800 pb-4 mb-6">
+            <div>
+                <h1 class="text-3xl font-bold tracking-widest text-white">DREAMS V5.1</h1>
+                <div class="text-xs text-green-600 mt-1">LIVE ACOUSTIC DIAGNOSTICS</div>
+            </div>
+            <div class="text-right">
+                <div class="text-[10px] text-gray-500">INPUT SOURCE</div>
+                <div id="source-name" class="text-xs font-bold text-blue-400">STANDBY</div>
+            </div>
         </div>
 
         <div class="bg-black border border-gray-800 rounded p-4 mb-6 relative">
-            <div class="absolute top-2 right-2 text-[10px] text-gray-500">HZ FREQUENCY</div>
+            <div class="absolute top-2 right-2 text-[10px] text-gray-500">FFT SPECTRUM (0-20kHz)</div>
             <div id="visualizer" class="visualizer">
                 </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
-            <button onclick="simulateSound('HEALTHY')" class="bg-green-900 hover:bg-green-700 text-white p-4 rounded font-bold transition border border-green-800">
-                <i class="fas fa-check-circle mr-2"></i> PLAY HEALTHY
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            <button id="btn-mic" onclick="startMicrophone()" class="bg-blue-900 hover:bg-blue-700 text-white p-4 rounded font-bold transition border border-blue-800 flex items-center justify-center">
+                <i class="fas fa-microphone-alt mr-2"></i> USE MICROPHONE
             </button>
-            <button onclick="simulateSound('BROKEN')" class="bg-red-900 hover:bg-red-700 text-white p-4 rounded font-bold transition border border-red-800">
-                <i class="fas fa-exclamation-triangle mr-2"></i> PLAY BROKEN
+            <button id="btn-stop" onclick="stopListening()" disabled class="bg-red-900 hover:bg-red-700 text-white p-4 rounded font-bold transition border border-red-800 flex items-center justify-center">
+                <i class="fas fa-stop mr-2"></i> STOP
             </button>
+        </div>
+
+        <div class="text-center mb-6">
+            <span class="text-[10px] text-gray-600 uppercase tracking-widest cursor-pointer hover:text-green-500" onclick="simulateSound('HEALTHY')">[ SIMULATE HEALTHY ]</span>
+            <span class="text-[10px] text-gray-600 mx-2">|</span>
+            <span class="text-[10px] text-gray-600 uppercase tracking-widest cursor-pointer hover:text-red-500" onclick="simulateSound('BROKEN')">[ SIMULATE BROKEN ]</span>
         </div>
 
         <div id="output" class="status-box hidden">
             <div class="text-xs uppercase tracking-widest mb-2" id="status-title">ANALYZING...</div>
-            <div class="text-3xl font-bold" id="status-result">--</div>
-            <div class="text-xs mt-2 text-gray-400" id="status-detail">Variance: 0</div>
+            <div class="text-4xl font-bold" id="status-result">--</div>
+            <div class="flex justify-between mt-4 text-xs text-gray-400 border-t border-gray-800 pt-2">
+                <span>VARIANCE: <span id="val-var" class="text-white">0</span></span>
+                <span>PEAK: <span id="val-peak" class="text-white">0 Hz</span></span>
+            </div>
         </div>
     </div>
 
     <script>
-        // Setup Visualizer Bars
         const vis = document.getElementById('visualizer');
         const bars = [];
-        for(let i=0; i<40; i++) {
+        const BAR_COUNT = 64; 
+        let audioCtx, analyser, dataArray, source, animationId;
+        let isRunning = false;
+
+        // Init Bars
+        for(let i=0; i<BAR_COUNT; i++) {
             const b = document.createElement('div');
             b.className = 'bar';
-            b.style.height = '10px';
+            b.style.height = '2px';
             vis.appendChild(b);
             bars.push(b);
         }
 
-        function simulateSound(type) {
-            // Reset UI
-            const out = document.getElementById('output');
-            out.className = 'status-box';
-            out.classList.remove('hidden');
-            document.getElementById('status-result').innerText = "LISTENING...";
-            document.getElementById('status-title').innerText = "SAMPLING AUDIO";
-            document.getElementById('status-detail').innerText = "Processing FFT...";
+        async function startMicrophone() {
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 128; 
 
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                source = audioCtx.createMediaStreamSource(stream);
+                source.connect(analyser);
+                
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+                
+                document.getElementById('source-name').innerText = "MICROPHONE (LIVE)";
+                toggleUI(true);
+                isRunning = true;
+                
+                analyzeFrame();
+
+            } catch(e) {
+                alert("Microphone Access Denied or Not Available.\nTry on a mobile device or check permissions.");
+            }
+        }
+
+        function stopListening() {
+            if(audioCtx) audioCtx.close();
+            if(animationId) cancelAnimationFrame(animationId);
+            isRunning = false;
+            document.getElementById('source-name').innerText = "STANDBY";
+            toggleUI(false);
+            resetVis();
+        }
+
+        function toggleUI(active) {
+            document.getElementById('btn-mic').disabled = active;
+            document.getElementById('btn-stop').disabled = !active;
+            const out = document.getElementById('output');
+            if(active) {
+                out.classList.remove('hidden');
+                out.className = 'status-box';
+                document.getElementById('status-result').innerText = "LISTENING...";
+                document.getElementById('status-title').innerText = "CALIBRATING";
+            }
+        }
+
+        function analyzeFrame() {
+            if(!isRunning) return;
+            animationId = requestAnimationFrame(analyzeFrame);
+            
+            analyser.getByteFrequencyData(dataArray);
+            
+            let sum = 0;
+            let maxVal = 0;
+            let maxIndex = 0;
+
+            for(let i = 0; i < BAR_COUNT; i++) {
+                const val = dataArray[i] || 0;
+                
+                const h = (val / 255) * 100;
+                bars[i].style.height = Math.max(2, h * 2) + '%';
+                
+                if(val > 200) bars[i].style.background = '#ff0000'; 
+                else if(val > 100) bars[i].style.background = '#ffff00'; 
+                else bars[i].style.background = '#003300'; 
+
+                sum += val;
+                if(val > maxVal) { maxVal = val; maxIndex = i; }
+            }
+
+            const average = sum / BAR_COUNT;
+            const variance = maxVal - average; 
+
+            updateDiagnostic(variance, maxIndex * (22000/128)); 
+        }
+
+        let lastSendTime = 0;
+
+        function updateDiagnostic(variance, peakFreq) {
+            const result = document.getElementById('status-result');
+            const title = document.getElementById('status-title');
+            const box = document.getElementById('output');
+            
+            document.getElementById('val-var').innerText = variance.toFixed(0);
+            document.getElementById('val-peak').innerText = peakFreq.toFixed(0) + ' Hz';
+
+            if(variance > 120) {
+                result.innerText = "DETECTED";
+                result.className = "text-4xl font-bold text-red-500 animate-pulse";
+                title.innerText = "ABNORMAL NOISE DETECTED";
+                title.className = "text-xs uppercase tracking-widest mb-2 text-red-500";
+                box.className = "status-box warning";
+                
+                const now = Date.now();
+                if(now - lastSendTime > 3000) {
+                    sendData(variance, peakFreq);
+                    lastSendTime = now;
+                }
+            } else {
+                result.innerText = "OPTIMAL";
+                result.className = "text-4xl font-bold text-green-500";
+                title.innerText = "SYSTEM HEALTH";
+                title.className = "text-xs uppercase tracking-widest mb-2 text-green-500";
+                box.className = "status-box optimal";
+            }
+        }
+
+        function resetVis() {
+            bars.forEach(b => { b.style.height = '2px'; b.style.background = '#003300'; });
+        }
+
+        function sendData(variance, peakFreq) {
+            fetch('/api/v1/hardware/diagnostic', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ deviceId: 'WEB_DIAGNOSTIC_TOOL', variance: variance, peakFreq: peakFreq })
+            }).catch(e => console.log('Telemetry Error'));
+        }
+
+        // --- SIMULATOR LOGIC (Restored for Testing) ---
+        function simulateSound(type) {
+            const out = document.getElementById('output');
+            out.classList.remove('hidden');
+            
             let frame = 0;
             const maxFrames = 50;
             
-            // Animation Loop
             const interval = setInterval(() => {
                 frame++;
-                
-                // GENERATE DATA
                 let variance = 0;
                 bars.forEach((b, i) => {
                     let h;
                     if(type === 'HEALTHY') {
-                        // Smooth sine wave
                         h = 20 + Math.sin(frame * 0.2 + i * 0.5) * 15 + Math.random() * 5;
                         b.style.background = '#00ff41';
-                        variance = 120; // Low variance
+                        variance = 80; 
                     } else {
-                        // Chaotic spikes
                         h = Math.random() * 80 + 10;
                         b.style.background = '#ff0000';
-                        variance = 850; // High variance
+                        variance = 150; 
                     }
-                    b.style.height = h + 'px';
+                    b.style.height = h + '%';
                 });
 
                 if(frame >= maxFrames) {
                     clearInterval(interval);
-                    sendToBrain(type === 'HEALTHY' ? 120 : 850);
+                    updateDiagnostic(variance, 200);
                 }
             }, 30);
-        }
-
-        async function sendToBrain(simulatedVariance) {
-            // CALL THE V149 SERVER
-            try {
-                const res = await fetch('/api/v1/hardware/diagnostic', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        deviceId: 'SIMULATOR_01', 
-                        variance: simulatedVariance, // V149 checks if this > 500
-                        peakFreq: 240 
-                    })
-                });
-                
-                const data = await res.json();
-                
-                // UPDATE UI
-                const out = document.getElementById('output');
-                const title = document.getElementById('status-title');
-                const result = document.getElementById('status-result');
-                const detail = document.getElementById('status-detail');
-
-                if(data.status === 'OPTIMAL') {
-                    out.classList.add('optimal');
-                    title.innerText = "SYSTEM HEALTH";
-                    title.className = "text-xs uppercase tracking-widest mb-2 text-green-500";
-                    result.innerText = "OPTIMAL";
-                    result.className = "text-3xl font-bold text-green-400";
-                } else {
-                    out.classList.add('warning');
-                    title.innerText = "THREAT DETECTED";
-                    title.className = "text-xs uppercase tracking-widest mb-2 text-red-500";
-                    result.innerText = "SPRING FATIGUE";
-                    result.className = "text-3xl font-bold text-red-500";
-                }
-                detail.innerText = `Acoustic Variance: ${simulatedVariance.toFixed(1)}`;
-
-            } catch(e) {
-                alert("Server Connection Failed");
-            }
         }
     </script>
 </body>
