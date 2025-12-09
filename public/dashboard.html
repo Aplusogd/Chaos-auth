@@ -3,201 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CHAOS ID | COMMAND CENTER</title>
+    <title>A+ COMMAND CENTER</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono:wght@400;700&display=swap');
-        body { background-color: #000; color: #00ff41; font-family: 'Share Tech Mono', monospace; overflow-x: hidden; }
-        .glass-panel { background: rgba(0, 20, 0, 0.85); backdrop-filter: blur(5px); border: 1px solid #004400; }
-        #matrix-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.1; }
-        .stat-card:hover { transform: translateY(-2px); border-color: #00ff41; box-shadow: 0 0 20px rgba(0, 255, 65, 0.2); transition: all 0.3s; }
-        /* SONIC VISUALIZER */
-        #sonic-canvas { width: 100%; height: 60px; background: #001100; border: 1px solid #004400; }
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
+        body { background-color: #050505; color: #00ff41; font-family: 'JetBrains Mono', monospace; }
+        .cyber-btn {
+            background: rgba(0, 20, 0, 0.6);
+            border: 1px solid #004400;
+            transition: all 0.3s;
+        }
+        .cyber-btn:hover {
+            background: #003300;
+            border-color: #00ff41;
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.2);
+            transform: translateY(-2px);
+        }
+        .scan-line {
+            width: 100%;
+            height: 2px;
+            background: rgba(0, 255, 65, 0.1);
+            position: fixed;
+            top: 0;
+            animation: scan 4s linear infinite;
+            pointer-events: none;
+        }
+        @keyframes scan { 0% {top:0;} 100% {top:100%;} }
     </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="min-h-screen flex flex-col p-6">
+    <div class="scan-line"></div>
 
-    <canvas id="matrix-canvas"></canvas>
-
-    <nav class="p-4 md:p-6 flex justify-between items-center border-b border-green-900 bg-black/80 backdrop-blur z-10">
-        <div class="flex items-center gap-4">
-            <div class="text-2xl font-bold tracking-widest text-white">CHAOS<span class="text-green-500">CORE</span></div>
-            <div class="hidden md:block px-2 py-0.5 text-[10px] border border-green-700 rounded text-green-700">ADMIN CLEARANCE</div>
+    <header class="flex justify-between items-center border-b border-green-900 pb-4 mb-8">
+        <div>
+            <h1 class="text-2xl font-bold tracking-widest text-white">A+ CHAOS CORE</h1>
+            <div class="text-xs text-green-600 mt-1">SYSTEM: <span class="text-green-400">V148 ONLINE</span></div>
         </div>
-        <div class="flex items-center gap-6">
-            <div class="flex items-center gap-2 text-xs">
-                <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                <span class="text-green-400">SECURE LINK</span>
+        <div class="text-right">
+            <div id="clock" class="text-xl font-bold">00:00:00</div>
+            <div class="text-[10px] text-green-700">SECURE SESSION ACTIVE</div>
+        </div>
+    </header>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto w-full">
+
+        <div class="cyber-btn p-6 rounded-lg relative overflow-hidden group">
+            <div class="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-40 transition">
+                <i class="fas fa-fingerprint text-6xl"></i>
             </div>
-            <button onclick="logout()" class="text-xs text-red-500 border border-red-900 px-3 py-1 rounded hover:bg-red-900/20">DISCONNECT</button>
-        </div>
-    </nav>
-
-    <main class="flex-grow p-6 md:p-10 max-w-7xl mx-auto w-full z-10">
-        <!-- HEADER -->
-        <div class="mb-10 border-b border-green-900 pb-6">
-            <h1 class="text-3xl md:text-5xl font-bold text-white mb-2">COMMAND CENTER</h1>
-            <p class="text-green-600/80 text-sm">Protocol: <span class="text-green-400">V132 ACTIVE</span></p>
+            <h2 class="text-xl font-bold text-white mb-2">GATEKEEPER</h2>
+            <p class="text-xs text-green-500 mb-6">Authorize new physical devices (Desktop/Tablet) to join the network.</p>
+            <button onclick="unlockGate()" id="unlockBtn" class="bg-green-900 hover:bg-green-600 text-white px-4 py-2 rounded text-sm font-bold w-full transition">
+                <i class="fas fa-lock-open mr-2"></i> OPEN GATE (30s)
+            </button>
+            <div id="gate-msg" class="text-center text-[10px] mt-2 h-4 text-yellow-400"></div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-            <!-- (Existing Links) -->
-            <a href="/admin/portal" class="stat-card glass-panel p-6 rounded-xl group block">
-                <h3 class="text-xl font-bold text-white mb-1">KEY FORGE</h3><p class="text-xs text-gray-400">Manage Keys</p>
-            </a>
-            <a href="/admin" class="stat-card glass-panel p-6 rounded-xl group block">
-                <h3 class="text-xl font-bold text-white mb-1">OVERWATCH</h3><p class="text-xs text-gray-400">Threat Monitor</p>
-            </a>
-            <a href="/sdk" class="stat-card glass-panel p-6 rounded-xl group block">
-                <h3 class="text-xl font-bold text-white mb-1">SDK DOCS</h3><p class="text-xs text-gray-400">Integration</p>
-            </a>
-        </div>
+        <a href="/overwatch" class="cyber-btn p-6 rounded-lg relative overflow-hidden group block">
+            <div class="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-40 transition">
+                <i class="fas fa-satellite-dish text-6xl"></i>
+            </div>
+            <h2 class="text-xl font-bold text-white mb-2">OVERWATCH</h2>
+            <p class="text-xs text-green-500 mb-4">Real-time threat monitoring and global telemetry map.</p>
+            <div class="text-green-400 text-sm mt-4">
+                STATUS: <span class="animate-pulse">LIVE</span>
+            </div>
+        </a>
 
-        <!-- NEW: DREAMS V5 SONIC DIAGNOSTICS -->
-        <div class="glass-panel p-6 rounded-xl mb-10 border-yellow-900/50">
-            <div class="flex justify-between items-center mb-4">
-                <div>
-                    <h3 class="text-xl font-bold text-white"><i class="fas fa-wave-square text-yellow-500 mr-2"></i>SONIC HEALTH CHECK</h3>
-                    <p class="text-xs text-gray-400">DREAMS V5 Acoustic Fingerprinting</p>
-                </div>
-                <button onclick="runSonicCheck()" id="sonic-btn" class="bg-yellow-900/20 border border-yellow-600 text-yellow-500 px-4 py-2 rounded text-xs font-bold hover:bg-yellow-500 hover:text-black transition">
-                    START LISTENING
-                </button>
+        <a href="/keyforge" class="cyber-btn p-6 rounded-lg relative overflow-hidden group block">
+            <div class="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-40 transition">
+                <i class="fas fa-key text-6xl"></i>
             </div>
-            
-            <canvas id="sonic-canvas"></canvas>
-            
-            <div class="grid grid-cols-3 gap-4 mt-4 text-center">
-                <div><div class="text-[10px] text-gray-500">STATUS</div><div id="sonic-status" class="text-xl font-bold text-gray-300">IDLE</div></div>
-                <div><div class="text-[10px] text-gray-500">DEVIATION</div><div id="sonic-dev" class="text-xl font-bold text-gray-300">--%</div></div>
-                <div><div class="text-[10px] text-gray-500">PREDICTION</div><div id="sonic-pred" class="text-xl font-bold text-gray-300">--</div></div>
+            <h2 class="text-xl font-bold text-white mb-2">KEY FORGE</h2>
+            <p class="text-xs text-green-500 mb-4">Mint new API keys and manage access tiers for clients.</p>
+            <div class="flex items-center text-xs text-gray-400 mt-2">
+                <i class="fas fa-shield-alt mr-2"></i> VAULT SECURE
             </div>
-        </div>
+        </a>
 
-        <!-- TELEMETRY (Existing) -->
-        <div class="glass-panel p-1 rounded-xl">
-            <div class="bg-black/50 p-3 border-b border-green-900">
-                <span class="text-xs font-bold text-green-500">LIVE TRAFFIC</span>
+        <a href="/sdk" class="cyber-btn p-6 rounded-lg relative overflow-hidden group block">
+            <div class="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-40 transition">
+                <i class="fas fa-book-medical text-6xl"></i>
             </div>
-            <div class="p-6 grid grid-cols-4 gap-8 text-center">
-                <div><div class="text-[10px] text-gray-500">REQUESTS</div><div id="metric-req" class="text-2xl font-bold text-white">0</div></div>
-                <div><div class="text-[10px] text-gray-500">THREATS</div><div id="metric-block" class="text-2xl font-bold text-red-500">0</div></div>
-                <div><div class="text-[10px] text-gray-500">STATUS</div><div class="text-2xl font-bold text-blue-400">ONLINE</div></div>
-                <div><div class="text-[10px] text-gray-500">UPTIME</div><div class="text-2xl font-bold text-green-400">99.9%</div></div>
-            </div>
-        </div>
-    </main>
+            <h2 class="text-xl font-bold text-white mb-2">SDK DOCS</h2>
+            <p class="text-xs text-green-500 mb-4">Hardware integration standards and API reference.</p>
+            <div class="text-xs text-blue-400 mt-2">UPDATED: V148</div>
+        </a>
+
+    </div>
 
     <script>
+        // Clock
+        setInterval(() => {
+            document.getElementById('clock').innerText = new Date().toLocaleTimeString();
+        }, 1000);
+
+        // Security Check
         const session = sessionStorage.getItem('chaos_session');
-        if (!session) window.location.href = '/app';
-        function logout() { sessionStorage.clear(); window.location.href = '/app'; }
-
-        // --- DREAMS V5: SONIC ENGINE ---
-        const sCanvas = document.getElementById('sonic-canvas');
-        const sCtx = sCanvas.getContext('2d');
-        let audioCtx, analyser, dataArray, bufferLength;
-        let isListening = false;
-
-        async function runSonicCheck() {
-            const btn = document.getElementById('sonic-btn');
-            const status = document.getElementById('sonic-status');
-            
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                analyser = audioCtx.createAnalyser();
-                const source = audioCtx.createMediaStreamSource(stream);
-                source.connect(analyser);
-                
-                analyser.fftSize = 256;
-                bufferLength = analyser.frequencyBinCount;
-                dataArray = new Uint8Array(bufferLength);
-                
-                isListening = true;
-                btn.disabled = true; 
-                btn.innerText = "LISTENING (5s)...";
-                status.innerText = "ANALYZING...";
-                status.className = "text-xl font-bold text-yellow-400 blink";
-                
-                drawSonic();
-                
-                // Simulate Analysis Duration
-                setTimeout(() => {
-                    isListening = false;
-                    stream.getTracks().forEach(track => track.stop());
-                    analyzeResult();
-                    btn.disabled = false;
-                    btn.innerText = "START LISTENING";
-                }, 5000);
-                
-            } catch(e) {
-                alert("Microphone Access Required for Acoustic Fingerprint.");
-            }
+        if (!session) {
+            // If no session, show red warning but allow stay (for debugging)
+            // Or redirect: location.href = '/app';
+            document.querySelector('header').style.borderColor = '#500';
         }
 
-        function drawSonic() {
-            if(!isListening) return;
-            requestAnimationFrame(drawSonic);
-            analyser.getByteFrequencyData(dataArray);
+        // Gate Unlock Logic
+        function unlockGate() {
+            const btn = document.getElementById('unlockBtn');
+            const msg = document.getElementById('gate-msg');
             
-            sCtx.fillStyle = '#001100';
-            sCtx.fillRect(0, 0, sCanvas.width, sCanvas.height);
-            
-            const barWidth = (sCanvas.width / bufferLength) * 2.5;
-            let barHeight;
-            let x = 0;
-            
-            for(let i = 0; i < bufferLength; i++) {
-                barHeight = dataArray[i] / 2;
-                sCtx.fillStyle = `rgb(${barHeight + 100}, 255, 50)`;
-                sCtx.fillRect(x, sCanvas.height - barHeight, barWidth, barHeight);
-                x += barWidth + 1;
-            }
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> OPENING...';
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            fetch('/api/v1/auth/unlock-gate', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'x-chaos-token': session 
+                }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if(data.success) {
+                    btn.innerHTML = '<i class="fas fa-check"></i> UNLOCKED';
+                    btn.classList.replace('bg-green-900', 'bg-green-600');
+                    msg.innerText = "GATE OPEN FOR 30 SECONDS";
+                    
+                    // Count down visual
+                    let left = 30;
+                    const interval = setInterval(() => {
+                        left--;
+                        msg.innerText = `CLOSING IN ${left}s`;
+                        if(left <= 0) {
+                            clearInterval(interval);
+                            resetBtn();
+                        }
+                    }, 1000);
+                } else {
+                    resetBtn();
+                    alert(data.error || "Failed");
+                }
+            })
+            .catch(e => {
+                resetBtn();
+                alert("Network Error");
+            });
         }
 
-        function analyzeResult() {
-            // Mock Analysis for V5.3 (Production would compare against saved baseline)
-            const deviation = (Math.random() * 5).toFixed(1); // 0-5% is healthy
-            const status = document.getElementById('sonic-status');
-            const pred = document.getElementById('sonic-pred');
-            
-            document.getElementById('sonic-dev').innerText = deviation + "%";
-            
-            if(deviation < 5) {
-                status.innerText = "HEALTHY";
-                status.className = "text-xl font-bold text-green-500";
-                pred.innerText = "OPTIMAL";
-                pred.className = "text-xl font-bold text-green-500";
-            } else {
-                status.innerText = "FATIGUE DETECTED";
-                status.className = "text-xl font-bold text-red-500";
-                pred.innerText = "MAINTENANCE REQ";
-                pred.className = "text-xl font-bold text-red-500";
-            }
+        function resetBtn() {
+            const btn = document.getElementById('unlockBtn');
+            const msg = document.getElementById('gate-msg');
+            btn.innerHTML = '<i class="fas fa-lock-open mr-2"></i> OPEN GATE (30s)';
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            btn.classList.replace('bg-green-600', 'bg-green-900');
+            msg.innerText = "";
         }
-
-        // --- TELEMETRY ---
-        setInterval(async () => {
-            try {
-                const res = await fetch('/api/v1/admin/telemetry');
-                const data = await res.json();
-                document.getElementById('metric-req').innerText = data.stats.requests;
-                document.getElementById('metric-block').innerText = data.stats.threats;
-            } catch(e) {}
-        }, 2000);
-
-        // Matrix
-        const c = document.getElementById('matrix-canvas'); const ctx = c.getContext('2d');
-        c.width = window.innerWidth; c.height = window.innerHeight;
-        const drops = Array(Math.floor(c.width/12)).fill(1);
-        function draw() {
-            ctx.fillStyle = 'rgba(0,0,0,0.05)'; ctx.fillRect(0,0,c.width,c.height); ctx.fillStyle = '#0F0';
-            drops.forEach((y, i) => { ctx.fillText('01'[Math.floor(Math.random()*2)], i*12, y*12); if(y*12>c.height&&Math.random()>0.975) drops[i]=0; drops[i]++; });
-        }
-        setInterval(draw, 50);
-        window.addEventListener('resize', () => { c.width = window.innerWidth; c.height = window.innerHeight; });
     </script>
 </body>
 </html>
