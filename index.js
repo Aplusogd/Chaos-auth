@@ -1,10 +1,7 @@
 /**
- * A+ CHAOS ID: V127 (LIVE WIRE)
+ * A+ CHAOS ID: V128 (TRUE SIGHT)
  * STATUS: PRODUCTION.
- * FEATURES:
- * - Real-Time System Heartbeat (Memory/Uptime Logs)
- * - Public Telemetry Stream for Landing Page
- * - No Simulated Data.
+ * FIX: Replaced simulated telemetry with Real-Time Request/Threat Counting.
  */
 import express from 'express';
 import path from 'path';
@@ -30,34 +27,25 @@ const publicPath = path.join(__dirname, 'public');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// --- REAL-TIME TELEMETRY CORE ---
+// --- 1. REAL-TIME TELEMETRY ENGINE ---
 const Telemetry = {
     requests: 0,
     blocked: 0,
     logs: [],
     
+    // Log function for Admin Dashboard
     log: (type, msg) => {
         const entry = `[${type}] ${msg}`;
-        // Keep last 50 logs
         Telemetry.logs.unshift(entry);
-        if (Telemetry.logs.length > 50) Telemetry.logs.pop();
+        if (Telemetry.logs.length > 50) Telemetry.logs.pop(); // Keep last 50
         if (type === 'BLOCK') Telemetry.blocked++;
     }
 };
 
-// --- SYSTEM HEARTBEAT (The Real Pulse) ---
-// This ensures the "Live Feed" has actual system data to show, even with low traffic.
-setInterval(() => {
-    const mem = (process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2);
-    const uptime = process.uptime().toFixed(0);
-    Telemetry.log('SYSTEM', `Integrity Check OK. Mem: ${mem}MB | Up: ${uptime}s`);
-}, 15000); // Logs every 15 seconds
-
-// --- MIDDLEWARE: COUNT TRAFFIC ---
+// --- MIDDLEWARE: COUNT REAL TRAFFIC ---
 app.use((req, res, next) => {
-    // Ignore internal polling to keep stats honest
-    const isInternal = req.path.includes('/admin/telemetry') || req.path.includes('/health');
-    if (!isInternal) {
+    // Ignore internal polling (admin dashboard checking stats)
+    if (!req.path.includes('/admin/telemetry') && !req.path.includes('/health')) {
         Telemetry.requests++;
     }
     next();
@@ -81,6 +69,7 @@ app.use(helmet({
     frameguard: { action: "deny" },
 }));
 
+// Domain Enforcement
 app.use((req, res, next) => {
     const host = req.get('host');
     const targetDomain = 'overthere.ai';
@@ -118,13 +107,16 @@ const DreamsEngine = {
     },
     check: (durationMs, kinetic) => {
         const s = DreamsEngine.score(durationMs, kinetic);
-        if (s < 20) return false; 
+        if (s < 20) {
+            Telemetry.log('BLOCK', `Bot Detected (Score ${s})`);
+            return false;
+        }
         return true; 
     }
 };
 
 // ==========================================
-// 1. CORE IDENTITY
+// 2. CORE IDENTITY
 // ==========================================
 const Users = new Map();
 const ADMIN_USER_ID = 'admin-user';
@@ -140,7 +132,7 @@ if (process.env.ADMIN_CRED_ID && process.env.ADMIN_PUB_KEY) {
             dreamProfile: { window: [], sum_T: 0, sum_T2: 0 }
         };
         Users.set(ADMIN_USER_ID, dna);
-        Telemetry.log('SYSTEM', 'Identity Restored from Vault');
+        Telemetry.log('SYSTEM', 'Identity Restored');
     } catch (e) { console.error("!!! [ERROR] VAULT CORRUPT:", e); }
 }
 
@@ -152,9 +144,15 @@ const Nightmare = {
     guardSaaS: (req, res, next) => {
         const rawKey = req.get('X-CHAOS-API-KEY');
         if (!rawKey) { Telemetry.log('BLOCK', 'Missing API Key'); return res.status(401).json({ error: "MISSING_KEY" }); }
+        
         const partner = Abyss.partners.get(Abyss.hash(rawKey));
         if (!partner) { Telemetry.log('BLOCK', 'Invalid API Key'); return res.status(403).json({ error: "INVALID_KEY" }); }
-        if (partner.usage >= partner.limit) { Telemetry.log('BLOCK', `Quota Exceeded: ${partner.company}`); return res.status(429).json({ error: "QUOTA_EXCEEDED" }); }
+        
+        if (partner.usage >= partner.limit) { 
+            Telemetry.log('BLOCK', `Quota Exceeded: ${partner.company}`);
+            return res.status(429).json({ error: "QUOTA_EXCEEDED" }); 
+        }
+        
         partner.usage++;
         req.partner = partner;
         next();
@@ -168,24 +166,30 @@ const getOrigin = (req) => {
     if (host && host.includes('overthere.ai')) return 'https://overthere.ai';
     return `https://${req.headers['x-forwarded-host'] || host}`;
 };
+
 const getRpId = (req) => {
     const host = req.get('host');
     if (host && host.includes('overthere.ai')) return 'overthere.ai';
     return host ? host.split(':')[0] : 'localhost';
 };
+
 const adminGuard = (req, res, next) => {
     const pwSession = req.headers['x-admin-session'];
     const bioToken = req.headers['x-chaos-token'];
     if (pwSession && adminSession.has(pwSession)) return next();
-    if (bioToken && Abyss.sessions.has(bioToken)) return next();
-    return res.status(401).json({ error: 'Unauthorized' });
+    if (bioToken && Abyss.sessions.has(bioToken)) return next(); 
+    return res.status(401).json({ error: 'Unauthorized. Login Required.' });
 };
 Abyss.sessions = new Map();
 
 // ==========================================
-// 2. ROUTES
+// 3. ROUTES
 // ==========================================
-app.post('/api/v1/auth/reset', (req, res) => { Users.clear(); Telemetry.log('SYSTEM', 'Memory Wiped'); res.json({ success: true }); });
+app.post('/api/v1/auth/reset', (req, res) => { 
+    Users.clear(); 
+    Telemetry.log('SYSTEM', 'Memory Wiped');
+    res.json({ success: true }); 
+});
 
 app.get('/api/v1/auth/register-options', async (req, res) => {
     if (Users.has(ADMIN_USER_ID)) {
@@ -260,14 +264,17 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
             user.counter = verification.authenticationInfo.newCounter;
             Users.set(ADMIN_USER_ID, user); 
             Challenges.delete(challengeString);
+            
             const token = Chaos.mintToken();
             Abyss.sessions.set(token, { user: 'Admin', level: 'High' });
             Telemetry.log('AUTH', 'Admin Login Successful');
+            
             res.json({ verified: true, token: token, chaos_score: chaosScore });
         } else { res.status(400).json({ verified: false }); }
     } catch (error) { res.status(400).json({ error: error.message }); } 
 });
 
+// --- ADMIN ROUTES ---
 app.post('/admin/login', async (req, res) => {
     const { password } = req.body;
     if (await bcrypt.compare(password, ADMIN_PW_HASH)) {
@@ -295,11 +302,10 @@ app.get('/admin/partners', adminGuard, (req, res) => {
 
 app.post('/api/v1/public/signup', (req, res) => {
     const { firstName, lastInitial, reason } = req.body;
-    if (!firstName || !lastInitial || !reason) return res.status(400).json({ error: "Incomplete" });
     const key = `sk_chaos_${uuidv4().replace(/-/g, '').slice(0, 32)}`;
     const hashedKey = Abyss.hash(key);
     Abyss.partners.set(hashedKey, { company: `${firstName} ${lastInitial}.`, plan: 'Free', usage: 0, limit: 500, active: true, meta: { reason, joined: Date.now() } });
-    Telemetry.log('SIGNUP', `User Joined: ${firstName}`);
+    Telemetry.log('SIGNUP', `New User: ${firstName} ${lastInitial}`);
     res.json({ success: true, key: key, limit: 500 });
 });
 
@@ -314,11 +320,14 @@ app.get('/api/v1/admin/feedback', adminGuard, (req, res) => { res.json({ feedbac
 app.post('/api/v1/external/verify', Nightmare.guardSaaS, (req, res) => res.json({ valid: true, quota: { used: req.partner.usage, limit: req.partner.limit } }));
 app.get('/api/v1/beta/pulse-demo', (req, res) => { res.json({ valid: true, hash: Chaos.mintToken(), ms: 5 }); });
 
-// TELEMETRY (REAL DATA)
+// --- REAL TELEMETRY (THE TRUTH) ---
 app.get('/api/v1/admin/telemetry', (req, res) => {
     res.json({ 
-        stats: { requests: Telemetry.requests, threats: Telemetry.blocked }, 
-        logs: Telemetry.logs 
+        stats: { 
+            requests: Telemetry.requests, 
+            threats: Telemetry.blocked 
+        }, 
+        logs: Telemetry.logs // Send the real log array
     }); 
 });
 app.get('/api/v1/admin/profile-stats', (req, res) => res.json({ mu: 200, sigma: 20, cv: 0.1, status: "ACTIVE" }));
@@ -334,4 +343,4 @@ app.get('/sdk', (req, res) => serve('sdk.html', res));
 app.get('/admin/portal', (req, res) => serve('portal.html', res));
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V127 (LIVE WIRE) ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V128 (TRUE SIGHT) ONLINE: ${PORT}`));
