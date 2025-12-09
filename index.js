@@ -1,10 +1,7 @@
 /**
- * A+ CHAOS ID: V125 (REAL-TIME TELEMETRY)
+ * A+ CHAOS ID: V126 (NOISE FILTERED)
  * STATUS: PRODUCTION.
- * FEATURES:
- * - Real-Time Request Counting (No Simulation)
- * - Live Threat Logging to Dashboard
- * - Persistent Identity & DREAMS V4
+ * FIX: Excludes internal telemetry pings from public traffic stats.
  */
 import express from 'express';
 import path from 'path';
@@ -34,7 +31,7 @@ const PORT = process.env.PORT || 3000;
 const Telemetry = {
     requests: 0,
     blocked: 0,
-    logs: [], // Stores last 50 real events
+    logs: [],
     
     log: (type, msg) => {
         const entry = `[${type}] ${msg}`;
@@ -44,9 +41,15 @@ const Telemetry = {
     }
 };
 
-// --- MIDDLEWARE: COUNT EVERY HIT ---
+// --- MIDDLEWARE: INTELLIGENT COUNTING ---
 app.use((req, res, next) => {
-    Telemetry.requests++;
+    // V126 FIX: Ignore internal monitoring traffic (dashboard polling)
+    // Only count actual usage (Auth, API, SDK)
+    const isInternal = req.path.includes('/admin/telemetry') || req.path.includes('/health');
+    
+    if (!isInternal) {
+        Telemetry.requests++;
+    }
     next();
 });
 
@@ -128,7 +131,7 @@ if (process.env.ADMIN_CRED_ID && process.env.ADMIN_PUB_KEY) {
             dreamProfile: { window: [], sum_T: 0, sum_T2: 0 }
         };
         Users.set(ADMIN_USER_ID, dna);
-        Telemetry.log('SYSTEM', 'Identity Restored from Vault');
+        Telemetry.log('SYSTEM', 'Identity Restored');
     } catch (e) { console.error("!!! [ERROR] VAULT CORRUPT:", e); }
 }
 
@@ -173,10 +176,9 @@ const adminGuard = (req, res, next) => {
     const pwSession = req.headers['x-admin-session'];
     const bioToken = req.headers['x-chaos-token'];
     if (pwSession && adminSession.has(pwSession)) return next();
-    if (bioToken && Abyss.sessions.has(bioToken)) return next(); // Check stored sessions
+    if (bioToken && Abyss.sessions.has(bioToken)) return next(); 
     return res.status(401).json({ error: 'Unauthorized. Login Required.' });
 };
-// Abyss Session Storage
 Abyss.sessions = new Map();
 
 // ==========================================
@@ -184,7 +186,7 @@ Abyss.sessions = new Map();
 // ==========================================
 app.post('/api/v1/auth/reset', (req, res) => { 
     Users.clear(); 
-    Telemetry.log('SYSTEM', 'Memory Wiped via Kill Switch');
+    Telemetry.log('SYSTEM', 'Memory Wiped');
     res.json({ success: true }); 
 });
 
@@ -247,7 +249,7 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
 
     if (chaosScore < 20) { 
          Challenges.delete(challengeString);
-         Telemetry.log('BLOCK', 'Bot Detected (Low Chaos Score)');
+         Telemetry.log('BLOCK', 'Bot Detected (Kinetic Anomaly)');
          return res.status(403).json({ verified: false, error: "BOT DETECTED" });
     }
     
@@ -323,14 +325,14 @@ app.get('/api/v1/beta/pulse-demo', (req, res) => {
     res.json({ valid: true, hash: Chaos.mintToken(), ms: 5 });
 });
 
-// --- REAL TELEMETRY ---
+// --- REAL TELEMETRY (FILTERED) ---
 app.get('/api/v1/admin/telemetry', (req, res) => {
     res.json({ 
         stats: { 
             requests: Telemetry.requests, 
             threats: Telemetry.blocked 
         }, 
-        logs: Telemetry.logs // Send the real logs
+        logs: Telemetry.logs 
     }); 
 });
 app.get('/api/v1/admin/profile-stats', (req, res) => res.json({ mu: 200, sigma: 20, cv: 0.1, status: "ACTIVE" }));
@@ -346,4 +348,4 @@ app.get('/sdk', (req, res) => serve('sdk.html', res));
 app.get('/admin/portal', (req, res) => serve('portal.html', res));
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V125 (REAL TELEMETRY) ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V126 (NOISE FILTERED) ONLINE: ${PORT}`));
