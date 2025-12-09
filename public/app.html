@@ -29,42 +29,52 @@
 
     <div id="status-dot" class="status-dot"></div>
     <div id="hud" class="hud-status text-yellow-500">CONNECTING...</div>
-    
     <div class="arrow-guide"><i class="fas fa-chevron-up text-2xl"></i></div>
-    
-    <div class="well-container">
-        <div class="text-[10px] text-green-900 text-center mt-28 select-none tracking-widest">SWIPE UP</div>
-    </div>
-
-    <!-- TOTEM -->
+    <div class="well-container"><div class="text-[10px] text-green-900 text-center mt-28 select-none tracking-widest">SWIPE UP</div></div>
     <div class="totem offline" id="totem"><i class="fas fa-fingerprint"></i></div>
     
-    <!-- NOTE: DNA ZONE REMOVED -->
+    <div id="dna-zone" class="fixed top-0 left-0 w-full h-full bg-black/95 p-6 z-50 flex flex-col justify-center">
+        <p class="text-white text-xs mb-2">SECURE STORAGE REQUIRED:</p>
+        <textarea id="dna-text" class="w-full h-40 bg-gray-900 text-green-400 text-xs p-2 rounded font-mono mb-4" readonly></textarea>
+        <button onclick="location.reload()" class="w-full py-4 bg-green-600 text-black font-bold rounded shadow-[0_0_20px_#00ff41]">CONFIRM SAVE</button>
+    </div>
 
     <script>
         const { startRegistration, startAuthentication } = SimpleWebAuthnBrowser;
         const API_BASE = '/api/v1';
         const HEADERS = { 'Content-Type': 'application/json' };
         
-        let isDragging = false; let startY = 0; let lastTime = 0; let velocityY = 0; let pathData = []; 
+        let mode = 'LOGIN';
+        let isDragging = false; let startY = 0; let lastTime = 0; let velocityY = 0;
+        let pathData = []; // This stores the swipe vector
         let authOptions = null;
         const totem = document.getElementById('totem');
 
         async function preheat() {
             try {
+                const health = await fetch(`${API_BASE}/health`);
+                if(!health.ok) throw new Error("Sleep");
+
                 const resp = await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS });
                 
                 if(resp.ok) {
+                    mode = 'LOGIN';
                     authOptions = await resp.json();
                     document.getElementById('hud').innerText = "CAST TOTEM";
                     document.getElementById('hud').className = "hud-status text-green-500";
-                    totem.classList.remove('offline');
+                    totem.classList.remove('offline', 'imprint');
                     document.getElementById('status-dot').className = "status-dot online";
                 } else if (resp.status === 404) {
-                    // This should only happen if the server is wiped or in setup mode
-                    document.getElementById('hud').innerText = "CRITICAL FAILURE: NO IDENTITY";
-                    document.getElementById('hud').className = "hud-status text-red-500";
-                    totem.classList.add('offline');
+                    mode = 'REGISTER';
+                    const regResp = await fetch(`${API_BASE}/auth/register-options`, { headers: HEADERS });
+                    if(regResp.ok) {
+                        authOptions = await regResp.json();
+                        document.getElementById('hud').innerText = "IMPRINT IDENTITY";
+                        document.getElementById('hud').className = "hud-status text-blue-400";
+                        totem.classList.remove('offline');
+                        totem.classList.add('imprint');
+                        document.getElementById('status-dot').className = "status-dot online";
+                    }
                 }
             } catch(e) { 
                 document.getElementById('hud').innerText = "WAKING ABYSS...";
@@ -74,8 +84,7 @@
         }
         setTimeout(preheat, 100);
 
-        // --- 2. PHYSICS ENGINE ---
-        
+        // --- PHYSICS ENGINE ---
         totem.addEventListener('touchstart', (e) => { 
             if(totem.classList.contains('offline')) return;
             isDragging=true; startY=e.touches[0].clientY; 
@@ -90,57 +99,77 @@
             const now = Date.now();
             const dt = now - lastTime;
             if(dt > 0) velocityY = delta / dt; 
-            pathData.push({ v: velocityY, t: now });
+            
+            // CAPTURE FORENSIC DATA
+            pathData.push({ x: e.touches[0].clientX, y: y, v: velocityY, t: now });
+            
             lastTime = now;
             if(delta > 0) totem.style.bottom = (130 + delta) + 'px';
-            if (delta > 100) totem.style.boxShadow = "0 0 50px #fff";
-            else totem.style.boxShadow = "0 0 25px #00ff41";
         }, { passive: false });
         
         totem.addEventListener('touchend', (e) => {
             isDragging=false;
             const b = parseFloat(totem.style.bottom);
-            if(b > 280) launch(); 
-            else { totem.classList.add('falling'); totem.style.bottom='130px'; totem.style.boxShadow = "0 0 25px #00ff41"; }
+            if(b > 280) launch(); else { totem.classList.add('falling'); totem.style.bottom='130px'; }
         });
         
         totem.addEventListener('mousedown', () => { if(!totem.classList.contains('offline')) launch(); });
 
-        // --- 3. AUTHENTICATION ---
         async function launch() {
             totem.classList.add('launching');
-            document.getElementById('hud').innerText = "VERIFYING...";
+            document.getElementById('hud').innerText = mode === 'LOGIN' ? "VERIFYING..." : "SECURING...";
             
             try {
-                // Get fresh options inside launch block for concurrency safety
-                const opts = await (await fetch(`${API_BASE}/auth/login-options`)).json(); 
-                
-                const asseResp = await startAuthentication(opts);
-                
-                const avgVel = pathData.length ? pathData.reduce((a,b)=>a+b.v,0)/pathData.length : 1.0;
-                const payload = { ...asseResp, kinetic_data: { velocity: avgVel, entropy: Math.random() } };
+                if (mode === 'LOGIN') {
+                    const asseResp = await startAuthentication(authOptions);
+                    
+                    const avgVel = pathData.length ? pathData.reduce((a,b)=>a+b.v,0)/pathData.length : 1.0;
+                    
+                    // V125 UPDATE: Sending Raw Path Data for Admin Replay
+                    const payload = {
+                        ...asseResp,
+                        kinetic_data: { 
+                            velocity: avgVel, 
+                            entropy: 0.8,
+                            path: pathData // <--- THE RAW DATA
+                        } 
+                    };
 
-                const verifyResp = await fetch(`${API_BASE}/auth/login-verify`, { 
-                    method: 'POST', headers: HEADERS, body: JSON.stringify(payload) 
-                });
-                const res = await verifyResp.json();
-                
-                if (res.verified) {
-                    document.getElementById('hud').innerText = "CONFIRMED";
-                    sessionStorage.setItem('chaos_session', res.token);
-                    setTimeout(() => location.href = '/dashboard.html', 800);
-                } else throw new Error(res.error || "Rejected");
-
+                    const verifyResp = await fetch(`${API_BASE}/auth/login-verify`, { 
+                        method: 'POST', headers: HEADERS, body: JSON.stringify(payload) 
+                    });
+                    const res = await verifyResp.json();
+                    
+                    if (res.verified) {
+                        document.getElementById('hud').innerText = "CONFIRMED";
+                        sessionStorage.setItem('chaos_session', res.token);
+                        setTimeout(() => location.href = '/dashboard.html', 800);
+                    } else throw new Error(res.error || "Denied");
+                } else {
+                    const attResp = await startRegistration(authOptions);
+                    const verifyResp = await fetch(`${API_BASE}/auth/register-verify`, { method: 'POST', headers: HEADERS, body: JSON.stringify(attResp) });
+                    const res = await verifyResp.json();
+                    
+                    if (res.verified) {
+                        document.getElementById('dna-zone').style.display = 'flex';
+                        document.getElementById('dna-id').value = res.env_ID;
+                        document.getElementById('dna-key').value = res.env_KEY;
+                    } else throw new Error("Reg Failed");
+                }
             } catch(e) {
                 document.getElementById('hud').innerText = "DENIED";
                 document.getElementById('hud').className = "hud-status text-red-500";
                 setTimeout(() => {
                     totem.classList.remove('launching');
                     totem.classList.add('falling');
-                    preheat(); // Attempt reconnect/reset status
+                    document.getElementById('hud').innerText = mode === 'LOGIN' ? "CAST TOTEM" : "IMPRINT";
+                    document.getElementById('hud').className = mode === 'LOGIN' ? "hud-status text-green-500" : "hud-status text-blue-400";
+                    preheat();
                 }, 2000);
             }
         }
     </script>
 </body>
 </html>
+
+
