@@ -17,9 +17,13 @@
             min-height: 100vh;
         }
         
-        /* --- FOG OF WAR (ANTI-SCRAPER LAYERS) --- */
-        .scramble-text { filter: blur(8px); user-select: none; pointer-events: none; transition: filter 0.5s ease-out; opacity: 0.3; }
-        .clear-vision { filter: blur(0px); user-select: auto; pointer-events: auto; opacity: 1; }
+        /* FOG OF WAR: Now controlled by CSS variable --blur-level */
+        .scramble-content {
+            filter: blur(var(--blur-level, 8px));
+            user-select: none; 
+            opacity: 0.3;
+            transition: filter 0.3s ease-out, opacity 0.5s;
+        }
         
         /* SENTINEL HUD */
         .sentinel-hud {
@@ -32,9 +36,25 @@
         }
         .hud-bar { height: 4px; background: #222; margin-top: 8px; border-radius: 2px; overflow: hidden; }
         .hud-fill { height: 100%; background: #00ff41; width: 100%; transition: width 0.3s ease-out; }
+
+        /* Security Block (Kept for active defense) */
+        #bot-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; z-index: 10000; flex-direction: column;
+            align-items: center; justify-content: center; text-align: center;
+        }
     </style>
 </head>
 <body class="hero-bg">
+
+    <div id="bot-overlay">
+        <i class="fas fa-robot text-6xl text-red-600 mb-6 animate-pulse"></i>
+        <h1 class="text-3xl font-bold text-red-500 mono mb-2">ACCESS DENIED</h1>
+        <p class="text-gray-500 text-sm mono">SENTINEL AI DETECTED NON-HUMAN BEHAVIOR.</p>
+        <button onclick="location.reload()" class="mt-8 border border-red-800 text-red-500 px-6 py-2 rounded text-xs hover:bg-red-900/20">
+            REQUEST HUMAN REVIEW
+        </button>
+    </div>
 
     <nav class="fixed w-full z-50 px-6 py-6 flex justify-between items-center backdrop-blur-md border-b border-white/5 bg-black/50">
         <div class="text-xl font-bold tracking-tighter text-white mono">
@@ -45,12 +65,12 @@
         </div>
     </nav>
 
-    <div id="protected-content" class="scramble-text relative z-10 pt-40 px-6 max-w-6xl mx-auto pb-24 transition-all duration-700">
+    <div id="protected-content" class="scramble-content relative z-10 pt-40 px-6 max-w-6xl mx-auto pb-24">
         
         <section class="text-center space-y-8 mb-24">
             <div class="inline-flex items-center gap-2 border border-green-500/30 bg-green-900/10 px-4 py-1.5 rounded-full mb-4">
                 <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                <span class="text-[10px] text-green-400 tracking-[0.2em] font-bold mono">SYSTEM V155 SECURE</span>
+                <span class="text-[10px] text-green-400 tracking-[0.2em] font-bold mono">SYSTEM V156 ACTIVE</span>
             </div>
             
             <h1 class="text-5xl md:text-8xl font-black tracking-tighter leading-none text-white">
@@ -94,43 +114,46 @@
         </section>
         
         <div class="h-screen flex items-center justify-center text-gray-700 font-mono text-xs">
-            VERIFYING HUMANITY... SCROLL TO UNLOCK.
+            SCROLL DOWN TO UNLOCK CONTENT...
         </div>
-    </div>
-
-    <div id="bot-overlay" class="fixed inset-0 bg-black z-[1000] hidden flex-col items-center justify-center text-center p-8">
-        <i class="fas fa-robot text-6xl text-red-600 mb-4"></i>
-        <h1 class="text-3xl text-red-500 font-bold mono">AUTOMATION DETECTED</h1>
-        <p class="text-gray-500 mt-2">Your movement patterns match a scraper bot.</p>
-        <button onclick="location.reload()" class="mt-8 border border-red-800 text-red-500 px-6 py-2 rounded hover:bg-red-900/20">RETRY AS HUMAN</button>
     </div>
 
     <div class="sentinel-hud" id="hud-box">
         <div class="flex justify-between items-center mb-3 pb-2 border-b border-white/10">
-            <span class="text-[10px] text-gray-400 tracking-[0.2em] font-bold">SENTINEL V155</span>
-            <i class="fas fa-eye text-green-500 text-xs" id="hud-icon"></i>
+            <span class="text-[10px] text-gray-400 tracking-[0.2em] font-bold">SENTINEL V156</span>
+            <i class="fas fa-shield-alt text-green-500 text-xs" id="hud-icon"></i>
         </div>
+        
         <div class="flex justify-between items-end mb-1">
             <span class="text-[10px] text-gray-500 mono">TRUST SCORE</span>
-            <span class="text-sm font-bold text-white mono" id="hud-pct">0%</span>
+            <span class="text-sm font-bold text-white mono" id="hud-pct">80%</span>
         </div>
-        <div class="hud-bar"><div class="hud-fill" id="hud-score" style="width: 0%"></div></div>
-        <div class="mt-2 text-[10px] text-gray-500 mono text-right" id="hud-status">LOCKED</div>
+        <div class="hud-bar"><div class="hud-fill" id="hud-score" style="width: 80%"></div></div>
+        
+        <div class="grid grid-cols-2 gap-2 mt-3 pt-2">
+            <div>
+                <div class="text-[8px] text-gray-500 tracking-wider">STATE</div>
+                <div id="hud-state" class="text-[10px] text-white font-bold mono">IDLE</div>
+            </div>
+            <div class="text-right">
+                <div class="text-[8px] text-gray-500 tracking-wider">VERDICT</div>
+                <div id="hud-status" class="text-[10px] text-green-400 font-bold mono">VERIFIED</div>
+            </div>
+        </div>
     </div>
 
     <script>
         const Sentinel = {
             buffer: [],
-            score: 0, // START AT ZERO (LOCKED)
+            score: 80, // START HIGH (80)
             lastY: 0,
             lastT: Date.now(),
             
             init: () => {
                 window.addEventListener('scroll', Sentinel.analyze);
-                // Initial check: If user agent is bot, lock forever
-                if(/bot|crawler|spider|crawling/i.test(navigator.userAgent)) {
-                    document.getElementById('bot-overlay').style.display = 'flex';
-                }
+                setTimeout(() => document.getElementById('hud-box').style.opacity = 1, 500);
+                // Initial update to set blur level
+                updateSecurity(Sentinel.score);
             },
 
             analyze: () => {
@@ -139,16 +162,101 @@
                 const dt = now - Sentinel.lastT;
                 const dy = y - Sentinel.lastY;
                 
-                // IDLE CHECK: If pause > 100ms, ignore (Don't punish reading)
-                if (dt > 100) {
+                // IDLE GATE: Reset if pause > 150ms
+                if (dt > 150) {
                     Sentinel.lastT = now;
                     Sentinel.lastY = y;
-                    return;
+                    updateState("IDLE");
+                    return; 
                 }
+
+                updateState("ANALYZING");
 
                 if (Math.abs(dy) > 0) {
                     const velocity = Math.abs(dy / dt);
                     Sentinel.buffer.push(velocity);
                     if(Sentinel.buffer.length > 20) Sentinel.buffer.shift();
                     
-                    const variance = Sentinel
+                    const variance = Sentinel.calculateVariance(Sentinel.buffer);
+                    
+                    if(Sentinel.buffer.length > 5) {
+                        if(variance < 0.005) { 
+                            // BOT PENALTY
+                            Sentinel.score = Math.max(0, Sentinel.score - 5); 
+                        } else {
+                            // HUMAN REWARD (Quick gain of 5 points)
+                            Sentinel.score = Math.min(100, Sentinel.score + 5); 
+                        }
+                    }
+                    updateSecurity(Sentinel.score);
+                }
+                Sentinel.lastY = y;
+                Sentinel.lastT = now;
+            },
+
+            calculateVariance: (arr) => {
+                const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+                return arr.reduce((sq, n) => sq + Math.pow(n - mean, 2), 0) / arr.length;
+            }
+        };
+
+        function updateState(status) {
+            const el = document.getElementById('hud-state');
+            el.innerText = status;
+            el.style.color = status === "IDLE" ? "#666" : "#fff";
+            document.getElementById('hud-box').style.opacity = status === "IDLE" ? "0.6" : "1";
+        }
+
+        function updateSecurity(score) {
+            const fill = document.getElementById('hud-score');
+            const pct = document.getElementById('hud-pct');
+            const content = document.getElementById('protected-content');
+            const status = document.getElementById('hud-status');
+            
+            // 1. DYNAMIC BLUR LEVEL (Higher score = less blur)
+            const blurLevel = Math.max(0, 8 - (score / 10)); // Blur max 8px, min 0px
+            content.style.setProperty('--blur-level', blurLevel + 'px');
+            
+            // 2. HUD VISUALS
+            fill.style.width = score + '%';
+            pct.innerText = Math.floor(score) + '%';
+            
+            if (score > 90) {
+                 // Fully unlocked
+                 status.innerText = "UNLOCKED";
+                 status.style.color = "#00ff41";
+                 fill.style.background = "#00ff41";
+                 content.style.opacity = 1;
+            } else if(score < 40) {
+                // BOT THREAT
+                status.innerText = "BOT THREAT";
+                status.style.color = "#ff0000";
+                fill.style.background = "#ff0000";
+                // Activate BAN only if score hits 0
+                if (score <= 0) document.getElementById('bot-overlay').style.display = 'flex';
+            } else {
+                // TRANSITION
+                status.innerText = "VERIFYING...";
+                status.style.color = "#ffff00";
+                fill.style.background = "#ffff00";
+                content.style.opacity = 0.5; // Slightly opaque during verification
+            }
+        }
+
+        Sentinel.init();
+
+        function runBenchmark() {
+            const disp = document.getElementById('benchmark-result');
+            disp.innerText = ">> PINGING ENTROPY STREAM...";
+            fetch('/api/v1/beta/pulse-demo')
+                .then(r => r.json())
+                .then(d => {
+                    setTimeout(() => {
+                        disp.innerText = `>> CHAOS TRIAD PASS: ${d.hash.substring(0,24)}...`;
+                    }, 500);
+                })
+                .catch(() => disp.innerText = ">> CONNECTION ERROR");
+        }
+    </script>
+</body>
+</html>
