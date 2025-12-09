@@ -1,8 +1,8 @@
 /**
- * A+ CHAOS ID: V139 (KEYRING EDITION)
+ * A+ CHAOS ID: V140 (GATED ENROLLMENT)
  * STATUS: PRODUCTION.
- * FEATURE: Multi-Device Support. Allows Desktop AND Phone to have separate keys.
- * SECURITY: Identity locked to the Keyring.
+ * SECURITY: Registration now requires MASTER_KEY to prevent unauthorized device additions.
+ * FEATURE: Multi-Device Keyring.
  */
 import express from 'express';
 import path from 'path';
@@ -32,6 +32,10 @@ app.use(cors({ origin: '*' }));
 app.use(express.json());
 app.use(express.static(publicPath, { maxAge: '1h' })); 
 
+// --- CONFIGURATION ---
+// The Master Key is required to add new devices.
+const MASTER_KEY = process.env.MASTER_KEY || "chaos-genesis";
+
 // --- UTILITIES ---
 const toBuffer = (base64) => Buffer.from(base64, 'base64url');
 const toBase64 = (buffer) => Buffer.from(buffer).toString('base64url');
@@ -44,29 +48,28 @@ function extractChallengeFromClientResponse(clientResponse) {
 
 const DreamsEngine = {
     start: () => process.hrtime.bigint(),
-    score: (durationMs, kinetic) => 100, // Pass-through for setup
+    score: (durationMs, kinetic) => 100, 
     check: (durationMs, kinetic) => true, 
     update: (T_new, profile) => {}
 };
 
 // ==========================================
-// 1. CORE IDENTITY (THE KEYRING)
+// 1. CORE IDENTITY (KEYRING)
 // ==========================================
 const Users = new Map();
 const ADMIN_USER_ID = 'admin-user';
 
-// --- KEY #1 (YOUR DESKTOP) ---
+// --- KEY #1 (DESKTOP) ---
 const DESKTOP_ID = "cWtBQ3Buc1ZnN2g2QlNGRlRjVGV6QQ";
 const DESKTOP_KEY = "pQECAyYgASFYIHB_wbSVKRbTQgp7v4MEHhUa-GsFUzMQV49jJ1w8OvsqIlggFwXFALOUUKlfasQOhh3rSNG3zT3jVjiJA4ITr7u5uv0";
 
-// INITIALIZE KEYRING
+// INIT KEYRING
 const adminData = {
     id: ADMIN_USER_ID,
-    credentials: [], // Array of { id, publicKey, counter }
+    credentials: [], 
     dreamProfile: { window: [], sum_T: 0, sum_T2: 0 }
 };
 
-// Load Desktop Key into Ring
 try {
     adminData.credentials.push({
         credentialID: toBuffer(DESKTOP_ID),
@@ -75,9 +78,8 @@ try {
         counter: 0
     });
     Users.set(ADMIN_USER_ID, adminData);
-    console.log(">>> [SYSTEM] KEYRING INIT: DESKTOP KEY LOADED.");
+    console.log(">>> [SYSTEM] DESKTOP KEY LOADED. REGISTRATION GATED.");
 } catch(e) { console.error("Key Load Error", e); }
-
 
 const Abyss = { partners: new Map(), hash: (k) => crypto.createHash('sha256').update(k).digest('hex') };
 const Nightmare = { guardSaaS: (req, res, next) => next() };
@@ -96,11 +98,18 @@ const getRpId = (req) => {
 };
 
 // ==========================================
-// 2. AUTH ROUTES (MULTI-DEVICE)
+// 2. AUTH ROUTES (GATED)
 // ==========================================
 
-// REGISTER (OPEN FOR ADDING DEVICES)
+// REGISTER (REQUIRES MASTER KEY)
 app.get('/api/v1/auth/register-options', async (req, res) => {
+    const authHeader = req.headers['x-chaos-master-key'];
+    
+    // SECURITY GATE
+    if (authHeader !== MASTER_KEY) {
+        return res.status(403).json({ error: "ACCESS DENIED. INVALID MASTER KEY." });
+    }
+
     try {
         const options = await generateRegistrationOptions({
             rpName: 'A+ Chaos ID', 
@@ -120,6 +129,13 @@ app.get('/api/v1/auth/register-options', async (req, res) => {
 });
 
 app.post('/api/v1/auth/register-verify', async (req, res) => {
+    const authHeader = req.headers['x-chaos-master-key'];
+    
+    // SECURITY GATE
+    if (authHeader !== MASTER_KEY) {
+        return res.status(403).json({ error: "ACCESS DENIED. INVALID MASTER KEY." });
+    }
+
     const clientResponse = req.body;
     const expectedChallenge = Challenges.get(ADMIN_USER_ID);
     if (!expectedChallenge) return res.status(400).json({ error: "Expired" });
@@ -136,19 +152,19 @@ app.post('/api/v1/auth/register-verify', async (req, res) => {
             const { credentialID, credentialPublicKey, counter } = verification.registrationInfo;
             const user = Users.get(ADMIN_USER_ID);
             
-            // ADD NEW KEY TO RING (Don't overwrite old ones)
-            const newKey = {
-                credentialID: credentialID, // Keep as Buffer for now
+            // Add new key to keyring
+            user.credentials.push({
+                credentialID: credentialID,
                 credentialID_String: toBase64(credentialID),
                 credentialPublicKey: credentialPublicKey,
                 counter: counter
-            };
-            
-            user.credentials.push(newKey);
+            });
             Users.set(ADMIN_USER_ID, user);
             Challenges.delete(ADMIN_USER_ID);
             
-            console.log(">>> [AUTH] NEW DEVICE ADDED TO KEYRING.");
+            console.log(">>> [AUTH] NEW DEVICE AUTHORIZED VIA MASTER KEY.");
+            
+            // Return keys for manual backup if desired
             res.json({ 
                 verified: true, 
                 env_ID: toBase64(credentialID), 
@@ -158,15 +174,14 @@ app.post('/api/v1/auth/register-verify', async (req, res) => {
     } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-// LOGIN (MULTI-KEY CHECK)
+// LOGIN (OPEN FOR KEY HOLDERS)
 app.get('/api/v1/auth/login-options', async (req, res) => {
     const user = Users.get(ADMIN_USER_ID);
     if (!user) return res.status(404).json({ error: "NO IDENTITY" });
     
     try {
-        // Send ALL known keys to the client
         const allowed = user.credentials.map(c => ({
-            id: c.credentialID, // Buffer
+            id: c.credentialID, 
             type: 'public-key'
         }));
 
@@ -191,14 +206,10 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
     const challengeData = Challenges.get(challengeString); 
     if (!user || !challengeData) return res.status(400).json({ error: "Invalid State" });
     
-    // FIND MATCHING KEY
-    const credIDBuffer = toBuffer(req.body.id); // The ID the client used
+    const credIDBuffer = toBuffer(req.body.id);
     const match = user.credentials.find(c => Buffer.compare(c.credentialID, credIDBuffer) === 0);
 
-    if (!match) {
-        console.log(">>> [AUTH] UNKNOWN CREDENTIAL ID PRESENTED.");
-        return res.status(400).json({ error: "Unknown Device" });
-    }
+    if (!match) return res.status(400).json({ error: "Unknown Device" });
 
     try {
         const verification = await verifyAuthenticationResponse({
@@ -215,7 +226,7 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
         });
 
         if (verification.verified) {
-            match.counter = verification.authenticationInfo.newCounter; // Update counter for this specific key
+            match.counter = verification.authenticationInfo.newCounter;
             Users.set(ADMIN_USER_ID, user); 
             Challenges.delete(challengeString);
             const token = Chaos.mintToken();
@@ -236,4 +247,6 @@ app.get('/sdk', (req, res) => serve('sdk.html', res));
 app.get('/admin/portal', (req, res) => serve('portal.html', res));
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V139 (KEYRING) ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V140 (GATED ENROLLMENT) ONLINE: ${PORT}`));
+
+
