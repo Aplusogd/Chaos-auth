@@ -1,10 +1,10 @@
 /**
- * A+ CHAOS ID: V125 (FINAL STABLE BUILD)
- * STATUS: Production Ready. Syntax Cleaned.
+ * A+ CHAOS ID: V125 (REAL-TIME TELEMETRY)
+ * STATUS: PRODUCTION.
  * FEATURES:
- * - Persistent Identity (Hardcoded/Env Vars)
- * - DREAMS V4 Kinetic Defense
- * - Admin Key Forge & Portal
+ * - Real-Time Request Counting (No Simulation)
+ * - Live Threat Logging to Dashboard
+ * - Persistent Identity & DREAMS V4
  */
 import express from 'express';
 import path from 'path';
@@ -30,7 +30,27 @@ const publicPath = path.join(__dirname, 'public');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// --- SECURITY HEADERS (ARMOR) ---
+// --- REAL-TIME TELEMETRY CORE ---
+const Telemetry = {
+    requests: 0,
+    blocked: 0,
+    logs: [], // Stores last 50 real events
+    
+    log: (type, msg) => {
+        const entry = `[${type}] ${msg}`;
+        Telemetry.logs.unshift(entry);
+        if (Telemetry.logs.length > 50) Telemetry.logs.pop();
+        if (type === 'BLOCK') Telemetry.blocked++;
+    }
+};
+
+// --- MIDDLEWARE: COUNT EVERY HIT ---
+app.use((req, res, next) => {
+    Telemetry.requests++;
+    next();
+});
+
+// --- SECURITY HEADERS ---
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
@@ -48,11 +68,10 @@ app.use(helmet({
     frameguard: { action: "deny" },
 }));
 
-// --- DOMAIN ENFORCEMENT ---
+// Domain Enforcement
 app.use((req, res, next) => {
     const host = req.get('host');
     const targetDomain = 'overthere.ai';
-
     if (host && (host.includes('localhost') || host.includes('127.0.0.1'))) return next();
     if (host && host !== targetDomain && host !== `www.${targetDomain}`) {
         return res.redirect(301, `https://${targetDomain}${req.originalUrl}`);
@@ -67,7 +86,6 @@ app.use(express.static(publicPath, { maxAge: '1h' }));
 // --- UTILITIES ---
 const toBuffer = (base64) => Buffer.from(base64, 'base64url');
 const toBase64 = (buffer) => Buffer.from(buffer).toString('base64url');
-
 function extractChallengeFromClientResponse(clientResponse) {
     try {
         const json = Buffer.from(clientResponse.response.clientDataJSON, 'base64url').toString('utf8');
@@ -75,9 +93,6 @@ function extractChallengeFromClientResponse(clientResponse) {
     } catch (e) { return null; }
 }
 
-// ==========================================
-// 1. DREAMS PROTOCOL BLACK BOX
-// ==========================================
 const DreamsEngine = {
     start: () => process.hrtime.bigint(),
     score: (durationMs, kinetic) => {
@@ -97,31 +112,13 @@ const DreamsEngine = {
 };
 
 // ==========================================
-// 2. CORE IDENTITY & SECURITY ENGINES
+// 1. CORE IDENTITY
 // ==========================================
 const Users = new Map();
 const ADMIN_USER_ID = 'admin-user';
-let ADMIN_PW_HASH = process.env.ADMIN_PW_HASH || bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'chaos2025', 12);
 let adminSession = new Map();
-const Abyss = { partners: new Map(), agents: new Map(), feedback: [], hash: (k) => crypto.createHash('sha256').update(k).digest('hex') };
-Abyss.partners.set(Abyss.hash('sk_chaos_public_beta'), { company: 'Public Dev', plan: 'BETA', usage: 0, limit: 5000, active: true });
-Abyss.agents.set('DEMO_AGENT_V1', { id: 'DEMO_AGENT_V1', usage: 0, limit: 500 });
-const Nightmare = { 
-    guardSaaS: (req, res, next) => {
-        const rawKey = req.get('X-CHAOS-API-KEY');
-        if (!rawKey) return res.status(401).json({ error: "MISSING_KEY" });
-        const partner = Abyss.partners.get(Abyss.hash(rawKey));
-        if (!partner) return res.status(403).json({ error: "INVALID_KEY" });
-        if (partner.usage >= partner.limit) return res.status(429).json({ error: "QUOTA_EXCEEDED" });
-        partner.usage++;
-        req.partner = partner;
-        next();
-    }
-};
-const Chaos = { mintToken: () => crypto.randomBytes(32).toString('hex') };
-const Challenges = new Map();
+let ADMIN_PW_HASH = process.env.ADMIN_PW_HASH || bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'chaos2025', 12);
 
-// --- PERSISTENCE LOADER (CRITICAL) ---
 if (process.env.ADMIN_CRED_ID && process.env.ADMIN_PUB_KEY) {
     try {
         const dna = {
@@ -131,9 +128,35 @@ if (process.env.ADMIN_CRED_ID && process.env.ADMIN_PUB_KEY) {
             dreamProfile: { window: [], sum_T: 0, sum_T2: 0 }
         };
         Users.set(ADMIN_USER_ID, dna);
+        Telemetry.log('SYSTEM', 'Identity Restored from Vault');
     } catch (e) { console.error("!!! [ERROR] VAULT CORRUPT:", e); }
 }
 
+const Abyss = { partners: new Map(), agents: new Map(), feedback: [], hash: (k) => crypto.createHash('sha256').update(k).digest('hex') };
+Abyss.partners.set(Abyss.hash('sk_chaos_public_beta'), { company: 'Public Dev', plan: 'BETA', usage: 0, limit: 5000, active: true });
+Abyss.agents.set('DEMO_AGENT_V1', { id: 'DEMO_AGENT_V1', usage: 0, limit: 500 });
+
+const Nightmare = { 
+    guardSaaS: (req, res, next) => {
+        const rawKey = req.get('X-CHAOS-API-KEY');
+        if (!rawKey) { Telemetry.log('BLOCK', 'Missing API Key'); return res.status(401).json({ error: "MISSING_KEY" }); }
+        
+        const partner = Abyss.partners.get(Abyss.hash(rawKey));
+        if (!partner) { Telemetry.log('BLOCK', 'Invalid API Key'); return res.status(403).json({ error: "INVALID_KEY" }); }
+        
+        if (partner.usage >= partner.limit) { 
+            Telemetry.log('BLOCK', `Quota Exceeded for ${partner.company}`);
+            return res.status(429).json({ error: "QUOTA_EXCEEDED" }); 
+        }
+        
+        partner.usage++;
+        req.partner = partner;
+        next();
+    }
+};
+
+const Chaos = { mintToken: () => crypto.randomBytes(32).toString('hex') };
+const Challenges = new Map();
 const getOrigin = (req) => {
     const host = req.get('host');
     if (host && host.includes('overthere.ai')) return 'https://overthere.ai';
@@ -150,15 +173,20 @@ const adminGuard = (req, res, next) => {
     const pwSession = req.headers['x-admin-session'];
     const bioToken = req.headers['x-chaos-token'];
     if (pwSession && adminSession.has(pwSession)) return next();
-    if (bioToken && Abyss.sessions.has(bioToken)) return next();
+    if (bioToken && Abyss.sessions.has(bioToken)) return next(); // Check stored sessions
     return res.status(401).json({ error: 'Unauthorized. Login Required.' });
 };
+// Abyss Session Storage
+Abyss.sessions = new Map();
 
 // ==========================================
-// 3. AUTH ROUTES
+// 2. AUTH ROUTES
 // ==========================================
-
-app.post('/api/v1/auth/reset', (req, res) => { Users.clear(); res.json({ success: true }); });
+app.post('/api/v1/auth/reset', (req, res) => { 
+    Users.clear(); 
+    Telemetry.log('SYSTEM', 'Memory Wiped via Kill Switch');
+    res.json({ success: true }); 
+});
 
 app.get('/api/v1/auth/register-options', async (req, res) => {
     if (Users.has(ADMIN_USER_ID)) {
@@ -186,6 +214,7 @@ app.post('/api/v1/auth/register-verify', async (req, res) => {
             const userData = { credentialID: toBase64(credentialID), credentialPublicKey: credentialPublicKey, counter, dreamProfile: { window: [], sum_T: 0, sum_T2: 0 } };
             Users.set(ADMIN_USER_ID, userData);
             Challenges.delete(ADMIN_USER_ID);
+            Telemetry.log('AUTH', 'New Identity Registered');
             res.json({ verified: true, env_ID: userData.credentialID, env_KEY: toBase64(credentialPublicKey) });
         } else { res.status(400).json({ verified: false }); }
     } catch (e) { res.status(400).json({ error: e.message }); }
@@ -218,6 +247,7 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
 
     if (chaosScore < 20) { 
          Challenges.delete(challengeString);
+         Telemetry.log('BLOCK', 'Bot Detected (Low Chaos Score)');
          return res.status(403).json({ verified: false, error: "BOT DETECTED" });
     }
     
@@ -233,21 +263,24 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
             Challenges.delete(challengeString);
             
             const token = Chaos.mintToken();
-            adminSession.set(token, { user: 'Admin', level: 'High' });
+            Abyss.sessions.set(token, { user: 'Admin', level: 'High' });
+            Telemetry.log('AUTH', 'Admin Login Successful');
             
             res.json({ verified: true, token: token, chaos_score: chaosScore });
         } else { res.status(400).json({ verified: false }); }
     } catch (error) { res.status(400).json({ error: error.message }); } 
 });
 
-// --- ADMIN & API ROUTES ---
+// --- ADMIN ROUTES ---
 app.post('/admin/login', async (req, res) => {
     const { password } = req.body;
     if (await bcrypt.compare(password, ADMIN_PW_HASH)) {
         const session = crypto.randomBytes(32).toString('hex');
         adminSession.set(session, { timestamp: Date.now() });
+        Telemetry.log('ADMIN', 'Portal Login Success');
         return res.json({ success: true, session });
     }
+    Telemetry.log('BLOCK', 'Admin Portal Failed Login');
     res.status(401).json({ error: 'Invalid Credentials' });
 });
 
@@ -257,6 +290,7 @@ app.post('/admin/generate-key', adminGuard, async (req, res) => {
     const hashedKey = Abyss.hash(key);
     const limit = tier === 'Enterprise' ? 99999999 : (tier === 'Pro' ? 50000 : 5000);
     Abyss.partners.set(hashedKey, { quota_current: 0, quota_limit: limit, tier, company: 'New Partner' });
+    Telemetry.log('ADMIN', `Generated Key for ${tier}`);
     res.json({ success: true, key, tier });
 });
 
@@ -267,24 +301,38 @@ app.get('/admin/partners', adminGuard, (req, res) => {
 
 app.post('/api/v1/public/signup', (req, res) => {
     const { firstName, lastInitial, reason } = req.body;
+    if (!firstName || !lastInitial || !reason) return res.status(400).json({ error: "Incomplete" });
     const key = `sk_chaos_${uuidv4().replace(/-/g, '').slice(0, 32)}`;
     const hashedKey = Abyss.hash(key);
     Abyss.partners.set(hashedKey, { company: `${firstName} ${lastInitial}.`, plan: 'Free', usage: 0, limit: 500, active: true, meta: { reason, joined: Date.now() } });
+    Telemetry.log('SIGNUP', `New User: ${firstName} ${lastInitial}`);
     res.json({ success: true, key: key, limit: 500 });
 });
 
 app.post('/api/v1/public/feedback', (req, res) => { 
     const entry = { id: uuidv4(), name: req.body.name, message: req.body.message, timestamp: Date.now() };
     Abyss.feedback.unshift(entry);
+    Telemetry.log('FEEDBACK', 'New Message Received');
     res.json({ success: true }); 
 });
-
 app.get('/api/v1/admin/feedback', adminGuard, (req, res) => { res.json({ feedback: Abyss.feedback }); });
 
 app.post('/api/v1/external/verify', Nightmare.guardSaaS, (req, res) => res.json({ valid: true, quota: { used: req.partner.usage, limit: req.partner.limit } }));
 
-app.get('/api/v1/beta/pulse-demo', (req, res) => { res.json({ valid: true, hash: Chaos.mintToken(), ms: 5 }); });
-app.get('/api/v1/admin/telemetry', (req, res) => { res.json({ stats: { requests: Abyss.partners.size * 50 + 200, threats: 0 }, threats: [] }); });
+app.get('/api/v1/beta/pulse-demo', (req, res) => {
+    res.json({ valid: true, hash: Chaos.mintToken(), ms: 5 });
+});
+
+// --- REAL TELEMETRY ---
+app.get('/api/v1/admin/telemetry', (req, res) => {
+    res.json({ 
+        stats: { 
+            requests: Telemetry.requests, 
+            threats: Telemetry.blocked 
+        }, 
+        logs: Telemetry.logs // Send the real logs
+    }); 
+});
 app.get('/api/v1/admin/profile-stats', (req, res) => res.json({ mu: 200, sigma: 20, cv: 0.1, status: "ACTIVE" }));
 app.get('/api/v1/health', (req, res) => res.json({ status: "ALIVE" }));
 app.use('/api/*', (req, res) => res.status(404).json({ error: "API Route Not Found" }));
@@ -298,4 +346,4 @@ app.get('/sdk', (req, res) => serve('sdk.html', res));
 app.get('/admin/portal', (req, res) => serve('portal.html', res));
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V122 (ARMORED CORE) ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V125 (REAL TELEMETRY) ONLINE: ${PORT}`));
