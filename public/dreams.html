@@ -2,79 +2,84 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>A+ DREAMS V5.1 | LIVE ACOUSTICS</title>
+    <title>A+ DREAMS V6 | LIFE SCANNER</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
         body { background: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; overflow: hidden; }
-        .visualizer { display: flex; align-items: flex-end; justify-content: center; height: 200px; gap: 2px; }
+        .visualizer { display: flex; align-items: flex-end; justify-content: center; height: 180px; gap: 2px; }
         .bar { width: 100%; background: #003300; transition: height 0.05s; }
         .scan-line { position: absolute; top: 0; width: 100%; height: 2px; background: rgba(0, 255, 65, 0.2); animation: scan 3s linear infinite; pointer-events: none; }
         @keyframes scan { 0% {top:0;} 100% {top:100%;} }
         
-        .status-box { border: 1px solid #333; padding: 20px; text-align: center; border-radius: 8px; background: #111; margin-top: 20px; }
-        .status-box.optimal { border-color: #00ff41; box-shadow: 0 0 20px rgba(0,255,65,0.1); }
-        .status-box.warning { border-color: #ff0000; box-shadow: 0 0 20px rgba(255,0,0,0.2); color: #ff5555; }
-        
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .mode-btn { border: 1px solid #333; padding: 10px; border-radius: 6px; background: #111; color: #666; transition: all 0.2s; font-size: 10px; text-align: center; cursor: pointer; }
+        .mode-btn.active { border-color: #00ff41; background: #002200; color: #fff; box-shadow: 0 0 10px rgba(0,255,65,0.2); }
+        .mode-btn i { font-size: 18px; display: block; margin-bottom: 5px; }
+
+        .status-box { border: 1px solid #333; padding: 15px; text-align: center; border-radius: 8px; background: #111; margin-top: 15px; }
+        .status-box.optimal { border-color: #00ff41; }
+        .status-box.warning { border-color: #ff0000; color: #ff5555; }
     </style>
 </head>
 <body class="flex flex-col items-center justify-center h-screen p-4 relative">
     <div class="scan-line"></div>
 
     <div class="max-w-2xl w-full z-10">
-        <div class="flex justify-between items-end border-b border-gray-800 pb-4 mb-6">
+        <div class="flex justify-between items-end border-b border-gray-800 pb-4 mb-4">
             <div>
-                <h1 class="text-3xl font-bold tracking-widest text-white">DREAMS V5.1</h1>
-                <div class="text-xs text-green-600 mt-1">LIVE ACOUSTIC DIAGNOSTICS</div>
+                <h1 class="text-2xl font-bold tracking-widest text-white">DREAMS V6</h1>
+                <div class="text-xs text-green-600 mt-1">LIFE SCANNER</div>
             </div>
             <div class="text-right">
-                <div class="text-[10px] text-gray-500">INPUT SOURCE</div>
-                <div id="source-name" class="text-xs font-bold text-blue-400">STANDBY</div>
+                <div class="text-[10px] text-gray-500">SENSITIVITY</div>
+                <div id="sensitivity-disp" class="text-xs font-bold text-blue-400">NORMAL</div>
             </div>
         </div>
 
-        <div class="bg-black border border-gray-800 rounded p-4 mb-6 relative">
-            <div class="absolute top-2 right-2 text-[10px] text-gray-500">FFT SPECTRUM (0-20kHz)</div>
-            <div id="visualizer" class="visualizer">
-                </div>
+        <div class="grid grid-cols-4 gap-2 mb-4">
+            <div class="mode-btn active" onclick="setMode('GARAGE', 120, this)">
+                <i class="fas fa-warehouse"></i> GARAGE
+            </div>
+            <div class="mode-btn" onclick="setMode('APPLIANCE', 80, this)">
+                <i class="fas fa-blender"></i> APPLIANCE
+            </div>
+            <div class="mode-btn" onclick="setMode('SLEEP', 40, this)">
+                <i class="fas fa-bed"></i> SLEEP
+            </div>
+            <div class="mode-btn" onclick="setMode('AUTO', 300, this)">
+                <i class="fas fa-car"></i> AUTO
+            </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-4 mb-6">
-            <button id="btn-mic" onclick="startMicrophone()" class="bg-blue-900 hover:bg-blue-700 text-white p-4 rounded font-bold transition border border-blue-800 flex items-center justify-center">
-                <i class="fas fa-microphone-alt mr-2"></i> USE MICROPHONE
-            </button>
-            <button id="btn-stop" onclick="stopListening()" disabled class="bg-red-900 hover:bg-red-700 text-white p-4 rounded font-bold transition border border-red-800 flex items-center justify-center">
-                <i class="fas fa-stop mr-2"></i> STOP
-            </button>
+        <div class="bg-black border border-gray-800 rounded p-4 mb-4 relative">
+            <div id="visualizer" class="visualizer"></div>
         </div>
 
-        <div class="text-center mb-6">
-            <span class="text-[10px] text-gray-600 uppercase tracking-widest cursor-pointer hover:text-green-500" onclick="simulateSound('HEALTHY')">[ SIMULATE HEALTHY ]</span>
-            <span class="text-[10px] text-gray-600 mx-2">|</span>
-            <span class="text-[10px] text-gray-600 uppercase tracking-widest cursor-pointer hover:text-red-500" onclick="simulateSound('BROKEN')">[ SIMULATE BROKEN ]</span>
-        </div>
+        <button id="btn-mic" onclick="toggleMicrophone()" class="w-full bg-blue-900 hover:bg-blue-700 text-white p-4 rounded font-bold transition border border-blue-800 flex items-center justify-center mb-4">
+            <i class="fas fa-microphone-alt mr-2"></i> START SCANNING
+        </button>
 
         <div id="output" class="status-box hidden">
-            <div class="text-xs uppercase tracking-widest mb-2" id="status-title">ANALYZING...</div>
-            <div class="text-4xl font-bold" id="status-result">--</div>
-            <div class="flex justify-between mt-4 text-xs text-gray-400 border-t border-gray-800 pt-2">
-                <span>VARIANCE: <span id="val-var" class="text-white">0</span></span>
-                <span>PEAK: <span id="val-peak" class="text-white">0 Hz</span></span>
+            <div class="text-xs uppercase tracking-widest mb-1" id="status-title">ANALYZING...</div>
+            <div class="text-3xl font-bold" id="status-result">--</div>
+            <div class="flex justify-between mt-2 text-[10px] text-gray-400 border-t border-gray-800 pt-2">
+                <span>NOISE LEVEL: <span id="val-var" class="text-white">0</span></span>
+                <span>THRESHOLD: <span id="val-thresh" class="text-white">120</span></span>
             </div>
         </div>
     </div>
 
     <script>
+        // CONFIG
+        let CURRENT_THRESHOLD = 120;
+        let CURRENT_MODE = "GARAGE";
+
+        // VISUALIZER SETUP
         const vis = document.getElementById('visualizer');
         const bars = [];
-        const BAR_COUNT = 64; 
-        let audioCtx, analyser, dataArray, source, animationId;
-        let isRunning = false;
-
-        // Init Bars
+        const BAR_COUNT = 32; 
         for(let i=0; i<BAR_COUNT; i++) {
             const b = document.createElement('div');
             b.className = 'bar';
@@ -83,26 +88,48 @@
             bars.push(b);
         }
 
-        async function startMicrophone() {
+        let audioCtx, analyser, dataArray, animationId;
+        let isRunning = false;
+
+        function setMode(name, threshold, btn) {
+            CURRENT_MODE = name;
+            CURRENT_THRESHOLD = threshold;
+            document.getElementById('sensitivity-disp').innerText = name;
+            document.getElementById('val-thresh').innerText = threshold;
+            
+            // UI Update
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        async function toggleMicrophone() {
+            if(isRunning) {
+                stopListening();
+                return;
+            }
+
             try {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 analyser = audioCtx.createAnalyser();
-                analyser.fftSize = 128; 
+                analyser.fftSize = 64; 
 
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                source = audioCtx.createMediaStreamSource(stream);
+                const source = audioCtx.createMediaStreamSource(stream);
                 source.connect(analyser);
                 
                 dataArray = new Uint8Array(analyser.frequencyBinCount);
                 
-                document.getElementById('source-name').innerText = "MICROPHONE (LIVE)";
-                toggleUI(true);
                 isRunning = true;
+                const btn = document.getElementById('btn-mic');
+                btn.classList.replace('bg-blue-900', 'bg-red-900');
+                btn.innerHTML = '<i class="fas fa-stop mr-2"></i> STOP SCANNING';
+                
+                document.getElementById('output').classList.remove('hidden');
                 
                 analyzeFrame();
 
             } catch(e) {
-                alert("Microphone Access Denied or Not Available.\nTry on a mobile device or check permissions.");
+                alert("Microphone Access Required");
             }
         }
 
@@ -110,126 +137,76 @@
             if(audioCtx) audioCtx.close();
             if(animationId) cancelAnimationFrame(animationId);
             isRunning = false;
-            document.getElementById('source-name').innerText = "STANDBY";
-            toggleUI(false);
+            const btn = document.getElementById('btn-mic');
+            btn.classList.replace('bg-red-900', 'bg-blue-900');
+            btn.innerHTML = '<i class="fas fa-microphone-alt mr-2"></i> START SCANNING';
             resetVis();
-        }
-
-        function toggleUI(active) {
-            document.getElementById('btn-mic').disabled = active;
-            document.getElementById('btn-stop').disabled = !active;
-            const out = document.getElementById('output');
-            if(active) {
-                out.classList.remove('hidden');
-                out.className = 'status-box';
-                document.getElementById('status-result').innerText = "LISTENING...";
-                document.getElementById('status-title').innerText = "CALIBRATING";
-            }
         }
 
         function analyzeFrame() {
             if(!isRunning) return;
             animationId = requestAnimationFrame(analyzeFrame);
-            
             analyser.getByteFrequencyData(dataArray);
             
             let sum = 0;
             let maxVal = 0;
-            let maxIndex = 0;
 
             for(let i = 0; i < BAR_COUNT; i++) {
                 const val = dataArray[i] || 0;
-                
                 const h = (val / 255) * 100;
-                bars[i].style.height = Math.max(2, h * 2) + '%';
+                bars[i].style.height = Math.max(2, h * 1.5) + '%';
                 
-                if(val > 200) bars[i].style.background = '#ff0000'; 
-                else if(val > 100) bars[i].style.background = '#ffff00'; 
+                // Color based on threshold relative to mode
+                // If this specific bar is "louder" than our threshold allows
+                if(val > (CURRENT_THRESHOLD * 0.8)) bars[i].style.background = '#ff0000'; 
+                else if(val > (CURRENT_THRESHOLD * 0.5)) bars[i].style.background = '#ffff00'; 
                 else bars[i].style.background = '#003300'; 
 
                 sum += val;
-                if(val > maxVal) { maxVal = val; maxIndex = i; }
+                if(val > maxVal) maxVal = val;
             }
 
             const average = sum / BAR_COUNT;
             const variance = maxVal - average; 
+            
+            // Multiply variance for display clarity
+            const displayVariance = variance * 2; 
 
-            updateDiagnostic(variance, maxIndex * (22000/128)); 
+            updateDiagnostic(displayVariance);
         }
 
-        let lastSendTime = 0;
-
-        function updateDiagnostic(variance, peakFreq) {
+        function updateDiagnostic(variance) {
             const result = document.getElementById('status-result');
             const title = document.getElementById('status-title');
             const box = document.getElementById('output');
             
             document.getElementById('val-var').innerText = variance.toFixed(0);
-            document.getElementById('val-peak').innerText = peakFreq.toFixed(0) + ' Hz';
 
-            if(variance > 120) {
-                result.innerText = "DETECTED";
-                result.className = "text-4xl font-bold text-red-500 animate-pulse";
-                title.innerText = "ABNORMAL NOISE DETECTED";
-                title.className = "text-xs uppercase tracking-widest mb-2 text-red-500";
+            if(variance > CURRENT_THRESHOLD) {
+                result.innerText = "IRREGULAR";
+                result.className = "text-3xl font-bold text-red-500 animate-pulse";
+                title.innerText = getWarningText();
+                title.className = "text-xs uppercase tracking-widest mb-1 text-red-500";
                 box.className = "status-box warning";
-                
-                const now = Date.now();
-                if(now - lastSendTime > 3000) {
-                    sendData(variance, peakFreq);
-                    lastSendTime = now;
-                }
             } else {
-                result.innerText = "OPTIMAL";
-                result.className = "text-4xl font-bold text-green-500";
-                title.innerText = "SYSTEM HEALTH";
-                title.className = "text-xs uppercase tracking-widest mb-2 text-green-500";
+                result.innerText = "HEALTHY";
+                result.className = "text-3xl font-bold text-green-500";
+                title.innerText = "RHYTHM DETECTED";
+                title.className = "text-xs uppercase tracking-widest mb-1 text-green-500";
                 box.className = "status-box optimal";
             }
         }
 
+        function getWarningText() {
+            if(CURRENT_MODE === 'GARAGE') return "SPRING/ROLLER ISSUE";
+            if(CURRENT_MODE === 'APPLIANCE') return "UNBALANCED LOAD";
+            if(CURRENT_MODE === 'SLEEP') return "SNORING DETECTED";
+            if(CURRENT_MODE === 'AUTO') return "ENGINE KNOCK";
+            return "NOISE DETECTED";
+        }
+
         function resetVis() {
             bars.forEach(b => { b.style.height = '2px'; b.style.background = '#003300'; });
-        }
-
-        function sendData(variance, peakFreq) {
-            fetch('/api/v1/hardware/diagnostic', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ deviceId: 'WEB_DIAGNOSTIC_TOOL', variance: variance, peakFreq: peakFreq })
-            }).catch(e => console.log('Telemetry Error'));
-        }
-
-        // --- SIMULATOR LOGIC (Restored for Testing) ---
-        function simulateSound(type) {
-            const out = document.getElementById('output');
-            out.classList.remove('hidden');
-            
-            let frame = 0;
-            const maxFrames = 50;
-            
-            const interval = setInterval(() => {
-                frame++;
-                let variance = 0;
-                bars.forEach((b, i) => {
-                    let h;
-                    if(type === 'HEALTHY') {
-                        h = 20 + Math.sin(frame * 0.2 + i * 0.5) * 15 + Math.random() * 5;
-                        b.style.background = '#00ff41';
-                        variance = 80; 
-                    } else {
-                        h = Math.random() * 80 + 10;
-                        b.style.background = '#ff0000';
-                        variance = 150; 
-                    }
-                    b.style.height = h + '%';
-                });
-
-                if(frame >= maxFrames) {
-                    clearInterval(interval);
-                    updateDiagnostic(variance, 200);
-                }
-            }, 30);
         }
     </script>
 </body>
