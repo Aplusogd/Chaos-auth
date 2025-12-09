@@ -3,48 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <title>A+ CHAOS | EAGLE EYE</title>
-    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
-    <link href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css)" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('[https://fonts.googleapis.com/css2?family=Share+Tech+Mono:wght@400;700&display=swap](https://fonts.googleapis.com/css2?family=Share+Tech+Mono:wght@400;700&display=swap)');
-        body { background-color: #000; color: #00ff41; font-family: 'Share Tech Mono', monospace; }
-        .panel { border: 1px solid #1a4d1a; background: rgba(0, 15, 0, 0.95); box-shadow: 0 0 15px rgba(0, 255, 65, 0.1); }
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono:wght@400;700&display=swap');
+        body { background-color: #000; color: #00ff41; font-family: 'Share Tech Mono', monospace; overflow: hidden; }
+        
+        .panel { 
+            border: 1px solid #1a4d1a; 
+            background: rgba(0, 15, 0, 0.95); 
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.1); 
+            transition: all 0.3s ease;
+        }
+        
         .scroll-box { scrollbar-width: none; }
-        .log-FEEDBACK { color: #3388ff; border-left: 3px solid #3388ff; padding-left: 8px; margin-bottom: 5px; background: rgba(0,0,50,0.5); }
+        .scroll-box::-webkit-scrollbar { display: none; }
+        
+        .blink { animation: blink 1s step-end infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        /* Log Colors */
+        .log-entry { border-bottom: 1px solid #112211; padding: 4px 0; font-size: 11px; }
+        .log-BLOCK { color: #ff3333; border-left: 3px solid #ff3333; padding-left: 8px; }
+        .log-AUTH { color: #00ff41; border-left: 3px solid #00ff41; padding-left: 8px; }
+        .log-SYSTEM { color: #ffff33; border-left: 3px solid #ffff33; padding-left: 8px; }
+        .log-FEEDBACK { color: #3388ff; border-left: 3px solid #3388ff; padding-left: 8px; background: rgba(0,20,50,0.3); }
+
+        .stat-value { transition: color 0.5s; }
+        .pulse-update { animation: text-flash 0.5s; }
+        @keyframes text-flash { 0% { color: #fff; text-shadow: 0 0 10px #fff; } 100% { color: inherit; } }
     </style>
 </head>
-<body class="h-screen flex flex-col p-4 overflow-hidden bg-black">
+<body class="h-screen flex flex-col p-4 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
 
-    <div class="flex justify-between items-center mb-4 border-b border-green-900 pb-2 bg-black/80 p-2 rounded">
-        <h1 class="text-2xl font-bold tracking-widest text-white">EAGLE EYE <span class="text-xs text-gray-500">V121</span></h1>
+    <!-- HEADER -->
+    <div class="flex justify-between items-center mb-4 border-b border-green-900 pb-2 bg-black/80 p-3 rounded-lg backdrop-blur">
+        <div class="flex items-center gap-3">
+            <h1 class="text-2xl font-bold tracking-widest text-white"><i class="fas fa-eye text-green-500 mr-2"></i>EAGLE EYE</h1>
+            <span class="text-[10px] text-gray-500 border border-gray-700 px-2 rounded">V125 LIVE</span>
+        </div>
         <div class="flex gap-6 text-sm items-center">
-            <div id="connection-status" class="text-green-500">● CONNECTED</div>
-            <button onclick="location.href='/dashboard'" class="text-gray-400 hover:text-white">EXIT</button>
+            <div id="connection-status" class="text-green-500 font-bold flex items-center gap-2">
+                <span class="w-2 h-2 bg-green-500 rounded-full blink"></span> CONNECTED
+            </div>
+            <button onclick="location.href='/dashboard'" class="text-gray-400 hover:text-white border border-gray-700 px-3 py-1 rounded hover:bg-gray-800 transition">
+                <i class="fas fa-sign-out-alt mr-1"></i> EXIT
+            </button>
         </div>
     </div>
 
-    <div class="flex-grow grid grid-cols-12 gap-4">
+    <!-- MAIN GRID -->
+    <div class="flex-grow grid grid-cols-12 gap-4 h-full pb-4">
+        
         <!-- LEFT: METRICS -->
-        <div class="col-span-3 flex flex-col gap-4">
-            <div class="panel p-4 text-center">
-                <div class="text-xs text-gray-400 mb-1">TRAFFIC</div>
-                <div id="stat-reqs" class="text-4xl font-bold text-white">0</div>
+        <div class="col-span-12 md:col-span-3 flex flex-col gap-4">
+            <!-- TRAFFIC -->
+            <div class="panel p-6 text-center rounded-lg">
+                <div class="text-xs text-gray-400 mb-2 uppercase tracking-widest">Global Traffic</div>
+                <div id="stat-reqs" class="text-5xl font-bold text-white stat-value">0</div>
+                <div class="text-[10px] text-green-600 mt-1">REQUESTS / SEC</div>
             </div>
-            <div class="panel p-4 text-center border-blue-900/50">
-                <div class="text-xs text-blue-500 mb-1">INBOX</div>
-                <div id="stat-inbox" class="text-4xl font-bold text-blue-400">0</div>
+            
+            <!-- THREATS -->
+            <div class="panel p-6 text-center border-red-900/50 rounded-lg">
+                <div class="text-xs text-red-500 mb-2 uppercase tracking-widest">Threats Neutralized</div>
+                <div id="stat-threats" class="text-5xl font-bold text-red-500 stat-value">0</div>
+                <div class="text-[10px] text-red-800 mt-1">NIGHTMARE FIREWALL</div>
+            </div>
+
+            <!-- INBOX COUNTER -->
+            <div class="panel p-6 text-center border-blue-900/50 rounded-lg">
+                <div class="text-xs text-blue-500 mb-2 uppercase tracking-widest">Comms Inbox</div>
+                <div id="stat-inbox" class="text-5xl font-bold text-blue-400 stat-value">0</div>
+                <div class="text-[10px] text-blue-800 mt-1">UNREAD SIGNALS</div>
             </div>
         </div>
 
-        <!-- RIGHT: COMMS -->
-        <div class="col-span-9 flex flex-col gap-4">
-            <div class="panel flex-grow flex flex-col relative overflow-hidden">
-                <div class="flex justify-between items-center border-b border-blue-900 pb-2 mb-2 p-2 bg-black/50">
-                    <span class="text-xs text-blue-400">INCOMING FEEDBACK</span>
-                    <button onclick="sync()" class="text-[10px] hover:text-white"><i class="fas fa-sync"></i></button>
+        <!-- CENTER: LIVE LOGS -->
+        <div class="col-span-12 md:col-span-6 flex flex-col gap-4">
+            <div class="panel flex-grow flex flex-col relative overflow-hidden rounded-lg">
+                <div class="flex justify-between items-center border-b border-green-900/50 p-3 bg-black/50">
+                    <span class="text-xs text-gray-400 font-bold"><i class="fas fa-list-alt mr-2"></i> SYSTEM EVENT STREAM</span>
+                    <span class="text-[10px] text-gray-600 font-mono">POLLING: 2s</span>
                 </div>
-                <div id="comms-feed" class="flex-grow overflow-y-auto font-mono text-xs space-y-2 p-2 scroll-box h-full">
-                    <div class="text-gray-500 text-center mt-10">Waiting for data...</div>
+                <div id="terminal" class="flex-grow overflow-y-auto font-mono text-xs p-4 scroll-box h-full flex flex-col gap-2">
+                    <div class="text-gray-500 italic">> Establishing Secure Uplink to Abyss...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: FEEDBACK FEED -->
+        <div class="col-span-12 md:col-span-3 flex flex-col gap-4">
+            <div class="panel flex-grow flex flex-col relative overflow-hidden rounded-lg border-blue-900/30">
+                <div class="flex justify-between items-center border-b border-blue-900/50 p-3 bg-black/50">
+                    <span class="text-xs text-blue-400 font-bold"><i class="fas fa-envelope mr-2"></i> INCOMING COMMS</span>
+                    <button onclick="sync()" class="text-[10px] hover:text-white text-blue-600"><i class="fas fa-sync"></i></button>
+                </div>
+                <div id="comms-feed" class="flex-grow overflow-y-auto font-mono text-xs space-y-3 p-3 scroll-box h-full">
+                    <div class="text-gray-600 text-center mt-10">Waiting for signals...</div>
                 </div>
             </div>
         </div>
@@ -52,12 +108,15 @@
 
     <script>
         const API_BASE = '/api/v1';
-        // GET THE BIOMETRIC TOKEN
         const token = sessionStorage.getItem('chaos_session');
         
         if (!token) {
             window.location.href = '/app.html';
         }
+
+        // --- REAL TIME ENGINE ---
+        let lastReqCount = 0;
+        let lastThreatCount = 0;
 
         async function sync() {
             try {
@@ -66,61 +125,92 @@
                     'Content-Type': 'application/json' 
                 };
 
-                // 1. Stats
+                // 1. FETCH TELEMETRY
                 const res = await fetch(`${API_BASE}/admin/telemetry`, { headers });
                 
-                // CRASH PROTECTION: Handle 401/403 Gracefully
-                if (!res.ok) {
-                    throw new Error(`Server Error: ${res.status}`);
+                if (res.status === 401) {
+                    alert("Session Expired");
+                    window.location.href = '/app.html';
+                    return;
                 }
+
+                if (!res.ok) throw new Error("Server Sync Error");
                 
                 const data = await res.json();
-                document.getElementById('stat-reqs').innerText = data.stats.requests;
-
-                // 2. Feedback
-                const feedRes = await fetch(`${API_BASE}/admin/feedback`, { headers });
                 
-                // CRASH PROTECTION
-                if (!feedRes.ok) {
-                     console.warn("Feedback endpoint unavailable");
-                     return;
+                // Update Counters with Pulse Effect
+                updateCounter('stat-reqs', data.stats.requests, lastReqCount);
+                updateCounter('stat-threats', data.stats.threats, lastThreatCount);
+                
+                lastReqCount = data.stats.requests;
+                lastThreatCount = data.stats.threats;
+
+                // Update Central Terminal (Logs)
+                const term = document.getElementById('terminal');
+                if (data.logs && data.logs.length > 0) {
+                    // Simple Diff: Check if top log matches
+                    const topLog = term.firstElementChild?.innerText;
+                    if (topLog !== data.logs[0]) {
+                        term.innerHTML = ''; // Clear for fresh batch (simplest for now)
+                        data.logs.forEach(log => {
+                            const div = document.createElement('div');
+                            // Style based on content
+                            if (log.includes('BLOCK')) div.className = "log-entry log-BLOCK";
+                            else if (log.includes('AUTH')) div.className = "log-entry log-AUTH";
+                            else div.className = "log-entry log-SYSTEM";
+                            div.innerText = log;
+                            term.appendChild(div); // Append to bottom list? No, usually top is newest
+                        });
+                    }
                 }
 
-                const feedData = await feedRes.json();
-                
-                // SAFETY CHECK: Ensure array exists before reading .length
-                // This fixes the "reading 'length' of undefined" error
-                const messages = feedData.feedback || [];
-                
-                document.getElementById('stat-inbox').innerText = messages.length;
-                
-                const comms = document.getElementById('comms-feed');
-                if(messages.length > 0) {
-                    comms.innerHTML = '';
-                    messages.forEach(msg => {
-                        const div = document.createElement('div');
-                        div.className = "log-FEEDBACK p-2 rounded";
-                        div.innerHTML = `<strong class="text-white">${msg.name}</strong> <span class="text-gray-500 text-[9px]">${new Date(msg.timestamp).toLocaleTimeString()}</span><br><span class="text-gray-300">${msg.message}</span>`;
-                        comms.prepend(div);
-                    });
-                } else {
-                    comms.innerHTML = '<div class="text-gray-500 text-center mt-10">Inbox Empty</div>';
+                // 2. FETCH FEEDBACK
+                const feedRes = await fetch(`${API_BASE}/admin/feedback`, { headers });
+                if (feedRes.ok) {
+                    const feedData = await feedRes.json();
+                    const messages = feedData.feedback || [];
+                    
+                    document.getElementById('stat-inbox').innerText = messages.length;
+                    
+                    const comms = document.getElementById('comms-feed');
+                    if (messages.length > 0) {
+                        comms.innerHTML = '';
+                        messages.forEach(msg => {
+                            const div = document.createElement('div');
+                            div.className = "log-FEEDBACK p-2 rounded border-l-2 border-blue-500 bg-blue-900/10 mb-2";
+                            div.innerHTML = `
+                                <div class="flex justify-between mb-1">
+                                    <strong class="text-blue-300">${msg.name}</strong>
+                                    <span class="text-gray-500 text-[9px]">${new Date(msg.timestamp).toLocaleTimeString()}</span>
+                                </div>
+                                <div class="text-gray-300 break-words">${msg.message}</div>
+                            `;
+                            comms.appendChild(div);
+                        });
+                    } else {
+                        comms.innerHTML = '<div class="text-gray-600 text-center mt-20">No active comms.</div>';
+                    }
                 }
 
             } catch(e) { 
                 console.error("Sync Error:", e);
-                document.getElementById('connection-status').className = "text-red-500";
-                document.getElementById('connection-status').innerText = "● DISCONNECTED";
-                
-                // Show error in feed if empty
-                const comms = document.getElementById('comms-feed');
-                if(comms.innerText.includes("Waiting")) {
-                    comms.innerHTML = `<div class="text-red-500 text-center mt-10">${e.message}</div>`;
-                }
+                const status = document.getElementById('connection-status');
+                status.className = "text-red-500 font-bold";
+                status.innerText = "● DISCONNECTED";
             }
         }
 
-        setInterval(sync, 4000);
+        function updateCounter(id, newVal, oldVal) {
+            const el = document.getElementById(id);
+            if (newVal !== oldVal) {
+                el.innerText = newVal;
+                el.classList.add('pulse-update');
+                setTimeout(() => el.classList.remove('pulse-update'), 500);
+            }
+        }
+
+        // Start Heartbeat
+        setInterval(sync, 2000);
         sync();
     </script>
 </body>
