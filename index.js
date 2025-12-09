@@ -1,8 +1,11 @@
 /**
- * A+ CHAOS ID: V130 (TRUE BIOMETRICS)
+ * A+ CHAOS ID: V130 (INFINITY BUILD)
  * STATUS: PRODUCTION GOLD MASTER.
- * FIX: Replaced static profile stats with live DREAMS V4 calculations.
- * ALL DATA IS NOW REAL-TIME.
+ * FEATURES:
+ * - Live Wire Protocol (SSE) for Real-Time Dashboard.
+ * - Ghost Traffic Filter (Pure Analytics).
+ * - DREAMS V4 Kinetic Defense.
+ * - Persistent Identity via Env Vars.
  */
 import express from 'express';
 import path from 'path';
@@ -29,6 +32,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // --- 1. LIVE WIRE ENGINE (SSE) ---
+// This creates the "Matrix Connection" to your dashboard
 let connectedClients = [];
 const LiveWire = {
     broadcast: (event, data) => {
@@ -52,23 +56,32 @@ const Telemetry = {
     requests: 0,
     blocked: 0,
     logs: [],
+    
     log: (type, msg) => {
         const entry = `[${type}] ${msg}`;
         Telemetry.logs.unshift(entry);
         if (Telemetry.logs.length > 50) Telemetry.logs.pop();
         if (type === 'BLOCK') Telemetry.blocked++;
+        
+        // PUSH DATA INSTANTLY (No Polling Required)
         LiveWire.broadcast('log', { entry, stats: { requests: Telemetry.requests, threats: Telemetry.blocked } });
     }
 };
 
+// --- MIDDLEWARE: GHOST FILTER ---
 app.use((req, res, next) => {
+    // Only count external traffic. Ignore dashboard polls and health checks.
     if (!req.path.includes('/api/v1/stream') && !req.path.includes('/health')) {
         Telemetry.requests++;
-        if (Telemetry.requests % 5 === 0) LiveWire.broadcast('stats', { requests: Telemetry.requests, threats: Telemetry.blocked });
+        // Pulse stats on every request
+        if (Telemetry.requests % 5 === 0) {
+            LiveWire.broadcast('stats', { requests: Telemetry.requests, threats: Telemetry.blocked });
+        }
     }
     next();
 });
 
+// --- SECURITY HEADERS ---
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
@@ -86,6 +99,7 @@ app.use(helmet({
     frameguard: { action: "deny" },
 }));
 
+// Domain Enforcement
 app.use((req, res, next) => {
     const host = req.get('host');
     const targetDomain = 'overthere.ai';
@@ -100,6 +114,7 @@ app.use(cors({ origin: '*' }));
 app.use(express.json());
 app.use(express.static(publicPath, { maxAge: '1h' })); 
 
+// --- UTILITIES ---
 const toBuffer = (base64) => Buffer.from(base64, 'base64url');
 const toBase64 = (buffer) => Buffer.from(buffer).toString('base64url');
 function extractChallengeFromClientResponse(clientResponse) {
@@ -116,8 +131,6 @@ const DreamsEngine = {
     update: (durationMs, user) => {
         const profile = user.dreamProfile;
         if (!profile.window) profile.window = [];
-        
-        // Keep last 10 logins
         if (profile.window.length >= 10) profile.window.shift();
         profile.window.push(durationMs);
         
@@ -127,10 +140,9 @@ const DreamsEngine = {
         const variance = profile.window.reduce((a,b)=>a + Math.pow(b-mu, 2), 0) / n;
         const sigma = Math.sqrt(variance);
         
-        // Store calculated stats in profile for the dashboard to read
         profile.mu = mu;
         profile.sigma = sigma;
-        profile.cv = sigma / (mu || 1); // Avoid div/0
+        profile.cv = sigma / (mu || 1); 
     },
 
     score: (durationMs, kinetic) => {
@@ -153,6 +165,9 @@ const DreamsEngine = {
     }
 };
 
+// ==========================================
+// 1. CORE IDENTITY
+// ==========================================
 const Users = new Map();
 const ADMIN_USER_ID = 'admin-user';
 let adminSession = new Map();
@@ -164,7 +179,7 @@ if (process.env.ADMIN_CRED_ID && process.env.ADMIN_PUB_KEY) {
             credentialID: process.env.ADMIN_CRED_ID,
             credentialPublicKey: new Uint8Array(toBuffer(process.env.ADMIN_PUB_KEY)),
             counter: 0,
-            dreamProfile: { window: [], sum_T: 0, sum_T2: 0, mu: 0, sigma: 0, cv: 0 } // Init zero
+            dreamProfile: { window: [], sum_T: 0, sum_T2: 0, mu: 0, sigma: 0, cv: 0 } 
         };
         Users.set(ADMIN_USER_ID, dna);
         Telemetry.log('SYSTEM', 'Identity Restored from Vault');
@@ -196,7 +211,10 @@ const adminGuard = (req, res, next) => {
 };
 Abyss.sessions = new Map();
 
-// --- ROUTES ---
+// ==========================================
+// 2. ROUTES
+// ==========================================
+// LIVE WIRE ENDPOINT
 app.get('/api/v1/stream', adminGuard, (req, res) => {
     LiveWire.addClient(req, res);
     Telemetry.log('SYSTEM', 'Admin Connected to Live Wire');
@@ -243,6 +261,7 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
     try { const json = Buffer.from(req.body.response.clientDataJSON, 'base64url').toString('utf8'); challengeString = JSON.parse(json).challenge; } catch(e) { return res.status(400).json({error: "Bad Payload"}); }
     const challengeData = Challenges.get(challengeString); 
     if (!user || !challengeData) return res.status(400).json({ error: "Invalid State" });
+    
     const durationMs = Number(process.hrtime.bigint() - challengeData.startTime) / 1000000;
     const kineticData = req.body.kinetic_data;
     const chaosScore = DreamsEngine.score(durationMs, kineticData);
@@ -250,9 +269,7 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
     try {
         const verification = await verifyAuthenticationResponse({ response: req.body, expectedChallenge: challengeString, expectedOrigin: getOrigin(req), expectedRPID: getRpId(req), authenticator: { credentialID: toBuffer(user.credentialID), credentialPublicKey: user.credentialPublicKey, counter: user.counter }, requireUserVerification: false });
         if (verification.verified) {
-            // UPDATE REAL DREAMS STATS
             DreamsEngine.update(durationMs, user);
-            
             user.counter = verification.authenticationInfo.newCounter; Users.set(ADMIN_USER_ID, user); Challenges.delete(challengeString);
             const token = Chaos.mintToken(); Abyss.sessions.set(token, { user: 'Admin', level: 'High' }); Telemetry.log('AUTH', 'Admin Login Successful');
             res.json({ verified: true, token: token, chaos_score: chaosScore });
@@ -260,6 +277,7 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
     } catch (error) { res.status(400).json({ error: error.message }); } 
 });
 
+// ADMIN
 app.post('/admin/login', async (req, res) => {
     const { password } = req.body;
     if (await bcrypt.compare(password, ADMIN_PW_HASH)) {
@@ -269,7 +287,7 @@ app.post('/admin/login', async (req, res) => {
 });
 app.post('/admin/generate-key', adminGuard, async (req, res) => {
     const { tier } = req.body; const key = `sk_chaos_${uuidv4().replace(/-/g, '').slice(0, 32)}`; const hashedKey = Abyss.hash(key);
-    Abyss.partners.set(hashedKey, { quota_current: 0, quota_limit: tier === 'Enterprise' ? 99999 : 500, tier, company: 'New Partner' });
+    Abyss.partners.set(hashedKey, { quota_current: 0, quota_limit: tier === 'Enterprise' ? 99999999 : (tier === 'Pro' ? 50000 : 5000), tier, company: 'New Partner' });
     Telemetry.log('ADMIN', `Key Generated (${tier})`); res.json({ success: true, key, tier });
 });
 app.get('/admin/partners', adminGuard, (req, res) => { const partners = Array.from(Abyss.partners.entries()).map(([hash, p]) => ({ id: p.company, tier: p.tier, usage: p.quota_current })); res.json({ partners }); });
@@ -284,24 +302,13 @@ app.get('/api/v1/admin/feedback', adminGuard, (req, res) => { res.json({ feedbac
 app.post('/api/v1/external/verify', Nightmare.guardSaaS, (req, res) => res.json({ valid: true, quota: { used: req.partner.usage, limit: req.partner.limit } }));
 app.get('/api/v1/beta/pulse-demo', (req, res) => { res.json({ valid: true, hash: Chaos.mintToken(), ms: 5 }); });
 
-// --- REAL STATS ENDPOINT ---
+// TELEMETRY
 app.get('/api/v1/admin/telemetry', (req, res) => { res.json({ stats: { requests: Telemetry.requests, threats: Telemetry.blocked }, logs: Telemetry.logs }); });
-
-// --- REAL DREAMS STATS ENDPOINT ---
 app.get('/api/v1/admin/profile-stats', (req, res) => {
     const user = Users.get(ADMIN_USER_ID);
-    if (!user || !user.dreamProfile.mu) {
-        res.json({ mu: 0, sigma: 0, cv: 0, status: "LEARNING..." });
-    } else {
-        res.json({ 
-            mu: user.dreamProfile.mu.toFixed(0), 
-            sigma: user.dreamProfile.sigma.toFixed(2), 
-            cv: user.dreamProfile.cv.toFixed(3), 
-            status: "ACTIVE" 
-        });
-    }
+    if (!user || !user.dreamProfile.mu) { res.json({ mu: 0, sigma: 0, cv: 0, status: "LEARNING..." }); } 
+    else { res.json({ mu: user.dreamProfile.mu.toFixed(0), sigma: user.dreamProfile.sigma.toFixed(2), cv: user.dreamProfile.cv.toFixed(3), status: "ACTIVE" }); }
 });
-
 app.get('/api/v1/health', (req, res) => res.json({ status: "ALIVE" }));
 app.use('/api/*', (req, res) => res.status(404).json({ error: "API Route Not Found" }));
 
@@ -314,4 +321,4 @@ app.get('/sdk', (req, res) => serve('sdk.html', res));
 app.get('/admin/portal', (req, res) => serve('portal.html', res));
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V130 (TRUE BIOMETRICS) ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V130 (INFINITY BUILD) ONLINE: ${PORT}`));
