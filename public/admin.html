@@ -2,121 +2,156 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>A+ CHAOS | EAGLE EYE</title>
+    <title>A+ CHAOS | OVERWATCH</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono:wght@400;700&display=swap');
-        body { background-color: #000; color: #00ff41; font-family: 'Share Tech Mono', monospace; overflow: hidden; }
-        
-        .panel { 
-            border: 1px solid #1a4d1a; 
-            background: rgba(0, 15, 0, 0.95); 
-            box-shadow: 0 0 15px rgba(0, 255, 65, 0.1); 
-            transition: all 0.3s ease;
+        body { 
+            background-color: #050505; 
+            color: #00ff41; 
+            font-family: 'Share Tech Mono', monospace; 
+            overflow: hidden;
+            background-image: radial-gradient(circle at 50% 50%, #112211 0%, #000000 100%);
         }
         
-        .scroll-box { scrollbar-width: none; }
-        .scroll-box::-webkit-scrollbar { display: none; }
+        /* PANELS */
+        .panel { 
+            border: 1px solid #1a4d1a; 
+            background: rgba(0, 10, 0, 0.9); 
+            box-shadow: 0 0 10px rgba(0, 255, 65, 0.05); 
+            backdrop-filter: blur(4px);
+        }
         
+        /* SCROLLBARS */
+        .scroll-box { scrollbar-width: thin; scrollbar-color: #004400 #000; }
+        .scroll-box::-webkit-scrollbar { width: 4px; }
+        .scroll-box::-webkit-scrollbar-track { background: #000; }
+        .scroll-box::-webkit-scrollbar-thumb { background: #004400; }
+
+        /* LOG TYPES */
+        .log-entry { padding: 4px 8px; border-bottom: 1px solid #112211; font-size: 11px; animation: slideIn 0.2s ease-out; }
+        .log-BLOCK { color: #ff3333; border-left: 2px solid #ff3333; background: rgba(50,0,0,0.2); }
+        .log-AUTH { color: #00ff41; border-left: 2px solid #00ff41; }
+        .log-SYSTEM { color: #ffff33; border-left: 2px solid #ffff33; }
+        .log-FEEDBACK { color: #3388ff; border-left: 2px solid #3388ff; background: rgba(0,20,50,0.2); }
+        
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+
+        /* ANIMATIONS */
         .blink { animation: blink 1s step-end infinite; }
         @keyframes blink { 50% { opacity: 0; } }
-
-        /* Log Colors */
-        .log-entry { border-bottom: 1px solid #112211; padding: 4px 0; font-size: 11px; }
-        .log-BLOCK { color: #ff3333; border-left: 3px solid #ff3333; padding-left: 8px; }
-        .log-AUTH { color: #00ff41; border-left: 3px solid #00ff41; padding-left: 8px; }
-        .log-SYSTEM { color: #ffff33; border-left: 3px solid #ffff33; padding-left: 8px; }
-        .log-FEEDBACK { color: #3388ff; border-left: 3px solid #3388ff; padding-left: 8px; background: rgba(0,20,50,0.3); }
-
-        .stat-value { transition: color 0.5s; }
-        .pulse-update { animation: text-flash 0.5s; }
-        @keyframes text-flash { 0% { color: #fff; text-shadow: 0 0 10px #fff; } 100% { color: inherit; } }
+        
+        .pulse-text { animation: textFlash 0.5s; }
+        @keyframes textFlash { 0% { color: #fff; text-shadow: 0 0 10px #fff; } 100% { color: inherit; } }
+        
+        .pulse-red { animation: textFlashRed 0.5s; }
+        @keyframes textFlashRed { 0% { color: #fff; text-shadow: 0 0 10px #f00; } 100% { color: inherit; } }
     </style>
 </head>
-<body class="h-screen flex flex-col p-4 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
+<body class="h-screen flex flex-col p-2 md:p-4">
 
     <!-- HEADER -->
-    <div class="flex justify-between items-center mb-4 border-b border-green-900 pb-2 bg-black/80 p-3 rounded-lg backdrop-blur">
+    <div class="flex justify-between items-center mb-4 border-b border-green-900 pb-2 bg-black/60 p-3 rounded panel">
         <div class="flex items-center gap-3">
-            <h1 class="text-2xl font-bold tracking-widest text-white"><i class="fas fa-eye text-green-500 mr-2"></i>EAGLE EYE</h1>
-            <span class="text-[10px] text-gray-500 border border-gray-700 px-2 rounded">V125 LIVE</span>
+            <h1 class="text-2xl font-bold tracking-widest text-white">
+                <i class="fas fa-satellite-dish text-green-500 mr-2"></i>OVERWATCH
+            </h1>
+            <span class="text-[10px] text-gray-500 border border-green-900 px-2 rounded bg-green-900/10">V125 LIVE</span>
         </div>
-        <div class="flex gap-6 text-sm items-center">
+        <div class="flex gap-4 text-sm items-center">
             <div id="connection-status" class="text-green-500 font-bold flex items-center gap-2">
-                <span class="w-2 h-2 bg-green-500 rounded-full blink"></span> CONNECTED
+                <span class="w-2 h-2 bg-green-500 rounded-full blink"></span> ONLINE
             </div>
-            <button onclick="location.href='/dashboard'" class="text-gray-400 hover:text-white border border-gray-700 px-3 py-1 rounded hover:bg-gray-800 transition">
-                <i class="fas fa-sign-out-alt mr-1"></i> EXIT
+            <button onclick="location.href='/dashboard'" class="text-gray-500 hover:text-white border border-gray-800 px-3 py-1 rounded hover:bg-gray-800 transition text-xs">
+                EXIT
             </button>
         </div>
     </div>
 
     <!-- MAIN GRID -->
-    <div class="flex-grow grid grid-cols-12 gap-4 h-full pb-4">
+    <div class="flex-grow grid grid-cols-1 md:grid-cols-4 gap-4 overflow-hidden">
         
-        <!-- LEFT: METRICS -->
-        <div class="col-span-12 md:col-span-3 flex flex-col gap-4">
-            <!-- TRAFFIC -->
-            <div class="panel p-6 text-center rounded-lg">
-                <div class="text-xs text-gray-400 mb-2 uppercase tracking-widest">Global Traffic</div>
-                <div id="stat-reqs" class="text-5xl font-bold text-white stat-value">0</div>
-                <div class="text-[10px] text-green-600 mt-1">REQUESTS / SEC</div>
+        <!-- COL 1: METRICS -->
+        <div class="flex flex-col gap-4 h-full overflow-hidden">
+            
+            <!-- TRAFFIC CARD -->
+            <div class="panel p-4 text-center rounded">
+                <div class="text-[10px] text-gray-400 mb-1 uppercase tracking-widest">Global Traffic</div>
+                <div id="stat-reqs" class="text-5xl font-bold text-white transition-all">0</div>
+                <div class="text-[9px] text-green-600 mt-2">HITS / SESSION</div>
             </div>
             
-            <!-- THREATS -->
-            <div class="panel p-6 text-center border-red-900/50 rounded-lg">
-                <div class="text-xs text-red-500 mb-2 uppercase tracking-widest">Threats Neutralized</div>
-                <div id="stat-threats" class="text-5xl font-bold text-red-500 stat-value">0</div>
-                <div class="text-[10px] text-red-800 mt-1">NIGHTMARE FIREWALL</div>
+            <!-- THREAT CARD -->
+            <div class="panel p-4 text-center border-red-900/30 rounded">
+                <div class="text-[10px] text-red-500 mb-1 uppercase tracking-widest">Threats Blocked</div>
+                <div id="stat-threats" class="text-5xl font-bold text-red-500 transition-all">0</div>
+                <div class="text-[9px] text-red-800 mt-2">NIGHTMARE ACTIVE</div>
             </div>
 
-            <!-- INBOX COUNTER -->
-            <div class="panel p-6 text-center border-blue-900/50 rounded-lg">
-                <div class="text-xs text-blue-500 mb-2 uppercase tracking-widest">Comms Inbox</div>
-                <div id="stat-inbox" class="text-5xl font-bold text-blue-400 stat-value">0</div>
-                <div class="text-[10px] text-blue-800 mt-1">UNREAD SIGNALS</div>
+            <!-- DREAMS STATUS -->
+            <div class="panel p-4 flex-grow rounded flex flex-col">
+                <div class="text-xs text-purple-400 mb-2 border-b border-purple-900/30 pb-1">DREAMS V4 ENGINE</div>
+                <div class="space-y-4 mt-2">
+                    <div>
+                        <div class="flex justify-between text-xs text-gray-400"><span>Status</span> <span class="text-green-400">LEARNING</span></div>
+                        <div class="w-full bg-gray-900 h-1 mt-1"><div class="bg-purple-500 h-1 w-[80%] animate-pulse"></div></div>
+                    </div>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-gray-500">Human Baseline (μ)</span>
+                        <span id="dream-mu" class="text-white font-mono">--</span>
+                    </div>
+                     <div class="flex justify-between text-xs">
+                        <span class="text-gray-500">Sigma Variance (σ)</span>
+                        <span id="dream-sigma" class="text-white font-mono">--</span>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- CENTER: LIVE LOGS -->
-        <div class="col-span-12 md:col-span-6 flex flex-col gap-4">
-            <div class="panel flex-grow flex flex-col relative overflow-hidden rounded-lg">
-                <div class="flex justify-between items-center border-b border-green-900/50 p-3 bg-black/50">
-                    <span class="text-xs text-gray-400 font-bold"><i class="fas fa-list-alt mr-2"></i> SYSTEM EVENT STREAM</span>
-                    <span class="text-[10px] text-gray-600 font-mono">POLLING: 2s</span>
-                </div>
-                <div id="terminal" class="flex-grow overflow-y-auto font-mono text-xs p-4 scroll-box h-full flex flex-col gap-2">
-                    <div class="text-gray-500 italic">> Establishing Secure Uplink to Abyss...</div>
-                </div>
+        <!-- COL 2 & 3: LIVE TERMINAL -->
+        <div class="md:col-span-2 flex flex-col h-full overflow-hidden panel rounded">
+            <div class="flex justify-between items-center border-b border-green-900/30 p-2 bg-black/40">
+                <span class="text-xs text-gray-400 font-bold"><i class="fas fa-terminal mr-2"></i> SYSTEM EVENT STREAM</span>
+                <span class="text-[10px] text-gray-600 font-mono">POLLING: 1000ms</span>
+            </div>
+            <div id="terminal" class="flex-grow overflow-y-auto font-mono text-xs p-2 scroll-box">
+                <div class="text-gray-600 italic p-2">> Establishing Secure Uplink to Abyss...</div>
             </div>
         </div>
 
-        <!-- RIGHT: FEEDBACK FEED -->
-        <div class="col-span-12 md:col-span-3 flex flex-col gap-4">
-            <div class="panel flex-grow flex flex-col relative overflow-hidden rounded-lg border-blue-900/30">
-                <div class="flex justify-between items-center border-b border-blue-900/50 p-3 bg-black/50">
-                    <span class="text-xs text-blue-400 font-bold"><i class="fas fa-envelope mr-2"></i> INCOMING COMMS</span>
+        <!-- COL 4: COMMS & INBOX -->
+        <div class="flex flex-col gap-4 h-full overflow-hidden">
+            <div class="panel flex-grow flex flex-col rounded border-blue-900/30">
+                <div class="flex justify-between items-center border-b border-blue-900/30 p-2 bg-black/40">
+                    <span class="text-xs text-blue-400 font-bold"><i class="fas fa-inbox mr-2"></i> INBOX (<span id="inbox-count">0</span>)</span>
                     <button onclick="sync()" class="text-[10px] hover:text-white text-blue-600"><i class="fas fa-sync"></i></button>
                 </div>
-                <div id="comms-feed" class="flex-grow overflow-y-auto font-mono text-xs space-y-3 p-3 scroll-box h-full">
-                    <div class="text-gray-600 text-center mt-10">Waiting for signals...</div>
+                <div id="comms-feed" class="flex-grow overflow-y-auto font-mono text-xs p-2 scroll-box space-y-2">
+                    <div class="text-gray-700 text-center mt-10">No signals detected.</div>
                 </div>
             </div>
+            
+            <!-- Quick Actions -->
+            <button onclick="runPentest()" id="pentest-btn" class="panel py-3 text-xs font-bold text-yellow-500 hover:text-white hover:bg-yellow-900/20 transition uppercase">
+                <i class="fas fa-bug mr-2"></i> RUN SELF-DIAGNOSTIC
+            </button>
         </div>
+
     </div>
 
     <script>
         const API_BASE = '/api/v1';
         const token = sessionStorage.getItem('chaos_session');
         
-        if (!token) {
-            window.location.href = '/app.html';
-        }
+        // Security Check
+        if (!token) window.location.href = '/app.html';
 
-        // --- REAL TIME ENGINE ---
-        let lastReqCount = 0;
-        let lastThreatCount = 0;
+        // State Tracking for Animation
+        let lastReq = 0;
+        let lastThreat = 0;
+        let knownLogCount = 0;
+        let knownMsgCount = 0;
 
         async function sync() {
             try {
@@ -125,91 +160,99 @@
                     'Content-Type': 'application/json' 
                 };
 
-                // 1. FETCH TELEMETRY
+                // 1. TELEMETRY FETCH
                 const res = await fetch(`${API_BASE}/admin/telemetry`, { headers });
-                
-                if (res.status === 401) {
-                    alert("Session Expired");
-                    window.location.href = '/app.html';
-                    return;
-                }
-
-                if (!res.ok) throw new Error("Server Sync Error");
+                if (res.status === 401) return window.location.href = '/app.html'; // Kick if token invalid
                 
                 const data = await res.json();
                 
-                // Update Counters with Pulse Effect
-                updateCounter('stat-reqs', data.stats.requests, lastReqCount);
-                updateCounter('stat-threats', data.stats.threats, lastThreatCount);
+                // Update Counters (with Flash Effect)
+                updateStat('stat-reqs', data.stats.requests, lastReq, 'pulse-text');
+                updateStat('stat-threats', data.stats.threats, lastThreat, 'pulse-red');
                 
-                lastReqCount = data.stats.requests;
-                lastThreatCount = data.stats.threats;
+                lastReq = data.stats.requests;
+                lastThreat = data.stats.threats;
 
-                // Update Central Terminal (Logs)
+                // Update Logs
                 const term = document.getElementById('terminal');
                 if (data.logs && data.logs.length > 0) {
-                    // Simple Diff: Check if top log matches
-                    const topLog = term.firstElementChild?.innerText;
-                    if (topLog !== data.logs[0]) {
-                        term.innerHTML = ''; // Clear for fresh batch (simplest for now)
-                        data.logs.forEach(log => {
-                            const div = document.createElement('div');
-                            // Style based on content
-                            if (log.includes('BLOCK')) div.className = "log-entry log-BLOCK";
-                            else if (log.includes('AUTH')) div.className = "log-entry log-AUTH";
-                            else div.className = "log-entry log-SYSTEM";
-                            div.innerText = log;
-                            term.appendChild(div); // Append to bottom list? No, usually top is newest
-                        });
+                    // Only render if new logs exist (simple length check or content check)
+                    // For V1, we just re-render to keep it synced perfectly
+                    const currentHTML = term.innerHTML;
+                    // Build new HTML buffer
+                    let newHTML = '';
+                    data.logs.forEach(log => {
+                        let cls = 'log-SYSTEM';
+                        if (log.includes('BLOCK')) cls = 'log-BLOCK';
+                        else if (log.includes('AUTH')) cls = 'log-AUTH';
+                        else if (log.includes('FEEDBACK')) cls = 'log-FEEDBACK';
+                        
+                        newHTML += `<div class="log-entry ${cls}">${log}</div>`;
+                    });
+                    
+                    // Only touch DOM if changed
+                    if(term.childElementCount !== data.logs.length || !currentHTML.includes(data.logs[0])) {
+                        term.innerHTML = newHTML;
                     }
                 }
 
-                // 2. FETCH FEEDBACK
+                // 2. FEEDBACK FETCH
                 const feedRes = await fetch(`${API_BASE}/admin/feedback`, { headers });
-                if (feedRes.ok) {
-                    const feedData = await feedRes.json();
-                    const messages = feedData.feedback || [];
-                    
-                    document.getElementById('stat-inbox').innerText = messages.length;
-                    
+                const feedData = await feedRes.json();
+                const messages = feedData.feedback || [];
+                
+                document.getElementById('inbox-count').innerText = messages.length;
+                
+                if (messages.length !== knownMsgCount) {
                     const comms = document.getElementById('comms-feed');
-                    if (messages.length > 0) {
+                    if(messages.length > 0) {
                         comms.innerHTML = '';
                         messages.forEach(msg => {
                             const div = document.createElement('div');
-                            div.className = "log-FEEDBACK p-2 rounded border-l-2 border-blue-500 bg-blue-900/10 mb-2";
+                            div.className = "bg-blue-900/10 border-l-2 border-blue-500 p-2 rounded";
                             div.innerHTML = `
                                 <div class="flex justify-between mb-1">
-                                    <strong class="text-blue-300">${msg.name}</strong>
-                                    <span class="text-gray-500 text-[9px]">${new Date(msg.timestamp).toLocaleTimeString()}</span>
+                                    <strong class="text-blue-300 text-[10px]">${msg.name}</strong>
+                                    <span class="text-gray-600 text-[8px]">${new Date(msg.timestamp).toLocaleTimeString()}</span>
                                 </div>
                                 <div class="text-gray-300 break-words">${msg.message}</div>
                             `;
                             comms.appendChild(div);
                         });
-                    } else {
-                        comms.innerHTML = '<div class="text-gray-600 text-center mt-20">No active comms.</div>';
                     }
+                    knownMsgCount = messages.length;
                 }
+                
+                // 3. PROFILE STATS
+                const profRes = await fetch(`${API_BASE}/admin/profile-stats`);
+                const prof = await profRes.json();
+                document.getElementById('dream-mu').innerText = prof.mu + "ms";
+                document.getElementById('dream-sigma').innerText = prof.sigma + "ms";
 
             } catch(e) { 
-                console.error("Sync Error:", e);
-                const status = document.getElementById('connection-status');
-                status.className = "text-red-500 font-bold";
-                status.innerText = "● DISCONNECTED";
+                document.getElementById('connection-status').className = "text-red-500 font-bold";
+                document.getElementById('connection-status').innerText = "● OFFLINE";
             }
         }
 
-        function updateCounter(id, newVal, oldVal) {
+        function updateStat(id, newVal, oldVal, animClass) {
             const el = document.getElementById(id);
+            el.innerText = newVal;
             if (newVal !== oldVal) {
-                el.innerText = newVal;
-                el.classList.add('pulse-update');
-                setTimeout(() => el.classList.remove('pulse-update'), 500);
+                el.classList.remove(animClass);
+                void el.offsetWidth; // Trigger reflow
+                el.classList.add(animClass);
             }
         }
+        
+        async function runPentest() {
+            const btn = document.getElementById('pentest-btn');
+            btn.innerHTML = "<i class='fas fa-circle-notch fa-spin'></i> RUNNING...";
+            await fetch(`${API_BASE}/admin/pentest`, { method: 'POST' });
+            setTimeout(() => btn.innerHTML = "<i class='fas fa-check'></i> SECURE", 1000);
+            setTimeout(() => btn.innerHTML = "<i class='fas fa-bug'></i> RUN SELF-DIAGNOSTIC", 3000);
+        }
 
-        // Start Heartbeat
         setInterval(sync, 2000);
         sync();
     </script>
