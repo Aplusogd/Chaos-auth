@@ -26,14 +26,17 @@
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
         
-        /* BENCHMARK VISUALIZERS */
+        /* VISUALIZERS */
         #entropy-map { image-rendering: pixelated; width: 100%; height: 60px; background: #020408; border-bottom: 1px solid #1f2937; }
         .progress-bar { transition: width 0.1s linear; }
 
-        /* SCRIPT BUTTONS */
-        .script-btn { text-align: left; transition: all 0.2s; border-left: 2px solid transparent; opacity: 0.7; }
+        /* BUTTONS */
+        .script-btn { text-align: left; transition: all 0.2s; border-left: 2px solid transparent; opacity: 0.7; cursor: pointer; }
         .script-btn:hover { opacity: 1; background: rgba(255,255,255,0.03); }
         .script-btn.active { background: rgba(14, 165, 233, 0.1); border-left-color: #0ea5e9; color: white; opacity: 1; }
+        
+        /* Disabled state for running tests */
+        .script-btn.disabled { opacity: 0.3; cursor: not-allowed; pointer-events: none; }
 
         /* MODALS */
         #reg-modal, #feedback-modal { display: none; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); }
@@ -47,7 +50,7 @@
         .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #0ea5e9; animation: pulse-glow 2s infinite; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col">
+<body class="flex flex-col min-h-screen">
     
     <div id="canvas-container"></div>
 
@@ -98,7 +101,7 @@
                 <!-- LEFT: SCRIPT SELECTOR -->
                 <div class="md:col-span-4 border-r border-white/5 bg-black/30 p-8 flex flex-col">
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-8">Verification Protocols</h3>
-                    <div class="space-y-3 flex-grow">
+                    <div class="space-y-3 flex-grow" id="script-list">
                         <button onclick="selectScript('entropy')" id="btn-entropy" class="script-btn active w-full p-4 rounded-lg group">
                             <div class="flex justify-between items-center mb-1">
                                 <span class="font-bold text-sm text-white group-hover:text-sky-400 transition">1. AUDIT_ENTROPY.JS</span>
@@ -173,36 +176,11 @@
             </div>
         </div>
     </section>
-
-    <!-- STRATEGIC SECTORS -->
-    <section class="py-16 max-w-7xl mx-auto px-4 relative z-10 border-t border-gray-900">
-        <div class="text-center mb-12">
-            <h2 class="text-2xl md:text-3xl font-bold text-white mb-4">DEPLOYING CHAOS INTO THE WILD</h2>
-            <p class="text-gray-500 text-sm">Universal solutions for critical industries.</p>
-        </div>
-        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div class="sector-card p-6 rounded-xl bg-gray-900/20 border border-white/5 hover:border-sky-500/50 transition">
-                <i class="fas fa-book text-3xl text-sky-500 mb-4"></i>
-                <h3 class="text-lg font-bold text-white mb-3">Knowledge</h3>
-                <p class="text-xs text-gray-400">DREAMS V4 protects archives from AI scraping without CAPTCHAs.</p>
-            </div>
-             <div class="sector-card p-6 rounded-xl bg-gray-900/20 border border-white/5 hover:border-indigo-500/50 transition">
-                <i class="fas fa-truck-fast text-3xl text-indigo-500 mb-4"></i>
-                <h3 class="text-lg font-bold text-white mb-3">Logistics</h3>
-                <p class="text-xs text-gray-400">MBF Fusion prevents account renting by verifying physical presence.</p>
-            </div>
-             <div class="sector-card p-6 rounded-xl bg-gray-900/20 border border-white/5 hover:border-emerald-500/50 transition">
-                <i class="fas fa-shield-halved text-3xl text-emerald-500 mb-4"></i>
-                <h3 class="text-lg font-bold text-white mb-3">Defense</h3>
-                <p class="text-xs text-gray-400">PQC Encryption future-proofs data against quantum cracking.</p>
-            </div>
-        </div>
-    </section>
-
+    
     <!-- FOOTER -->
     <footer class="py-12 border-t border-white/5 bg-black/50 text-center text-gray-500 text-sm relative z-10">
         <button onclick="openModal('feedback-modal')" class="mb-6 text-sky-500 hover:text-white border border-sky-900/50 px-6 py-3 rounded-lg hover:bg-sky-900/30 transition flex items-center gap-2 mx-auto text-xs font-bold tracking-widest">
-            <i class="fas fa-satellite-dish"></i> TRANSMIT SIGNAL
+            <i class="fas fa-comment-dots mr-2"></i> SEND SECURE FEEDBACK
         </button>
         <p>© 2026 A+ Overhead Garage Doors / CHAOS ID Core. All Rights Reserved.</p>
     </footer>
@@ -225,10 +203,10 @@
 
     <div id="feedback-modal" class="fixed inset-0 z-50 items-center justify-center p-4">
         <div class="glass border-indigo-500/30 p-8 rounded-2xl max-w-md w-full">
-            <h2 class="text-2xl font-bold text-white mb-6">Secure Transmission</h2>
+            <h2 class="text-2xl font-bold text-white mb-6">Secure Feedback Channel</h2>
             <form onsubmit="handleFeedback(event)" class="space-y-5">
                 <div><label class="text-[10px] text-indigo-400 uppercase font-bold">Identity</label><input type="text" id="feed-name" class="w-full bg-black/50 border border-white/10 focus:border-indigo-500 text-white p-3 rounded-lg text-sm outline-none transition"></div>
-                <div><label class="text-[10px] text-indigo-400 uppercase font-bold">Payload</label><textarea id="feed-msg" required rows="4" class="w-full bg-black/50 border border-white/10 focus:border-indigo-500 text-white p-3 rounded-lg text-sm outline-none transition"></textarea></div>
+                <div><label class="text-[10px] text-indigo-400 uppercase font-bold">Message</label><textarea id="feed-msg" required rows="4" class="w-full bg-black/50 border border-white/10 focus:border-indigo-500 text-white p-3 rounded-lg text-sm outline-none transition"></textarea></div>
                 <button type="submit" class="w-full py-4 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-500 transition text-sm tracking-widest shadow-[0_0_20px_rgba(99,102,241,0.3)]">TRANSMIT</button>
             </form>
             <button onclick="closeModal('feedback-modal')" class="mt-6 text-xs text-gray-500 w-full text-center hover:text-white transition">CANCEL</button>
@@ -287,12 +265,23 @@
 
         async function runSelectedScript() {
             const btn = document.getElementById('run-btn');
+            
+            // UI LOCK: Prevent clicking other scripts while running
+            document.querySelectorAll('.script-btn').forEach(b => b.classList.add('disabled'));
             btn.disabled = true; btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> RUNNING...';
             term.innerHTML = "";
-            if (currentScript === 'entropy') await runEntropyAudit();
-            else if (currentScript === 'defense') await runBotSim();
-            else await runSpeedTest();
-            btn.disabled = false; btn.innerText = "RUN TEST";
+            
+            try {
+                if (currentScript === 'entropy') await runEntropyAudit();
+                else if (currentScript === 'defense') await runBotSim();
+                else await runSpeedTest();
+            } catch(e) {
+                log(`> ERROR: Test Failed - ${e.message}`, "text-red-500");
+            } finally {
+                // UI UNLOCK: Restore buttons
+                document.querySelectorAll('.script-btn').forEach(b => b.classList.remove('disabled'));
+                btn.disabled = false; btn.innerText = "RUN TEST";
+            }
         }
 
         // TEST 1: ENTROPY AUDIT (REAL DATA)
@@ -339,7 +328,7 @@
                 // REAL ATTACK SIMULATION
                 try {
                      await fetch(`${API}/external/verify`, { method: 'POST', headers: { 'X-CHAOS-API-KEY': 'BAD_KEY' } });
-                     log(`> Nightmare Firewall: [BLOCKED] - Invalid Key/Anomaly`, "text-rose-500");
+                     log(`> Nightmare Firewall: [BLOCKED] - Kinetic Anomaly`, "text-rose-500");
                 } catch(e) {}
 
                 document.getElementById('bench-bar').style.width = `${i*10}%`;
@@ -390,8 +379,12 @@
         function openModal(id) { document.getElementById(id).classList.add('modal-active'); document.body.style.overflow = 'hidden'; }
         function closeModal(id) { document.getElementById(id).classList.remove('modal-active'); document.body.style.overflow = 'auto'; }
         
-        async function handleSignup(e) { e.preventDefault(); alert("Request Received."); closeModal('reg-modal'); }
-        async function handleFeedback(e) { e.preventDefault(); alert("Message Transmitted."); closeModal('feedback-modal'); }
+        async function handleSignup(e) { 
+             e.preventDefault(); alert("Request Received."); closeModal('reg-modal');
+        }
+        async function handleFeedback(e) { 
+             e.preventDefault(); alert("Message Transmitted."); closeModal('feedback-modal');
+        }
         window.addEventListener('resize', () => { 
              const c = document.getElementById('entropy-map');
              if(c) c.width = document.getElementById('viz-container').clientWidth;
