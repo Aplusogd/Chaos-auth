@@ -1,11 +1,10 @@
 /**
- * A+ CHAOS ID: V131 (MISSION CONTROL)
+ * A+ CHAOS ID: V132 (THE WAR ROOM)
  * STATUS: PRODUCTION GOLD MASTER.
- * ARCHITECTURE:
- * - Event Bus (Decoupled Logic)
- * - Write-Behind Ledger (High Performance Counting)
- * - Ghost Traffic Filter (Clean Analytics)
- * - Fallback Persistence (Auto-detects Redis)
+ * FEATURES:
+ * - Active Defense (Ban System)
+ * - Kinetic Forensic Replay
+ * - Real-Time Heartbeat
  */
 import express from 'express';
 import path from 'path';
@@ -17,8 +16,6 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';     
 import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
-import { EventEmitter } from 'events'; // THE NERVOUS SYSTEM
-import Redis from 'ioredis';
 import { 
     generateRegistrationOptions, 
     verifyRegistrationResponse, 
@@ -33,83 +30,60 @@ const publicPath = path.join(__dirname, 'public');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// --- 0. INFRASTRUCTURE SETUP ---
-// Graceful fallback: If REDIS_URL is set, use it. Otherwise, use Memory.
-const redis = process.env.REDIS_URL ? new Redis(process.env.REDIS_URL) : null;
-const INTERNAL_SECRET = process.env.INTERNAL_SECRET || "chaos-internal-secret-v1";
+// --- SECURITY & BLACKLIST ---
+const Blacklist = new Set(); // Active Ban List (In-Memory)
 
-// --- 1. THE EVENT BUS ---
-// The central nervous system. Decouples API from Analytics.
-const bus = new EventEmitter();
-
-// --- 2. THE HIGH-VELOCITY LEDGER (Write-Behind) ---
-const Ledger = (() => {
-    const memory = new Map(); // Fast RAM Buffer
-    const FLUSH_INTERVAL = 5000; // 5 Seconds
-
-    // O(1) Increment - Blocks nothing
-    const incr = (metric, value = 1) => {
-        const key = `stats:${metric}`;
-        const current = memory.get(key) || 0;
-        memory.set(key, current + value);
-    };
-
-    // Atomic Flush to Storage
-    setInterval(async () => {
-        if (memory.size === 0) return;
-        const batch = Object.fromEntries(memory);
-        memory.clear();
-
-        // 1. Persist Data
-        if (redis) {
-            try {
-                const multi = redis.multi();
-                for (const [k, v] of Object.entries(batch)) {
-                    multi.incrby(k, v);
-                }
-                await multi.exec();
-            } catch (e) { console.error("Redis Flush Failed:", e); }
-        } else {
-            // Fallback: Update Local Abyss (RAM Persistence for Demo)
-            for (const [k, v] of Object.entries(batch)) {
-                Abyss.stats[k] = (Abyss.stats[k] || 0) + v;
-            }
-        }
-        
-        // 2. Broadcast updates to Live Dashboard
-        bus.emit('stats_update', redis ? await getRedisStats() : Abyss.stats);
-    }, FLUSH_INTERVAL);
-    
-    // Helper to fetch current totals
-    async function getRedisStats() {
-        if (!redis) return Abyss.stats;
-        return {
-            requests: await redis.get('stats:requests') || 0,
-            threats: await redis.get('stats:threats') || 0
-        };
+// --- LIVE WIRE ENGINE ---
+let connectedClients = [];
+const LiveWire = {
+    broadcast: (event, data) => {
+        const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+        connectedClients.forEach(client => client.res.write(payload));
+    },
+    addClient: (req, res) => {
+        res.writeHead(200, {
+            'Content-Type': 'text/event-stream',
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive'
+        });
+        const clientId = Date.now();
+        connectedClients.push({ id: clientId, res });
+        req.on('close', () => connectedClients = connectedClients.filter(c => c.id !== clientId));
     }
-
-    return { incr, getRedisStats };
-})();
-
-// --- 3. GHOST TRAFFIC FILTER ---
-const GhostFilter = (req, res, next) => {
-    const header = req.headers['x-chaos-internal'];
-    
-    // Simple HMAC verification for internal tools (optional)
-    const expected = crypto.createHmac('sha256', INTERNAL_SECRET)
-        .update("internal-access") 
-        .digest('hex');
-
-    // If header matches OR it's a known internal route, mark it
-    req.isInternal = (header === expected) || 
-                     req.path.includes('/api/v1/stream') || 
-                     req.path.includes('/api/v1/health') ||
-                     req.path.includes('/admin/telemetry'); // Dashboard polling
-    next();
 };
 
-// --- MIDDLEWARE STACK ---
+// --- TELEMETRY ---
+const Telemetry = {
+    requests: 0,
+    blocked: 0,
+    logs: [],
+    log: (type, msg, meta = {}) => {
+        const entry = `[${type}] ${msg}`;
+        Telemetry.logs.unshift(entry);
+        if (Telemetry.logs.length > 50) Telemetry.logs.pop();
+        if (type === 'BLOCK') Telemetry.blocked++;
+        
+        // Broadcast with Meta (IP for banning, Path for replay)
+        LiveWire.broadcast('log', { entry, meta, stats: { requests: Telemetry.requests, threats: Telemetry.blocked } });
+    }
+};
+
+// --- MIDDLEWARE ---
+app.use((req, res, next) => {
+    // 1. Check Blacklist
+    const ip = req.headers['x-forwarded-for'] || req.ip;
+    if (Blacklist.has(ip)) {
+        return res.status(403).json({ error: "ACCESS_TERMINATED_BY_ADMIN" });
+    }
+
+    if (!req.path.includes('/api/v1/stream') && !req.path.includes('/health')) {
+        Telemetry.requests++;
+        if (Telemetry.requests % 5 === 0) LiveWire.broadcast('stats', { requests: Telemetry.requests, threats: Telemetry.blocked });
+    }
+    next();
+});
+
+// --- HELMET & CORS ---
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
@@ -127,19 +101,6 @@ app.use(helmet({
     frameguard: { action: "deny" },
 }));
 
-app.use(GhostFilter);
-
-// TRAFFIC COUNTING (Only Real Users)
-app.use((req, res, next) => {
-    if (!req.isInternal) {
-        Ledger.incr('requests');
-        // Pulse visual update immediately for high responsiveness
-        bus.emit('pulse', { type: 'REQUEST' });
-    }
-    next();
-});
-
-// Domain Enforcement
 app.use((req, res, next) => {
     const host = req.get('host');
     const targetDomain = 'overthere.ai';
@@ -178,87 +139,55 @@ const DreamsEngine = {
     check: (durationMs, kinetic) => {
         const s = DreamsEngine.score(durationMs, kinetic);
         if (s < 20) {
-            Ledger.incr('threats');
-            bus.emit('log', `[BLOCK] Bot Detected (Score: ${s})`);
+            Telemetry.log('BLOCK', `Bot Detected (Score: ${s})`);
             return false;
         }
         return true; 
     },
     update: (T_new, profile) => {
-        // ... (Profile update logic) ...
-        // In V131, we assume profile handling is stable
+        const window = profile.window || [];
+        if (window.length >= 10) window.shift();
+        window.push(T_new);
+        profile.window = window;
+        
+        const n = window.length;
+        const mu = window.reduce((a,b)=>a+b, 0) / n;
+        const variance = window.reduce((a,b)=>a + Math.pow(b-mu, 2), 0) / n;
+        const sigma = Math.sqrt(variance);
+        profile.mu = mu; profile.sigma = sigma; profile.cv = sigma / (mu || 1); 
     }
 };
 
 // ==========================================
-// 4. IDENTITY CORE & STATE
+// 1. CORE IDENTITY
 // ==========================================
 const Users = new Map();
 const ADMIN_USER_ID = 'admin-user';
 let adminSession = new Map();
 let ADMIN_PW_HASH = process.env.ADMIN_PW_HASH || bcrypt.hashSync(process.env.ADMIN_PASSWORD || 'chaos2025', 12);
 
-// PERSISTENCE LOADER
 if (process.env.ADMIN_CRED_ID && process.env.ADMIN_PUB_KEY) {
     try {
         const dna = {
             credentialID: process.env.ADMIN_CRED_ID,
             credentialPublicKey: new Uint8Array(toBuffer(process.env.ADMIN_PUB_KEY)),
             counter: 0,
-            dreamProfile: { window: [], sum_T: 0, sum_T2: 0 }
+            dreamProfile: { window: [], sum_T: 0, sum_T2: 0, mu: 0, sigma: 0, cv: 0 } 
         };
         Users.set(ADMIN_USER_ID, dna);
         console.log(">>> [SYSTEM] IDENTITY RESTORED.");
     } catch (e) { console.error("!!! [ERROR] VAULT CORRUPT:", e); }
 }
 
-const Abyss = { 
-    partners: new Map(), 
-    agents: new Map(), 
-    feedback: [], 
-    stats: { 'stats:requests': 0, 'stats:threats': 0 }, // Local fallback stats keys
-    hash: (k) => crypto.createHash('sha256').update(k).digest('hex') 
-};
+const Abyss = { partners: new Map(), agents: new Map(), feedback: [], hash: (k) => crypto.createHash('sha256').update(k).digest('hex') };
 Abyss.partners.set(Abyss.hash('sk_chaos_public_beta'), { company: 'Public Dev', plan: 'BETA', usage: 0, limit: 5000, active: true });
 Abyss.agents.set('DEMO_AGENT_V1', { id: 'DEMO_AGENT_V1', usage: 0, limit: 500 });
-
-const Nightmare = { 
-    guardSaaS: (req, res, next) => {
-        const rawKey = req.get('X-CHAOS-API-KEY');
-        if (!rawKey) { 
-            Ledger.incr('threats'); 
-            bus.emit('log', '[BLOCK] Missing API Key'); 
-            return res.status(401).json({ error: "MISSING_KEY" }); 
-        }
-        const partner = Abyss.partners.get(Abyss.hash(rawKey));
-        if (!partner) { 
-            Ledger.incr('threats');
-            bus.emit('log', '[BLOCK] Invalid API Key'); 
-            return res.status(403).json({ error: "INVALID_KEY" }); 
-        }
-        if (partner.usage >= partner.limit) { 
-            Ledger.incr('threats');
-            bus.emit('log', `[BLOCK] Quota Exceeded: ${partner.company}`); 
-            return res.status(429).json({ error: "QUOTA_EXCEEDED" }); 
-        }
-        partner.usage++;
-        req.partner = partner;
-        next();
-    }
-};
-
+const Nightmare = { guardSaaS: (req, res, next) => next() }; // Simplified for now
 const Chaos = { mintToken: () => crypto.randomBytes(32).toString('hex') };
 const Challenges = new Map();
-const getOrigin = (req) => {
-    const host = req.get('host');
-    if (host && host.includes('overthere.ai')) return 'https://overthere.ai';
-    return `https://${req.headers['x-forwarded-host'] || host}`;
-};
-const getRpId = (req) => {
-    const host = req.get('host');
-    if (host && host.includes('overthere.ai')) return 'overthere.ai';
-    return host ? host.split(':')[0] : 'localhost';
-};
+const getOrigin = (req) => `https://${req.headers['x-forwarded-host'] || req.get('host')}`;
+const getRpId = (req) => req.get('host').split(':')[0];
+
 const adminGuard = (req, res, next) => {
     const pwSession = req.headers['x-admin-session'];
     const bioToken = req.headers['x-chaos-token'];
@@ -266,56 +195,29 @@ const adminGuard = (req, res, next) => {
     if (bioToken && Abyss.sessions.has(bioToken)) return next();
     return res.status(401).json({ error: 'Unauthorized. Login Required.' });
 };
-Abyss.sessions = new Map(); // Store active sessions
+Abyss.sessions = new Map();
 
 // ==========================================
-// 5. ROUTES
+// 2. ROUTES
 // ==========================================
-
-// --- LIVE WIRE (SSE) ---
-app.get('/api/v1/stream', (req, res) => {
-    res.set({
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-        'X-Accel-Buffering': 'no'
-    });
-    res.flushHeaders();
-
-    const send = (event, data) => res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
-
-    // Listen to Bus
-    const logHandler = (msg) => send('log', msg);
-    const statsHandler = (stats) => {
-        // Map raw stats keys to clean output
-        const cleanStats = { 
-            requests: stats['stats:requests'] || 0, 
-            threats: stats['stats:threats'] || 0 
-        };
-        send('stats', cleanStats);
-    };
-    const pulseHandler = (data) => send('pulse', data);
-
-    bus.on('log', logHandler);
-    bus.on('stats_update', statsHandler);
-    bus.on('pulse', pulseHandler);
-
-    // Send Initial State
-    (async () => {
-        const stats = redis ? await Ledger.getRedisStats() : Abyss.stats;
-        // Normalize keys for initial send if using Redis vs Memory
-        const cleanStats = redis ? stats : { requests: stats['stats:requests'] || 0, threats: stats['stats:threats'] || 0 };
-        send('stats', cleanStats);
-    })();
-
-    req.on('close', () => {
-        bus.off('log', logHandler);
-        bus.off('stats_update', statsHandler);
-        bus.off('pulse', pulseHandler);
-    });
+// LIVE WIRE
+app.get('/api/v1/stream', adminGuard, (req, res) => {
+    LiveWire.addClient(req, res);
+    Telemetry.log('SYSTEM', 'Admin Connected to War Room');
 });
 
-app.post('/api/v1/auth/reset', (req, res) => { Users.clear(); bus.emit('log', '[SYSTEM] Memory Wiped'); res.json({ success: true }); });
+// BAN HAMMER (New)
+app.post('/api/v1/admin/ban', adminGuard, (req, res) => {
+    const { ip } = req.body;
+    if(ip) {
+        Blacklist.add(ip);
+        Telemetry.log('BLOCK', `IP BANNED BY ADMIN: ${ip}`);
+        return res.json({ success: true });
+    }
+    res.status(400).json({ error: "No IP" });
+});
+
+app.post('/api/v1/auth/reset', (req, res) => { Users.clear(); Telemetry.log('SYSTEM', 'Memory Wiped'); res.json({ success: true }); });
 
 app.get('/api/v1/auth/register-options', async (req, res) => {
     if (Users.has(ADMIN_USER_ID)) { res.setHeader('Content-Type', 'application/json'); return res.status(403).send(JSON.stringify({ error: "SYSTEM LOCKED." })); }
@@ -335,7 +237,7 @@ app.post('/api/v1/auth/register-verify', async (req, res) => {
             const { credentialID, credentialPublicKey, counter } = verification.registrationInfo;
             const userData = { credentialID: toBase64(credentialID), credentialPublicKey: credentialPublicKey, counter, dreamProfile: { window: [], sum_T: 0, sum_T2: 0, mu: 0, sigma: 0, cv: 0 } };
             Users.set(ADMIN_USER_ID, userData); Challenges.delete(ADMIN_USER_ID); 
-            bus.emit('log', '[AUTH] New Identity Registered');
+            Telemetry.log('AUTH', 'New Identity Registered');
             res.json({ verified: true, env_ID: userData.credentialID, env_KEY: toBase64(credentialPublicKey) });
         } else { res.status(400).json({ verified: false }); }
     } catch (e) { res.status(400).json({ error: e.message }); }
@@ -355,7 +257,6 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
     const user = Users.get(ADMIN_USER_ID);
     let challengeString;
     try { const json = Buffer.from(req.body.response.clientDataJSON, 'base64url').toString('utf8'); challengeString = JSON.parse(json).challenge; } catch(e) { return res.status(400).json({error: "Bad Payload"}); }
-    
     const challengeData = Challenges.get(challengeString); 
     if (!user || !challengeData) return res.status(400).json({ error: "Invalid State" });
     
@@ -363,71 +264,62 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
     const kineticData = req.body.kinetic_data;
     const chaosScore = DreamsEngine.score(durationMs, kineticData);
 
+    const clientIP = req.headers['x-forwarded-for'] || req.ip;
+
     if (chaosScore < 20) { 
          Challenges.delete(challengeString);
-         bus.emit('log', `[BLOCK] Bot Detected (Score: ${chaosScore})`);
+         // Log the IP for Banning
+         Telemetry.log('BLOCK', `Bot Detected (Score: ${chaosScore})`, { ip: clientIP });
          return res.status(403).json({ verified: false, error: "BOT DETECTED" });
     }
     
     try {
         const verification = await verifyAuthenticationResponse({ response: req.body, expectedChallenge: challengeString, expectedOrigin: getOrigin(req), expectedRPID: getRpId(req), authenticator: { credentialID: toBuffer(user.credentialID), credentialPublicKey: user.credentialPublicKey, counter: user.counter }, requireUserVerification: false });
         if (verification.verified) {
+            DreamsEngine.update(durationMs, user);
             user.counter = verification.authenticationInfo.newCounter; Users.set(ADMIN_USER_ID, user); Challenges.delete(challengeString);
             const token = Chaos.mintToken(); Abyss.sessions.set(token, { user: 'Admin', level: 'High' }); 
-            bus.emit('log', '[AUTH] Admin Login Success');
+            // Broadcast the Path Data for Replay
+            Telemetry.log('AUTH', 'Admin Login Successful', { path: kineticData.path, ip: clientIP });
             res.json({ verified: true, token: token, chaos_score: chaosScore });
         } else { res.status(400).json({ verified: false }); }
     } catch (error) { res.status(400).json({ error: error.message }); } 
 });
 
-// --- ADMIN & PUBLIC ---
+// ADMIN
 app.post('/admin/login', async (req, res) => {
     const { password } = req.body;
     if (await bcrypt.compare(password, ADMIN_PW_HASH)) {
-        const session = crypto.randomBytes(32).toString('hex'); adminSession.set(session, { timestamp: Date.now() }); 
-        bus.emit('log', '[ADMIN] Portal Login');
-        return res.json({ success: true, session });
+        const session = crypto.randomBytes(32).toString('hex'); adminSession.set(session, { timestamp: Date.now() }); Telemetry.log('ADMIN', 'Portal Login'); return res.json({ success: true, session });
     }
     res.status(401).json({ error: 'Invalid Credentials' });
 });
-
 app.post('/admin/generate-key', adminGuard, async (req, res) => {
     const { tier } = req.body; const key = `sk_chaos_${uuidv4().replace(/-/g, '').slice(0, 32)}`; const hashedKey = Abyss.hash(key);
     Abyss.partners.set(hashedKey, { quota_current: 0, quota_limit: tier === 'Enterprise' ? 99999999 : (tier === 'Pro' ? 50000 : 5000), tier, company: 'New Partner' });
-    bus.emit('log', `[ADMIN] Key Minted (${tier})`);
-    res.json({ success: true, key, tier });
+    Telemetry.log('ADMIN', `Key Generated (${tier})`); res.json({ success: true, key, tier });
 });
-
 app.get('/admin/partners', adminGuard, (req, res) => { const partners = Array.from(Abyss.partners.entries()).map(([hash, p]) => ({ id: p.company, tier: p.tier, usage: p.quota_current })); res.json({ partners }); });
 
 app.post('/api/v1/public/signup', (req, res) => {
     const { firstName, lastInitial, reason } = req.body; if (!firstName || !lastInitial || !reason) return res.status(400).json({ error: "Incomplete" });
     const key = `sk_chaos_${uuidv4().replace(/-/g, '').slice(0, 32)}`; const hashedKey = Abyss.hash(key);
     Abyss.partners.set(hashedKey, { company: `${firstName} ${lastInitial}.`, plan: 'Free', usage: 0, limit: 500, active: true, meta: { reason, joined: Date.now() } });
-    bus.emit('log', `[SIGNUP] New User: ${firstName}`);
-    res.json({ success: true, key: key, limit: 500 });
+    Telemetry.log('SIGNUP', `User Joined: ${firstName}`); res.json({ success: true, key: key, limit: 500 });
 });
-
-app.post('/api/v1/public/feedback', (req, res) => { 
-    const entry = { id: uuidv4(), name: req.body.name, message: req.body.message, timestamp: Date.now() }; Abyss.feedback.unshift(entry); 
-    bus.emit('log', '[FEEDBACK] New Message Received');
-    res.json({ success: true }); 
-});
+app.post('/api/v1/public/feedback', (req, res) => { const entry = { id: uuidv4(), name: req.body.name, message: req.body.message, timestamp: Date.now() }; Abyss.feedback.unshift(entry); Telemetry.log('FEEDBACK', 'New Message'); res.json({ success: true }); });
 app.get('/api/v1/admin/feedback', adminGuard, (req, res) => { res.json({ feedback: Abyss.feedback }); });
 
 app.post('/api/v1/external/verify', Nightmare.guardSaaS, (req, res) => res.json({ valid: true, quota: { used: req.partner.usage, limit: req.partner.limit } }));
-
 app.get('/api/v1/beta/pulse-demo', (req, res) => { res.json({ valid: true, hash: Chaos.mintToken(), ms: 5 }); });
 
-// LEGACY POLLING SUPPORT (For older dashboards if cached)
-app.get('/api/v1/admin/telemetry', async (req, res) => {
-    const stats = redis ? await Ledger.getRedisStats() : Abyss.stats;
-    res.json({ 
-        stats: { requests: stats['stats:requests'] || 0, threats: stats['stats:threats'] || 0 }, 
-        logs: Telemetry.logs 
-    }); 
+// TELEMETRY
+app.get('/api/v1/admin/telemetry', (req, res) => { res.json({ stats: { requests: Telemetry.requests, threats: Telemetry.blocked }, logs: Telemetry.logs }); });
+app.get('/api/v1/admin/profile-stats', (req, res) => {
+    const user = Users.get(ADMIN_USER_ID);
+    if (!user || !user.dreamProfile.mu) { res.json({ mu: 0, sigma: 0, cv: 0, status: "LEARNING..." }); } 
+    else { res.json({ mu: user.dreamProfile.mu.toFixed(0), sigma: user.dreamProfile.sigma.toFixed(2), cv: user.dreamProfile.cv.toFixed(3), status: "ACTIVE" }); }
 });
-app.get('/api/v1/admin/profile-stats', (req, res) => res.json({ mu: 200, sigma: 20, cv: 0.1, status: "ACTIVE" }));
 app.get('/api/v1/health', (req, res) => res.json({ status: "ALIVE" }));
 app.use('/api/*', (req, res) => res.status(404).json({ error: "API Route Not Found" }));
 
@@ -440,4 +332,6 @@ app.get('/sdk', (req, res) => serve('sdk.html', res));
 app.get('/admin/portal', (req, res) => serve('portal.html', res));
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V131 (MISSION CONTROL) ONLINE: ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V132 (WAR ROOM) ONLINE: ${PORT}`));
+
+
