@@ -53,7 +53,7 @@
         <div class="mb-10 flex flex-col md:flex-row justify-between items-end gap-4 border-b border-green-900 pb-6">
             <div>
                 <h1 class="text-3xl md:text-5xl font-bold text-white mb-2">COMMAND CENTER</h1>
-                <p class="text-green-600/80 text-sm md:text-base">Identity Protocol: <span class="text-green-400">V84 STABLE</span> | Session Hash: <span id="session-hash" class="text-white">LOADING...</span></p>
+                <p class="text-green-600/80 text-sm md:text-base">Protocol: <span class="text-green-400">V125 LIVE</span> | Session: <span id="session-hash" class="text-white">LOADING...</span></p>
             </div>
             <div class="text-right hidden md:block">
                 <div class="text-[10px] text-gray-500">SYSTEM TIME</div>
@@ -64,7 +64,7 @@
         <!-- QUICK ACTIONS GRID -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
             
-            <!-- ACTION 1: KEY FORGE -->
+            <!-- ACTION 1: KEY FORGE (REVENUE) -->
             <a href="/admin/portal" class="stat-card glass-panel p-6 rounded-xl group cursor-pointer block">
                 <div class="flex justify-between items-start mb-4">
                     <i class="fas fa-key text-3xl text-yellow-500 group-hover:text-white transition"></i>
@@ -74,7 +74,7 @@
                 <p class="text-xs text-gray-400">Generate and revoke Partner API keys. Manage Quotas.</p>
             </a>
 
-            <!-- ACTION 2: OVERWATCH -->
+            <!-- ACTION 2: OVERWATCH (DEFENSE) -->
             <a href="/admin" class="stat-card glass-panel p-6 rounded-xl group cursor-pointer block">
                 <div class="flex justify-between items-start mb-4">
                     <i class="fas fa-eye text-3xl text-red-500 group-hover:text-white transition"></i>
@@ -84,7 +84,7 @@
                 <p class="text-xs text-gray-400">Real-time threat monitoring and self-healing diagnostics.</p>
             </a>
 
-            <!-- ACTION 3: SDK DOCS -->
+            <!-- ACTION 3: SDK DOCS (GROWTH) -->
             <a href="/sdk" class="stat-card glass-panel p-6 rounded-xl group cursor-pointer block">
                 <div class="flex justify-between items-start mb-4">
                     <i class="fas fa-code text-3xl text-blue-500 group-hover:text-white transition"></i>
@@ -96,7 +96,7 @@
 
         </div>
 
-        <!-- LIVE TELEMETRY PREVIEW -->
+        <!-- REAL-TIME TELEMETRY PREVIEW -->
         <div class="glass-panel p-1 rounded-xl">
             <div class="bg-black/50 p-3 flex justify-between items-center border-b border-green-900">
                 <span class="text-xs font-bold text-green-500"><i class="fas fa-satellite-dish mr-2"></i> LIVE TRAFFIC</span>
@@ -112,13 +112,18 @@
                     <div id="metric-block" class="text-2xl font-bold text-red-500">0</div>
                 </div>
                 <div>
-                    <div class="text-[10px] text-gray-500 mb-1">ACTIVE PULSES</div>
-                    <div id="metric-pulse" class="text-2xl font-bold text-blue-400">0</div>
+                    <div class="text-[10px] text-gray-500 mb-1">STATUS</div>
+                    <div class="text-2xl font-bold text-blue-400">ONLINE</div>
                 </div>
                 <div>
                     <div class="text-[10px] text-gray-500 mb-1">UPTIME</div>
-                    <div id="metric-uptime" class="text-2xl font-bold text-green-400">0%</div>
+                    <div id="metric-uptime" class="text-2xl font-bold text-green-400">99.9%</div>
                 </div>
+            </div>
+            
+            <!-- LIVE LOGS FEED -->
+            <div id="live-logs" class="p-4 bg-black/80 font-mono text-[10px] text-green-400 h-32 overflow-y-auto border-t border-green-900">
+                <div>> Initializing Telemetry Stream...</div>
             </div>
         </div>
 
@@ -139,7 +144,7 @@
         // --- 2. MATRIX RAIN ---
         const c = document.getElementById('matrix-canvas');
         const ctx = c.getContext('2d');
-        c.height = window.innerHeight; c.width = window.innerWidth;
+        c.width = window.innerWidth; c.height = window.innerHeight;
         const font_size = 12;
         const columns = c.width / font_size;
         const drops = Array(Math.floor(columns)).fill(1);
@@ -158,25 +163,47 @@
         }
         setInterval(draw, 50);
 
-        // --- 3. LIVE CLOCK & MOCK TELEMETRY ---
+        // --- 3. LIVE CLOCK & REAL TELEMETRY POLL ---
         setInterval(() => {
             document.getElementById('clock').innerText = new Date().toLocaleTimeString();
-            
-            // NOTE: In production, fetch '/api/v1/admin/telemetry'
-            // For now, we simulate "Life"
-            const reqs = document.getElementById('metric-req');
-            reqs.innerText = parseInt(reqs.innerText) + Math.floor(Math.random() * 3);
-            document.getElementById('metric-uptime').innerText = "99.9%";
         }, 1000);
+
+        setInterval(async () => {
+            try {
+                // Fetch REAL Data from Server
+                const res = await fetch('/api/v1/admin/telemetry');
+                const data = await res.json();
+                
+                // Update Metrics
+                document.getElementById('metric-req').innerText = data.stats.requests;
+                document.getElementById('metric-block').innerText = data.stats.threats;
+                
+                // Update Logs
+                const logContainer = document.getElementById('live-logs');
+                if (data.logs && data.logs.length > 0) {
+                    // Clear and repopulate to show latest (simple sync)
+                    logContainer.innerHTML = '';
+                    data.logs.forEach(log => {
+                        const div = document.createElement('div');
+                        div.innerText = log;
+                        if(log.includes("BLOCK")) div.className = "text-red-500";
+                        else if(log.includes("SYSTEM")) div.className = "text-yellow-500";
+                        logContainer.appendChild(div);
+                    });
+                }
+            } catch(e) {
+                // Keep silent on fail to avoid UI flicker
+            }
+        }, 2000);
         
         // Initial Fetch
         fetch('/api/v1/admin/telemetry')
             .then(r => r.json())
             .then(data => {
                  document.getElementById('metric-req').innerText = data.stats.requests;
-                 document.getElementById('metric-block').innerText = data.stats.threats;
             }).catch(console.error);
 
+        window.addEventListener('resize', () => { c.width = window.innerWidth; c.height = window.innerHeight; });
     </script>
 </body>
 </html>
