@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A+ CHAOS CORE | BLACK BOX DEFENSE</title>
+    <title>A+ CHAOS CORE | BEHAVIORAL SECURITY & DATA HYDRATION</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -13,7 +13,7 @@
         h1, h2, h3, .mono { font-family: 'JetBrains Mono', monospace; }
         .hero-bg { background: radial-gradient(circle at 50% 30%, #002200 0%, #000000 60%); min-height: 100vh; }
         
-        /* FOG OF WAR */
+        /* FOG OF WAR: The anti-scraper defense */
         .scramble-content {
             filter: blur(var(--blur-level, 8px));
             user-select: none; 
@@ -69,12 +69,12 @@
         <section class="text-center space-y-8 mb-24">
             <div class="inline-flex items-center gap-2 border border-green-500/30 bg-green-900/10 px-4 py-1.5 rounded-full mb-4">
                 <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                <span class="text-[10px] text-green-400 tracking-[0.2em] font-bold mono">SYSTEM V163 BLACK BOX ACTIVE</span>
+                <span class="text-[10px] text-green-400 tracking-[0.2em] font-bold mono">SYSTEM V164 ACTIVE DEFENSE</span>
             </div>
             
             <h1 class="text-5xl md:text-8xl font-black tracking-tighter leading-none text-white">
-                DEFENSE AGAINST <br>
-                <span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-red-600">AI DATA LEAKAGE</span>
+                PROOF OF LIFE <br>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-red-600">PROTECTING YOUR DATA</span>
             </h1>
             
             <p class="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
@@ -116,7 +116,7 @@
                     <div>
                         <h3 class="text-xl font-bold text-green-400 mb-2 flex items-center gap-2"><i class="fas fa-microchip"></i> SCALABLE DIAGNOSTICS</h3>
                         <p class="text-gray-400 leading-relaxed text-sm">
-                            **Proactive Maintenance.** DREAMS V6 (Acoustic Fingerprinting) is a SaaS solution for monitoring mechanical assets in logistics, manufacturing, and utilities. It uses common smartphones as sensors to detect failure *before* it happens, saving costs.
+                            **Proactive Maintenance.** DREAMS V6 (Acoustic Fingerprinting) is a SaaS solution for monitoring mechanical assets in logistics, manufacturing, and utilities. It uses common smartphones as sensors to detect failure *before* it happens, saving costs. 
                         </p>
                     </div>
                 </div>
@@ -138,11 +138,20 @@
             </div>
         </section>
 
-
         <div class="h-16"></div>
-        <div class="h-screen flex items-center justify-center text-gray-700 font-mono text-xs pt-24">
-            SCROLL ACTIVATION INITIATED...
-        </div>
+
+        <footer class="border-t border-white/10 pt-12 pb-12 text-center">
+            <div class="text-2xl font-bold tracking-tighter text-white mb-4 mono">A+ CHAOS CORE</div>
+            <p class="text-gray-500 text-sm mb-8">
+                San Antonio, TX • Chaos Line: (210) 478-2275<br>
+                &copy; 2025 A+ Overhead Garage Doors, LLC
+            </p>
+            <div class="flex justify-center gap-6 text-gray-600 text-sm">
+                <a href="#" class="hover:text-green-500 transition">Privacy</a>
+                <a href="#" class="hover:text-green-500 transition">Terms</a>
+                <a href="/sdk" class="hover:text-green-500 transition">Developer SDK</a>
+            </div>
+        </footer>
     </div>
 
     <div class="sentinel-hud" id="hud-box">
@@ -208,10 +217,11 @@
         const hudState = document.getElementById('hud-state');
 
         function calculateBrowserEntropy() {
+            // Function logic is now handled by the server-side injection, ensuring the code matches the server-side check.
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             ctx.textBaseline = 'top'; ctx.font = '12px Arial';
-            ctx.fillText('chaos-id-v163', 2, 2);
+            ctx.fillText('chaos-id-v164', 2, 2); // Updated version string for integrity check
             const canvasHash = btoa(ctx.getImageData(0, 0, 1, 1).data); 
             const timeOffset = new Date().getTimezoneOffset();
             return btoa(canvasHash + timeOffset + Math.random().toString());
@@ -222,22 +232,26 @@
             const payload = { timestamp: Date.now(), browserEntropy: entropy };
 
             const res = await fetch('/api/unlock', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
             });
 
             const data = await res.json();
             
             if (data.success) {
+                // SUCCESS: Inject content and set score high for immediate unlock
                 document.getElementById('content-payload').innerHTML = PROTECTED_CONTENT_HTML;
-                document.getElementById('protected-content').classList.add('clear-vision');
-                window.ChaosSentinel.score = 100; // Hydrated = human
+                window.ChaosSentinel.score = 100; 
                 updateSecurity(window.ChaosSentinel.getTrustScore());
-                // Start monitoring loop
                 startScoreMonitoring(); 
             } else {
-                document.getElementById('content-skeleton').innerHTML = `<i class="fas fa-times-circle text-xl mr-2 text-red-500"></i> HYDRATION FAILED: ACCESS DENIED (${data.error})`;
+                // FAILURE: Display the failure message to the user
+                document.getElementById('content-skeleton').innerHTML = `
+                    <i class="fas fa-times-circle text-xl mr-2 text-red-500"></i> HYDRATION FAILED: ACCESS DENIED (${data.error})
+                `;
                 document.getElementById('protected-content').classList.remove('scramble-content');
-                updateSecurity(0); // Lock the HUD visually
+                updateSecurity(0); 
             }
         }
         
@@ -267,10 +281,6 @@
                 hudIcon.className = "fas fa-robot text-red-500 text-xs";
                 document.getElementById('protected-content').classList.remove('clear-vision');
             }
-
-            if (score <= 0) {
-                document.getElementById('bot-lockout').style.display = 'flex';
-            }
         }
         
         function startScoreMonitoring() {
@@ -283,7 +293,6 @@
         }
 
         window.onload = hydrateContent;
-        // --- End of Client Logic ---
         
         // Benchmark Demo
         function runBenchmark() {
