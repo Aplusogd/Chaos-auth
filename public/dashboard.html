@@ -38,7 +38,7 @@
     <header class="flex justify-between items-center border-b border-green-900 pb-4 mb-8">
         <div>
             <h1 class="text-2xl font-bold tracking-widest text-white">A+ CHAOS CORE</h1>
-            <div class="text-xs text-green-600 mt-1">SYSTEM: <span class="text-green-400">V148 ONLINE</span></div>
+            <div class="text-xs text-green-600 mt-1">SYSTEM: <span class="text-green-400">V150.1 ONLINE</span></div>
         </div>
         <div class="text-right">
             <div id="clock" class="text-xl font-bold">00:00:00</div>
@@ -46,14 +46,14 @@
         </div>
     </header>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto w-full">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto w-full pb-8">
 
         <div class="cyber-btn p-6 rounded-lg relative overflow-hidden group">
             <div class="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-40 transition">
                 <i class="fas fa-fingerprint text-6xl"></i>
             </div>
             <h2 class="text-xl font-bold text-white mb-2">GATEKEEPER</h2>
-            <p class="text-xs text-green-500 mb-6">Authorize new physical devices (Desktop/Tablet) to join the network.</p>
+            <p class="text-xs text-green-500 mb-6">Authorize new physical devices.</p>
             <button onclick="unlockGate()" id="unlockBtn" class="bg-green-900 hover:bg-green-600 text-white px-4 py-2 rounded text-sm font-bold w-full transition">
                 <i class="fas fa-lock-open mr-2"></i> OPEN GATE (30s)
             </button>
@@ -65,10 +65,17 @@
                 <i class="fas fa-satellite-dish text-6xl"></i>
             </div>
             <h2 class="text-xl font-bold text-white mb-2">OVERWATCH</h2>
-            <p class="text-xs text-green-500 mb-4">Real-time threat monitoring and global telemetry map.</p>
-            <div class="text-green-400 text-sm mt-4">
-                STATUS: <span class="animate-pulse">LIVE</span>
+            <p class="text-xs text-green-500 mb-4">Real-time threat monitoring.</p>
+            <div class="text-green-400 text-sm mt-4">STATUS: <span class="animate-pulse">LIVE</span></div>
+        </a>
+
+        <a href="/dreams" class="cyber-btn p-6 rounded-lg relative overflow-hidden group block">
+            <div class="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-40 transition">
+                <i class="fas fa-wave-square text-6xl"></i>
             </div>
+            <h2 class="text-xl font-bold text-white mb-2">DREAMS V5</h2>
+            <p class="text-xs text-green-500 mb-4">Acoustic diagnostics & microphone analysis.</p>
+            <div class="text-blue-400 text-sm mt-4">SENSOR: ACTIVE</div>
         </a>
 
         <a href="/keyforge" class="cyber-btn p-6 rounded-lg relative overflow-hidden group block">
@@ -76,38 +83,25 @@
                 <i class="fas fa-key text-6xl"></i>
             </div>
             <h2 class="text-xl font-bold text-white mb-2">KEY FORGE</h2>
-            <p class="text-xs text-green-500 mb-4">Mint new API keys and manage access tiers for clients.</p>
-            <div class="flex items-center text-xs text-gray-400 mt-2">
-                <i class="fas fa-shield-alt mr-2"></i> VAULT SECURE
-            </div>
+            <p class="text-xs text-green-500 mb-4">Mint new API keys.</p>
         </a>
 
-        <a href="/sdk" class="cyber-btn p-6 rounded-lg relative overflow-hidden group block">
+        <a href="/sdk" class="cyber-btn p-6 rounded-lg relative overflow-hidden group block md:col-span-2">
             <div class="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-40 transition">
                 <i class="fas fa-book-medical text-6xl"></i>
             </div>
             <h2 class="text-xl font-bold text-white mb-2">SDK DOCS</h2>
-            <p class="text-xs text-green-500 mb-4">Hardware integration standards and API reference.</p>
-            <div class="text-xs text-blue-400 mt-2">UPDATED: V148</div>
+            <p class="text-xs text-green-500">Integration standards.</p>
         </a>
 
     </div>
 
     <script>
-        // Clock
-        setInterval(() => {
-            document.getElementById('clock').innerText = new Date().toLocaleTimeString();
-        }, 1000);
+        setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleTimeString(); }, 1000);
 
-        // Security Check
         const session = sessionStorage.getItem('chaos_session');
-        if (!session) {
-            // If no session, show red warning but allow stay (for debugging)
-            // Or redirect: location.href = '/app';
-            document.querySelector('header').style.borderColor = '#500';
-        }
+        if (!session) document.querySelector('header').style.borderColor = '#500';
 
-        // Gate Unlock Logic
         function unlockGate() {
             const btn = document.getElementById('unlockBtn');
             const msg = document.getElementById('gate-msg');
@@ -117,10 +111,7 @@
 
             fetch('/api/v1/auth/unlock-gate', {
                 method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'x-chaos-token': session 
-                }
+                headers: { 'Content-Type': 'application/json', 'x-chaos-token': session }
             })
             .then(r => r.json())
             .then(data => {
@@ -128,26 +119,15 @@
                     btn.innerHTML = '<i class="fas fa-check"></i> UNLOCKED';
                     btn.classList.replace('bg-green-900', 'bg-green-600');
                     msg.innerText = "GATE OPEN FOR 30 SECONDS";
-                    
-                    // Count down visual
                     let left = 30;
                     const interval = setInterval(() => {
                         left--;
                         msg.innerText = `CLOSING IN ${left}s`;
-                        if(left <= 0) {
-                            clearInterval(interval);
-                            resetBtn();
-                        }
+                        if(left <= 0) { clearInterval(interval); resetBtn(); }
                     }, 1000);
-                } else {
-                    resetBtn();
-                    alert(data.error || "Failed");
-                }
+                } else { resetBtn(); alert(data.error || "Failed"); }
             })
-            .catch(e => {
-                resetBtn();
-                alert("Network Error");
-            });
+            .catch(e => { resetBtn(); alert("Network Error"); });
         }
 
         function resetBtn() {
