@@ -21,26 +21,20 @@
         .status-dot { position: absolute; top: 20px; right: 20px; width: 8px; height: 8px; border-radius: 50%; background: #330000; border: 1px solid #550000; transition: all 0.5s; }
         .status-dot.online { background: #00ff41; border-color: #aaffaa; box-shadow: 0 0 10px #00ff41; }
         
-        .add-device-btn { position: absolute; top: 20px; left: 20px; font-size: 10px; color: #555; border: 1px solid #333; padding: 5px; z-index: 100; cursor: pointer; }
-        .add-device-btn:hover { border-color: #0088ff; color: #0088ff; }
-        
-        #dna-zone { display: none; }
+        #hidden-trigger { position: fixed; top: 0; left: 50%; transform: translateX(-50%); width: 200px; height: 50px; z-index: 100; cursor: pointer; }
     </style>
 </head>
 <body class="h-screen w-screen">
 
     <div id="status-dot" class="status-dot"></div>
-    <div class="add-device-btn" onclick="forceRegister()">ADD DEVICE</div>
+    
+    <!-- HIDDEN TRIGGER (Triple Tap to Add Device) -->
+    <div id="hidden-trigger"></div>
+    <div class="text-center pt-6 text-[10px] text-gray-700 tracking-widest select-none">A+ CHAOS CORE</div>
 
     <div id="hud" class="hud-status text-yellow-500">CONNECTING...</div>
     <div class="well-container"><div class="text-[10px] text-green-900 text-center mt-28 select-none tracking-widest">SWIPE UP</div></div>
     <div class="totem offline" id="totem"><i class="fas fa-fingerprint"></i></div>
-    
-    <div id="dna-zone" class="fixed top-0 left-0 w-full h-full bg-black/95 p-6 z-50 flex flex-col justify-center">
-        <p class="text-white text-xs mb-2">DEVICE REGISTERED.</p>
-        <p class="text-gray-500 text-[10px] mb-4">You can now login with this device.</p>
-        <button onclick="location.reload()" class="w-full py-4 bg-green-600 text-black font-bold rounded shadow-[0_0_20px_#00ff41]">CONTINUE</button>
-    </div>
 
     <script>
         const { startRegistration, startAuthentication } = SimpleWebAuthnBrowser;
@@ -48,10 +42,20 @@
         const HEADERS = { 'Content-Type': 'application/json' };
         
         let mode = 'LOGIN';
-        let masterKey = ''; // Stores key for current session if entered
+        let masterKey = '';
         let isDragging = false; let startY = 0; let lastTime = 0; let velocityY = 0; let pathData = []; 
         let authOptions = null;
         const totem = document.getElementById('totem');
+
+        // --- HIDDEN MENU LOGIC ---
+        let taps = 0;
+        document.getElementById('hidden-trigger').addEventListener('click', () => {
+            taps++;
+            if (taps >= 3) {
+                forceRegister();
+                taps = 0;
+            }
+        });
 
         async function preheat() {
             try {
@@ -67,8 +71,13 @@
                     document.getElementById('hud').className = "hud-status text-green-500";
                     totem.classList.remove('offline', 'imprint');
                     document.getElementById('status-dot').className = "status-dot online";
-                } else {
-                    document.getElementById('hud').innerText = "SYSTEM LOCKED";
+                } else if (resp.status === 404) {
+                    // System Reset -> Force Register
+                    mode = 'REGISTER';
+                    document.getElementById('hud').innerText = "IMPRINT IDENTITY";
+                    document.getElementById('hud').className = "hud-status text-blue-400";
+                    totem.classList.add('imprint');
+                    totem.classList.remove('offline');
                 }
             } catch(e) { 
                 document.getElementById('hud').innerText = "WAKING ABYSS...";
@@ -78,16 +87,14 @@
         setTimeout(preheat, 100);
 
         function forceRegister() {
-            // V140: PROMPT FOR PASSWORD
             const key = prompt("ENTER MASTER COMMAND CODE:");
             if (!key) return;
             
-            masterKey = key; // Store for the request
+            masterKey = key;
             mode = 'REGISTER';
-            document.getElementById('hud').innerText = "IMPRINT DEVICE";
+            document.getElementById('hud').innerText = "ADD DEVICE";
             document.getElementById('hud').className = "hud-status text-blue-400";
             totem.classList.add('imprint');
-            totem.classList.remove('offline');
             
             // Pre-fetch options with key
             fetch(`${API_BASE}/auth/register-options`, { headers: { 'X-CHAOS-MASTER-KEY': masterKey } })
@@ -97,7 +104,7 @@
                 })
                 .then(opts => authOptions = opts)
                 .catch(e => {
-                    alert("ACCESS DENIED: " + e.message);
+                    alert("ACCESS DENIED");
                     location.reload();
                 });
         }
@@ -107,19 +114,27 @@
             if(totem.classList.contains('offline')) return;
             isDragging=true; startY=e.touches[0].clientY; 
             totem.classList.remove('falling', 'launching'); totem.style.transition='none'; 
+            pathData = []; lastTime = Date.now();
         }, { passive: false });
 
         totem.addEventListener('touchmove', (e) => {
             if(!isDragging) return; e.preventDefault();
             const y = e.touches[0].clientY;
             const delta = startY - y;
+            const now = Date.now();
+            const dt = now - lastTime;
+            if(dt > 0) velocityY = delta / dt; 
+            pathData.push({ v: velocityY, t: now });
+            lastTime = now;
             if(delta > 0) totem.style.bottom = (130 + delta) + 'px';
+            if (delta > 100) totem.style.boxShadow = "0 0 50px #fff";
+            else totem.style.boxShadow = "0 0 25px #00ff41";
         }, { passive: false });
         
         totem.addEventListener('touchend', (e) => {
             isDragging=false;
             const b = parseFloat(totem.style.bottom);
-            if(b > 280) launch(); else { totem.classList.add('falling'); totem.style.bottom='130px'; }
+            if(b > 280) launch(); else { totem.classList.add('falling'); totem.style.bottom='130px'; totem.style.boxShadow = "0 0 25px #00ff41"; }
         });
         
         totem.addEventListener('mousedown', () => { if(!totem.classList.contains('offline')) launch(); });
@@ -131,7 +146,9 @@
             try {
                 if (mode === 'LOGIN') {
                     const asseResp = await startAuthentication(authOptions);
-                    const verifyResp = await fetch(`${API_BASE}/auth/login-verify`, { method: 'POST', headers: HEADERS, body: JSON.stringify(asseResp) });
+                    const avgVel = pathData.length ? pathData.reduce((a,b)=>a+b.v,0)/pathData.length : 1.0;
+                    const payload = { ...asseResp, kinetic_data: { velocity: avgVel, entropy: 0.8 } };
+                    const verifyResp = await fetch(`${API_BASE}/auth/login-verify`, { method: 'POST', headers: HEADERS, body: JSON.stringify(payload) });
                     const res = await verifyResp.json();
                     
                     if (res.verified) {
@@ -140,24 +157,20 @@
                         setTimeout(() => location.href = '/dashboard.html', 800);
                     } else throw new Error(res.error || "Denied");
                 } else {
-                    // REGISTER WITH MASTER KEY HEADER
                     const attResp = await startRegistration(authOptions);
                     const verifyResp = await fetch(`${API_BASE}/auth/register-verify`, { 
                         method: 'POST', 
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'X-CHAOS-MASTER-KEY': masterKey // PASSKEY FOR AUTH
-                        }, 
+                        headers: { 'Content-Type': 'application/json', 'X-CHAOS-MASTER-KEY': masterKey }, 
                         body: JSON.stringify(attResp) 
                     });
                     const res = await verifyResp.json();
                     
                     if (res.verified) {
-                        document.getElementById('dna-zone').style.display = 'flex';
+                        document.getElementById('hud').innerText = "ADDED";
+                        setTimeout(() => location.reload(), 1000);
                     } else throw new Error("Reg Failed");
                 }
             } catch(e) {
-                console.error(e);
                 document.getElementById('hud').innerText = "DENIED";
                 document.getElementById('hud').className = "hud-status text-red-500";
                 setTimeout(() => {
