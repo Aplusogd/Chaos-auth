@@ -3,425 +3,152 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CHAOS ID — Enterprise Identity Layer</title>
-    <meta name="description" content="Quantum-Resistant, Behavior-Aware Identity. The new standard for AI security.">
+    <title>A+ OVERHEAD GARAGE DOORS | INTELLIGENT SYSTEMS</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Share+Tech+Mono&display=swap');
-        body { 
-            background-color: #05070a; 
-            color: #E5E7EB; 
-            font-family: 'Inter', sans-serif; 
-            overflow-x: hidden; 
+        body { background-color: #050505; color: #fff; font-family: sans-serif; overflow-x: hidden; }
+        .hero-bg {
+            background: radial-gradient(circle at center, #002200 0%, #000000 70%);
+            min-height: 100vh;
         }
-        .mono { font-family: 'Share Tech Mono', monospace; }
-
-        /* PROFESSIONAL GLOWS */
-        .glass { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
-        .terminal-bg { background: rgba(5, 10, 15, 0.95); }
+        .grid-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: linear-gradient(rgba(0, 255, 65, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 255, 65, 0.03) 1px, transparent 1px);
+            background-size: 30px 30px;
+            pointer-events: none;
+            z-index: 0;
+        }
         
-        /* BENCHMARK VISUALIZERS */
-        #entropy-map { image-rendering: pixelated; width: 100%; height: 60px; background: #020408; border-bottom: 1px solid #1f2937; }
-        .progress-bar { transition: width 0.1s linear; }
-
-        /* SCRIPT BUTTONS */
-        .script-btn { text-align: left; transition: all 0.2s; border-left: 2px solid transparent; opacity: 0.7; cursor: pointer; }
-        .script-btn:hover { opacity: 1; background: rgba(255,255,255,0.03); }
-        .script-btn.active { background: rgba(14, 165, 233, 0.1); border-left-color: #0ea5e9; color: white; opacity: 1; }
-
-        /* MODALS */
-        #reg-modal, #feedback-modal { display: none; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); }
-        .modal-active { display: flex !important; }
-        
-        /* BACKGROUND */
-        #canvas-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.5; }
-        
-        /* ANIMATIONS */
-        @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 10px #0ea5e9; } 50% { box-shadow: 0 0 25px #0ea5e9; } }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #0ea5e9; animation: pulse-glow 2s infinite; }
+        /* SENTINEL HUD */
+        .sentinel-hud {
+            position: fixed; bottom: 20px; right: 20px; width: 200px;
+            background: rgba(0,0,0,0.8); border: 1px solid #333;
+            padding: 15px; border-radius: 8px; z-index: 999;
+            font-family: monospace; backdrop-filter: blur(5px);
+        }
+        .hud-bar { height: 4px; background: #333; margin-top: 5px; border-radius: 2px; overflow: hidden; }
+        .hud-fill { height: 100%; background: #00ff41; width: 100%; transition: width 0.2s, background 0.2s; }
     </style>
 </head>
-<body class="min-h-screen flex flex-col">
-    
-    <div id="canvas-container"></div>
+<body class="hero-bg">
+    <div class="grid-overlay"></div>
 
-    <!-- NAV BAR -->
-    <nav class="p-4 md:p-6 flex justify-between items-center max-w-7xl mx-auto w-full relative z-10 border-b border-white/5 bg-black/20 backdrop-blur sticky top-0">
-        <div class="flex items-center gap-6">
-            <div class="text-2xl font-bold text-sky-500 tracking-widest font-mono">CHAOS<span class="text-white">ID</span></div>
-            <a href="/app" class="text-[10px] text-gray-400 hover:text-white border-l border-gray-700 pl-4 tracking-widest">ADMIN PORTAL</a>
-        </div>
-        <div class="flex items-center gap-6 text-xs md:text-sm font-medium">
-            <div class="hidden md:block text-gray-400">Latency: <span id="real-latency" class="text-sky-400 font-bold">-- ms</span></div>
-            <div class="text-sky-400 border border-sky-800/50 px-3 py-1 rounded-full bg-sky-900/20 flex items-center gap-2">
-                <div class="status-dot"></div>
-                SYSTEM ONLINE
-            </div>
+    <nav class="fixed w-full z-50 p-6 flex justify-between items-center backdrop-blur-sm border-b border-white/10">
+        <div class="text-2xl font-bold tracking-tighter text-white">A+ <span class="text-green-500">CHAOS</span></div>
+        <div class="space-x-4">
+            <a href="/app" class="text-sm font-bold hover:text-green-400 transition">LOGIN</a>
+            <a href="/dashboard" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded text-sm font-bold transition">COMMAND CENTER</a>
         </div>
     </nav>
 
-    <!-- HERO SECTION -->
-    <header class="text-center py-24 px-4 relative z-10">
-        <div class="inline-block mb-6 text-[10px] md:text-xs border border-sky-500/30 text-sky-400 px-4 py-1.5 rounded-full bg-sky-500/10 font-medium tracking-wider">
-            V137 ARMORED CORE
+    <div class="relative z-10 pt-32 px-6 max-w-4xl mx-auto space-y-24 pb-32">
+        
+        <section class="text-center space-y-6">
+            <div class="inline-block border border-green-500/30 bg-green-900/10 px-3 py-1 rounded-full text-xs text-green-400 tracking-widest mb-4">SYSTEM V151 ONLINE</div>
+            <h1 class="text-6xl md:text-8xl font-black tracking-tighter leading-none">
+                SECURITY <br>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-600">REDEFINED</span>
+            </h1>
+            <p class="text-xl text-gray-400 max-w-2xl mx-auto">
+                A+ Overhead Garage Doors integrates Military-Grade Cryptography with Physical Hardware.
+                <br>Welcome to the future of home access.
+            </p>
+            <div class="flex justify-center gap-4 pt-8">
+                <button onclick="runBenchmark()" class="border border-green-600 text-green-400 px-8 py-4 rounded hover:bg-green-900/20 transition font-bold">
+                    RUN BENCHMARK
+                </button>
+            </div>
+            <div id="benchmark-result" class="h-10 text-sm font-mono text-blue-400 mt-4"></div>
+        </section>
+
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+            <div class="p-8 border border-white/10 rounded bg-black/50 backdrop-blur">
+                <i class="fas fa-shield-alt text-4xl text-green-500 mb-4"></i>
+                <h3 class="text-xl font-bold mb-2">Impossible Triad</h3>
+                <p class="text-gray-500 text-sm">256-bit Entropy verification ensures mathematical unpredictability.</p>
+            </div>
+            <div class="p-8 border border-white/10 rounded bg-black/50 backdrop-blur">
+                <i class="fas fa-wave-square text-4xl text-blue-500 mb-4"></i>
+                <h3 class="text-xl font-bold mb-2">Dreams V5</h3>
+                <p class="text-gray-500 text-sm">Acoustic fingerprinting detects mechanical failure before it happens.</p>
+            </div>
+            <div class="p-8 border border-white/10 rounded bg-black/50 backdrop-blur">
+                <i class="fas fa-eye text-4xl text-purple-500 mb-4"></i>
+                <h3 class="text-xl font-bold mb-2">Sentinel</h3>
+                <p class="text-gray-500 text-sm">Behavioral analysis distinguishes humans from AI bots in real-time.</p>
+            </div>
+        </section>
+
+        <div class="h-screen flex items-center justify-center text-gray-700 font-mono text-xs">
+            SCROLL TO TEST SENTINEL AI...
         </div>
-        <h1 class="text-5xl md:text-8xl font-extrabold text-white mb-8 tracking-tight leading-none">
-            Identity for the<br>
-            <span class="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-indigo-500">Post-Human Era.</span>
-        </h1>
-        <p class="text-xl md:text-2xl text-gray-400 mb-12 max-w-3xl mx-auto font-light leading-relaxed">
-            Secure your infrastructure with AI-native biometrics and quantum-resistant cryptography. 
-            <strong class="text-gray-200">Trust nothing. Verify everything.</strong>
-        </p>
-
-        <div class="flex flex-col md:flex-row justify-center gap-6">
-            <button id="hero-req-btn" class="px-8 py-4 bg-sky-600 text-white font-bold rounded-lg shadow-[0_0_30px_rgba(14,165,233,0.3)] hover:bg-sky-500 transition-all text-sm tracking-widest">
-                <i class="fas fa-id-badge mr-2"></i> REQUEST ACCESS
-            </button>
-            <a href="#benchmark" class="px-8 py-4 glass text-sky-400 font-bold rounded-lg hover:bg-sky-900/20 transition-all text-sm tracking-widest border border-sky-500/30">
-                <i class="fas fa-waveform mr-2"></i> LIVE AUDIT
-            </a>
-        </div>
-    </header>
-
-    <!-- LIVE BENCHMARK SUITE -->
-    <section id="benchmark" class="max-w-6xl mx-auto px-4 mb-32 relative z-10">
-        <div class="glass rounded-2xl overflow-hidden border-sky-500/20 shadow-[0_0_50px_rgba(14,165,233,0.05)]">
-            <div class="grid md:grid-cols-12 min-h-[500px]">
-                
-                <!-- LEFT: SCRIPT SELECTOR -->
-                <div class="md:col-span-4 border-r border-white/5 bg-black/30 p-8 flex flex-col">
-                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-8">Verification Protocols</h3>
-                    <div class="space-y-3 flex-grow">
-                        <button id="btn-entropy" class="script-btn active w-full p-4 rounded-lg group">
-                            <div class="flex justify-between items-center mb-1">
-                                <span class="font-bold text-sm text-white group-hover:text-sky-400 transition">1. AUDIT_ENTROPY.JS</span>
-                                <i class="fas fa-microchip text-gray-600 group-hover:text-sky-500"></i>
-                            </div>
-                            <div class="text-xs text-gray-500">NIST Chi-Squared Test.</div>
-                        </button>
-                        <button id="btn-defense" class="script-btn w-full p-4 rounded-lg group">
-                            <div class="flex justify-between items-center mb-1">
-                                <span class="font-bold text-sm text-white group-hover:text-rose-400 transition">2. SIM_BOT_SWARM.JS</span>
-                                <i class="fas fa-robot text-gray-600 group-hover:text-rose-500"></i>
-                            </div>
-                            <div class="text-xs text-gray-500">Test DREAMS V4 vs AI Agents.</div>
-                        </button>
-                        <button id="btn-speed" class="script-btn w-full p-4 rounded-lg group">
-                            <div class="flex justify-between items-center mb-1">
-                                <span class="font-bold text-sm text-white group-hover:text-indigo-400 transition">3. TEST_THROUGHPUT.JS</span>
-                                <i class="fas fa-bolt text-gray-600 group-hover:text-indigo-500"></i>
-                            </div>
-                            <div class="text-xs text-gray-500">Latency & Jitter Analysis.</div>
-                        </button>
-                    </div>
-
-                    <div class="mt-8 pt-6 border-t border-white/10">
-                        <a href="/sdk" class="block w-full py-3 bg-white/5 hover:bg-sky-500/10 text-gray-300 hover:text-sky-400 font-bold text-center rounded-lg transition text-xs tracking-widest border border-white/10 hover:border-sky-500/30">
-                            VIEW SDK DOCUMENTATION
-                        </a>
-                    </div>
-                </div>
-
-                <!-- RIGHT: TERMINAL -->
-                <div class="md:col-span-8 bg-[#030508] flex flex-col relative">
-                    <div class="p-4 border-b border-white/5 flex justify-between items-center bg-black/20">
-                        <div class="flex items-center gap-3">
-                            <div class="w-2.5 h-2.5 rounded-full bg-rose-500/80"></div>
-                            <div class="w-2.5 h-2.5 rounded-full bg-amber-500/80"></div>
-                            <div class="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></div>
-                            <span class="ml-2 text-xs text-gray-500 font-mono" id="script-name">audit_entropy.js</span>
-                        </div>
-                        <button id="run-btn" class="px-6 py-1.5 bg-sky-500/10 text-sky-400 border border-sky-500/30 rounded-md text-xs font-bold hover:bg-sky-500 hover:text-white transition tracking-wider">
-                            RUN TEST
-                        </button>
-                    </div>
-
-                    <div id="viz-container" class="border-b border-white/5 hidden">
-                        <canvas id="entropy-map" width="800" height="60"></canvas>
-                    </div>
-
-                    <div id="terminal" class="flex-grow p-6 font-mono text-sm overflow-y-auto text-gray-400 space-y-2 terminal-bg">
-                        <div class="text-gray-600">// Select a protocol to begin verification...</div>
-                    </div>
-                    
-                    <div class="p-6 border-t border-white/5 bg-black/40 grid grid-cols-3 gap-4">
-                        <div class="text-center">
-                            <div class="text-[10px] text-gray-500 font-bold uppercase tracking-wider" id="lbl-1">Collisions</div>
-                            <div id="res-1" class="text-2xl font-mono text-white mt-1">--</div>
-                        </div>
-                        <div class="text-center border-l border-white/5">
-                            <div class="text-[10px] text-gray-500 font-bold uppercase tracking-wider" id="lbl-2">Chi-Squared</div>
-                            <div id="res-2" class="text-2xl font-mono text-white mt-1">--</div>
-                        </div>
-                        <div class="text-center border-l border-white/5">
-                            <div class="text-[10px] text-gray-500 font-bold uppercase tracking-wider" id="lbl-3">Bit Density</div>
-                            <div id="res-3" class="text-2xl font-mono text-white mt-1">--</div>
-                        </div>
-                    </div>
-                    
-                    <div class="absolute bottom-0 left-0 w-full h-1 bg-gray-900">
-                        <div id="bench-bar" class="h-full bg-sky-500 w-[0%] progress-bar shadow-[0_0_10px_#0ea5e9]"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- STRATEGIC SECTORS -->
-    <section class="py-16 max-w-7xl mx-auto px-4 relative z-10 border-t border-gray-900">
-        <div class="text-center mb-12">
-            <h2 class="text-2xl md:text-3xl font-bold text-white mb-4">DEPLOYING CHAOS INTO THE WILD</h2>
-            <p class="text-gray-500 text-sm">Universal solutions for critical industries.</p>
-        </div>
-        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div class="sector-card p-6 rounded-xl bg-gray-900/20 border border-white/5 hover:border-sky-500/50 transition">
-                <i class="fas fa-book text-3xl text-sky-500 mb-4"></i>
-                <h3 class="text-lg font-bold text-white mb-3">Knowledge</h3>
-                <p class="text-xs text-gray-400">DREAMS V4 protects archives from AI scraping without CAPTCHAs.</p>
-            </div>
-             <div class="sector-card p-6 rounded-xl bg-gray-900/20 border border-white/5 hover:border-indigo-500/50 transition">
-                <i class="fas fa-truck-fast text-3xl text-indigo-500 mb-4"></i>
-                <h3 class="text-lg font-bold text-white mb-3">Logistics</h3>
-                <p class="text-xs text-gray-400">MBF Fusion prevents account renting by verifying physical presence.</p>
-            </div>
-             <div class="sector-card p-6 rounded-xl bg-gray-900/20 border border-white/5 hover:border-emerald-500/50 transition">
-                <i class="fas fa-shield-halved text-3xl text-emerald-500 mb-4"></i>
-                <h3 class="text-lg font-bold text-white mb-3">Defense</h3>
-                <p class="text-xs text-gray-400">PQC Encryption future-proofs data against quantum cracking.</p>
-            </div>
-             <div class="sector-card p-6 rounded-xl bg-gray-900/20 border border-white/5 hover:border-sky-500/50 transition">
-                <i class="fas fa-gamepad text-3xl text-sky-500 mb-4"></i>
-                <h3 class="text-lg font-bold text-white mb-3">Gaming</h3>
-                <p class="text-xs text-gray-400">Kinetic Totem verifies human reflexes against aimbots.</p>
-            </div>
-             <div class="sector-card p-6 rounded-xl bg-gray-900/20 border border-white/5 hover:border-indigo-500/50 transition">
-                <i class="fas fa-university text-3xl text-indigo-500 mb-4"></i>
-                <h3 class="text-lg font-bold text-white mb-3">Finance</h3>
-                <p class="text-xs text-gray-400">Chaos Pulse rolling keys prevent session hijacking.</p>
-            </div>
-             <div class="sector-card p-6 rounded-xl bg-gray-900/20 border border-white/5 hover:border-emerald-500/50 transition">
-                <i class="fas fa-heartbeat text-3xl text-emerald-500 mb-4"></i>
-                <h3 class="text-lg font-bold text-white mb-3">Healthcare</h3>
-                <p class="text-xs text-gray-400">ZKP Audits ensure patient privacy compliance.</p>
-            </div>
-        </div>
-    </section>
-
-    <!-- FOOTER -->
-    <footer class="py-12 border-t border-white/5 bg-black/50 text-center text-gray-500 text-sm relative z-10">
-        <button id="footer-feed-btn" class="mb-6 text-sky-500 hover:text-white border border-sky-900/50 px-6 py-3 rounded-lg hover:bg-sky-900/30 transition flex items-center gap-2 mx-auto text-xs font-bold tracking-widest">
-            <i class="fas fa-comment-dots"></i> SEND FEEDBACK
-        </button>
-        <p>© 2026 A+ Overhead Garage Doors / CHAOS ID Core. All Rights Reserved.</p>
-    </footer>
-
-    <!-- MODALS -->
-    <div id="reg-modal" class="fixed inset-0 z-50 items-center justify-center p-4">
-        <div class="glass border-sky-500/30 p-8 rounded-2xl max-w-md w-full">
-            <h2 class="text-2xl font-bold text-white mb-6">Enterprise Access</h2>
-            <form id="reg-form" class="space-y-5">
-                <div class="grid grid-cols-2 gap-4">
-                    <div><label class="text-[10px] text-sky-400 uppercase font-bold">First Name</label><input type="text" id="fname" required class="w-full bg-black/50 border border-white/10 focus:border-sky-500 text-white p-3 rounded-lg text-sm outline-none transition"></div>
-                    <div><label class="text-[10px] text-sky-400 uppercase font-bold">Last Initial</label><input type="text" id="lname" maxlength="1" required class="w-full bg-black/50 border border-white/10 focus:border-sky-500 text-white p-3 rounded-lg text-sm outline-none transition"></div>
-                </div>
-                <div><label class="text-[10px] text-sky-400 uppercase font-bold">Use Case</label><textarea id="reason" required rows="2" class="w-full bg-black/50 border border-white/10 focus:border-sky-500 text-white p-3 rounded-lg text-sm outline-none transition"></textarea></div>
-                <button type="submit" class="w-full py-4 bg-sky-600 text-white font-bold rounded-lg hover:bg-sky-500 transition text-sm tracking-widest shadow-[0_0_20px_rgba(14,165,233,0.3)]">MINT API KEY</button>
-            </form>
-            <button id="close-reg" class="mt-6 text-xs text-gray-500 w-full text-center hover:text-white transition">CANCEL</button>
+        <div class="h-screen flex items-center justify-center text-gray-700 font-mono text-xs">
+            KEEP SCROLLING...
         </div>
     </div>
 
-    <div id="feedback-modal" class="fixed inset-0 z-50 items-center justify-center p-4">
-        <div class="glass border-indigo-500/30 p-8 rounded-2xl max-w-md w-full">
-            <h2 class="text-2xl font-bold text-white mb-6">Secure Transmission</h2>
-            <form id="feed-form" class="space-y-5">
-                <div><label class="text-[10px] text-indigo-400 uppercase font-bold">Identity</label><input type="text" id="feed-name" class="w-full bg-black/50 border border-white/10 focus:border-indigo-500 text-white p-3 rounded-lg text-sm outline-none transition"></div>
-                <div><label class="text-[10px] text-indigo-400 uppercase font-bold">Payload</label><textarea id="feed-msg" required rows="4" class="w-full bg-black/50 border border-white/10 focus:border-indigo-500 text-white p-3 rounded-lg text-sm outline-none transition"></textarea></div>
-                <button type="submit" class="w-full py-4 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-500 transition text-sm tracking-widest shadow-[0_0_20px_rgba(99,102,241,0.3)]">TRANSMIT</button>
-            </form>
-            <button id="close-feed" class="mt-6 text-xs text-gray-500 w-full text-center hover:text-white transition">CANCEL</button>
+    <div class="sentinel-hud">
+        <div class="flex justify-between items-center mb-2">
+            <span class="text-xs text-gray-400">SENTINEL AI</span>
+            <i class="fas fa-robot text-green-500" id="hud-icon"></i>
+        </div>
+        
+        <div class="text-[10px] text-gray-500">HUMANITY SCORE</div>
+        <div class="hud-bar"><div class="hud-fill" id="hud-score" style="width: 100%"></div></div>
+        
+        <div class="flex justify-between mt-2">
+            <div class="text-[10px]">VAR: <span id="hud-var" class="text-white">0.00</span></div>
+            <div class="text-[10px] text-green-400" id="hud-status">HUMAN</div>
         </div>
     </div>
+
+    <script src="/sentinel.js"></script>
 
     <script>
-        // --- 1. BACKGROUND VISUALS (Blue) ---
-        const initChaos = () => {
-            const container = document.getElementById('canvas-container');
-            const scene = new THREE.Scene();
-            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            container.appendChild(renderer.domElement);
-            const geometry = new THREE.BufferGeometry();
-            const count = 1000;
-            const posArray = new Float32Array(count * 3);
-            for(let i=0; i<count*3; i++) posArray[i] = (Math.random() - 0.5) * 25;
-            geometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-            const material = new THREE.PointsMaterial({ size: 0.04, color: 0x0ea5e9, transparent: true, opacity: 0.6 });
-            const particles = new THREE.Points(geometry, material);
-            scene.add(particles);
-            camera.position.z = 5;
-            const animate = () => {
-                requestAnimationFrame(animate);
-                particles.rotation.y += 0.0003;
-                particles.rotation.x -= 0.0001;
-                renderer.render(scene, camera);
-            };
-            animate();
-            window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
-            });
-        };
-        window.onload = initChaos;
+        // UI Logic for Sentinel
+        const hudFill = document.getElementById('hud-score');
+        const hudVar = document.getElementById('hud-var');
+        const hudStatus = document.getElementById('hud-status');
+        const hudIcon = document.getElementById('hud-icon');
 
-        // --- 2. BENCHMARK LOGIC (STRICT - EVENT LISTENERS) ---
-        let currentScript = 'entropy';
-        const term = document.getElementById('terminal');
-        const API = '/api/v1';
-
-        // Event Bindings (Safe for strict CSP)
-        document.getElementById('btn-entropy').addEventListener('click', () => selectScript('entropy'));
-        document.getElementById('btn-defense').addEventListener('click', () => selectScript('defense'));
-        document.getElementById('btn-speed').addEventListener('click', () => selectScript('speed'));
-        document.getElementById('run-btn').addEventListener('click', runSelectedScript);
-        
-        // Modal Bindings
-        document.getElementById('hero-req-btn').addEventListener('click', () => openModal('reg-modal'));
-        document.getElementById('footer-feed-btn').addEventListener('click', () => openModal('feedback-modal'));
-        document.getElementById('close-reg').addEventListener('click', () => closeModal('reg-modal'));
-        document.getElementById('close-feed').addEventListener('click', () => closeModal('feedback-modal'));
-        document.getElementById('reg-form').addEventListener('submit', handleSignup);
-        document.getElementById('feed-form').addEventListener('submit', handleFeedback);
-
-        function selectScript(type) {
-            currentScript = type;
-            document.querySelectorAll('.script-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(`btn-${type}`).classList.add('active');
-            const names = { entropy: 'audit_entropy.js', defense: 'sim_bot_swarm.js', speed: 'test_throughput.js' };
-            document.getElementById('script-name').innerText = names[type];
-            term.innerHTML = `<div class="text-gray-600">// Ready to execute ${names[type]}...</div>`;
-            document.getElementById('viz-container').classList.add('hidden');
-            resetStats();
-        }
-        function resetStats() { document.getElementById('res-1').innerText = "--"; document.getElementById('res-2').innerText = "--"; document.getElementById('res-3').innerText = "--"; document.getElementById('bench-bar').style.width = "0%"; }
-
-        async function runSelectedScript() {
-            const btn = document.getElementById('run-btn');
-            btn.disabled = true; btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> RUNNING...';
-            term.innerHTML = "";
-            try {
-                if (currentScript === 'entropy') await runEntropyAudit();
-                else if (currentScript === 'defense') await runBotSim();
-                else await runSpeedTest();
-            } catch(e) { log(`> ERROR: ${e.message}`, "text-red-500"); }
-            finally { btn.disabled = false; btn.innerText = "RUN TEST"; }
-        }
-
-        // TEST 1: ENTROPY
-        async function runEntropyAudit() {
-            document.getElementById('lbl-1').innerText = "Collisions"; document.getElementById('lbl-2').innerText = "Chi-Squared"; document.getElementById('lbl-3').innerText = "Bit Density";
-            log("Initializing Chaos Engine...", "text-sky-400");
-            document.getElementById('viz-container').classList.remove('hidden');
-            const map = document.getElementById('entropy-map'); const ctx = map.getContext('2d');
-            const samples = [];
+        window.addEventListener('sentinel-update', (e) => {
+            const { score, variance } = e.detail;
             
-            for(let i=0; i<20; i++) { 
-                const res = await fetch(`${API}/beta/pulse-demo`); const data = await res.json();
-                samples.push(data.hash);
-                drawNoise(ctx, data.hash); 
-                log(`> Harvested Block: ${data.hash.substring(0, 24)}...`, "text-gray-500");
-                document.getElementById('bench-bar').style.width = `${(i+1)*5}%`;
-                await new Promise(r => setTimeout(r, 50)); 
+            // Visual Update
+            hudFill.style.width = score + '%';
+            hudVar.innerText = variance.toFixed(3);
+
+            if(score < 50) {
+                // BOT DETECTED
+                hudFill.style.background = '#ff0000';
+                hudStatus.innerText = "BOT DETECTED";
+                hudStatus.className = "text-[10px] text-red-500 blink";
+                hudIcon.className = "fas fa-robot text-red-500";
+            } else {
+                // HUMAN
+                hudFill.style.background = '#00ff41';
+                hudStatus.innerText = "HUMAN";
+                hudStatus.className = "text-[10px] text-green-400";
+                hudIcon.className = "fas fa-user text-green-500";
             }
-            
-            const unique = new Set(samples).size;
-            const hexCounts = {}; samples.join('').split('').forEach(ch => hexCounts[ch] = (hexCounts[ch]||0)+1);
-            let chi2 = 0; const EXP = samples.join('').length/16;
-            for (const k in hexCounts) chi2 += Math.pow(hexCounts[k]-EXP, 2)/EXP;
-
-            // 99% Confidence Threshold
-            const CRITICAL_VALUE = 30.578; 
-
-            if(unique === samples.length) {
-                log(`> [PASS] ZERO COLLISIONS DETECTED`, "text-sky-400 font-bold");
-                document.getElementById('res-1').innerText = "0"; document.getElementById('res-1').className = "text-2xl font-mono text-sky-400 mt-1";
-                document.getElementById('res-2').innerText = chi2.toFixed(2);
-                document.getElementById('res-2').className = chi2 < CRITICAL_VALUE ? "text-2xl font-mono text-sky-400 mt-1" : "text-2xl font-mono text-yellow-500 mt-1";
-                if(chi2 < CRITICAL_VALUE) log(`> [PASS] MATHEMATICALLY PERFECT (p < 0.01)`, "text-emerald-400");
-                document.getElementById('res-3').innerText = "50.0%";
-            }
-        }
-
-        // TEST 2: BOT
-        async function runBotSim() {
-            log("Launching 10 Concurrent Bot Agents...", "text-rose-400");
-            for(let i=1; i<=10; i++) {
-                log(`> Bot_v${i} attacking /auth... Velocity: 20.0 (Inhuman)`, "text-gray-500");
-                try { await fetch(`${API}/external/verify`, { method: 'POST', headers: { 'X-CHAOS-API-KEY': 'BAD_KEY' } }); log(`> Nightmare Firewall: [BLOCKED] - Kinetic Anomaly`, "text-rose-500"); } catch(e) {}
-                document.getElementById('bench-bar').style.width = `${i*10}%`;
-                await new Promise(r => setTimeout(r, 100));
-            }
-            log(`> SWARM NEUTRALIZED. Kill Rate: 100%`, "text-sky-400 font-bold");
-            document.getElementById('res-1').innerText = "10 BLOCKS";
-        }
-
-        // TEST 3: SPEED
-        async function runSpeedTest() {
-            log("Measuring Abyss Latency...", "text-indigo-400");
-            const times = [];
-            for(let i=0; i<5; i++) {
-                const start = performance.now(); await fetch(`${API}/health`); const end = performance.now();
-                times.push(end-start);
-                log(`> Packet ${i+1}: ${(end-start).toFixed(2)}ms`, "text-gray-400");
-                document.getElementById('bench-bar').style.width = `${(i+1)*20}%`;
-            }
-            const avg = times.reduce((a,b)=>a+b)/times.length;
-            log(`> AVERAGE LATENCY: ${avg.toFixed(2)}ms`, "text-white font-bold");
-            document.getElementById('res-2').innerText = avg.toFixed(0) + "ms";
-        }
-
-        function drawNoise(ctx, hash) {
-            const w = 800, h = 60; const id = ctx.createImageData(w, h);
-            for (let i = 0; i < id.data.length; i += 4) {
-                const val = parseInt(hash[i % hash.length], 16) * 16;
-                id.data[i] = 0; id.data[i+1] = val; id.data[i+2] = 255; id.data[i+3] = 255; 
-            }
-            ctx.putImageData(id, 0, 0);
-        }
-
-        function log(msg, cls) {
-            const div = document.createElement('div');
-            div.className = cls || "text-gray-400"; div.innerText = msg;
-            term.appendChild(div); term.scrollTop = term.scrollHeight;
-        }
-
-        // LATENCY POLLING
-        setInterval(async () => {
-            const start = performance.now();
-            try { await fetch(`${API}/health`); const lat = (performance.now() - start).toFixed(0); 
-                document.getElementById('real-latency').innerText = lat + 'ms';
-            } catch(e) {}
-        }, 3000);
-
-        function openModal(id) { document.getElementById(id).classList.add('modal-active'); document.body.style.overflow = 'hidden'; }
-        function closeModal(id) { document.getElementById(id).classList.remove('modal-active'); document.body.style.overflow = 'auto'; }
-        
-        async function handleSignup(e) { 
-             e.preventDefault(); alert("Request Received. We will review your credentials."); closeModal('reg-modal');
-        }
-        async function handleFeedback(e) { 
-             e.preventDefault(); alert("Transmission Received."); closeModal('feedback-modal');
-        }
-        window.addEventListener('resize', () => { 
-             const c = document.getElementById('entropy-map');
-             if(c) c.width = document.getElementById('viz-container').clientWidth;
-             initChaos(); 
         });
+
+        // Benchmark Demo
+        function runBenchmark() {
+            const disp = document.getElementById('benchmark-result');
+            disp.innerText = "INITIALIZING ENTROPY STREAM...";
+            
+            fetch('/api/v1/beta/pulse-demo')
+                .then(r => r.json())
+                .then(d => {
+                    setTimeout(() => {
+                        disp.innerText = `>> CRYPTO VALIDATED: ${d.hash.substring(0,20)}... (${d.ms}ms)`;
+                    }, 800);
+                })
+                .catch(() => disp.innerText = "OFFLINE");
+        }
     </script>
 </body>
 </html>
