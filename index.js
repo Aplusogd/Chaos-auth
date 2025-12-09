@@ -1,8 +1,7 @@
 /**
- * A+ CHAOS ID: V150 (SILENT RUNNING)
+ * A+ CHAOS ID: V150.1 (ROUTE REPAIR)
  * STATUS: PRODUCTION
- * CONFIG: Web-Only. Telegram features removed.
- * MODULES: Auth, Zombie Mode, Black Box, Dreams V5, Overwatch, KeyForge.
+ * FIX: Restored file routes for /overwatch, /keyforge, /sdk, and /dreams.
  */
 import express from 'express';
 import path from 'path';
@@ -19,9 +18,8 @@ import {
     verifyAuthenticationResponse 
 } from '@simplewebauthn/server';
 
-// --- ZOMBIE PROTOCOL ---
-process.on('uncaughtException', (err) => console.error('>>> [SECURE LOG] ERROR', err.message));
-process.on('unhandledRejection', (r) => console.error('>>> [SECURE LOG] REJECT', r));
+process.on('uncaughtException', (err) => console.error('>>> [LOG] ERROR', err.message));
+process.on('unhandledRejection', (r) => console.error('>>> [LOG] REJECT', r));
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -30,16 +28,16 @@ const publicPath = path.join(__dirname, 'public');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// --- SECRETS VAULT ---
+// SECRETS
 const MASTER_KEY = process.env.MASTER_KEY || "chaos-genesis";
 const PERMANENT_ID = process.env.ADMIN_CRED_ID;
 const PERMANENT_KEY = process.env.ADMIN_PUB_KEY;
 
-// --- UTILS ---
+// UTILS
 const toBuffer = (base64) => { try { return Buffer.from(base64, 'base64url'); } catch (e) { return Buffer.alloc(0); } };
 const toBase64 = (buffer) => { if (typeof buffer === 'string') return buffer; return Buffer.from(buffer).toString('base64url'); };
 
-// --- DATA STORE ---
+// DATA
 const Users = new Map();
 const ADMIN_USER_ID = 'admin-user';
 const Challenges = new Map();
@@ -47,7 +45,7 @@ const Sessions = new Map();
 const ApiKeys = new Map();
 const TelemetryData = { requests: 0, blocked: 0, logs: [] };
 
-// --- DNA LOADING ---
+// IDENTITY LOAD
 if (PERMANENT_ID && PERMANENT_KEY) {
     try {
         Users.set(ADMIN_USER_ID, {
@@ -64,13 +62,13 @@ if (PERMANENT_ID && PERMANENT_KEY) {
 let REGISTRATION_LOCKED = true;
 let GATE_UNLOCK_TIMER = null;
 
-// --- MIDDLEWARE ---
+// MIDDLEWARE
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: '*' })); 
 app.use(express.json());
 app.use(express.static(publicPath));
 
-// --- LIVE WIRE (SSE) ---
+// LIVE WIRE
 let connectedClients = [];
 const LiveWire = {
     broadcast: (event, data) => { try { connectedClients.forEach(c => c.res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)); } catch(e){} },
@@ -81,14 +79,10 @@ const Telemetry = {
     log: (type, msg) => { 
         console.log(`[${type}] ${msg}`); 
         const entry = `[${type}] ${msg}`;
-        
-        // Update Internal Storage
         TelemetryData.logs.unshift(entry);
         if(TelemetryData.logs.length > 50) TelemetryData.logs.pop();
         if(type === 'BLOCK') TelemetryData.blocked++;
         TelemetryData.requests++;
-
-        // Broadcast to Overwatch
         LiveWire.broadcast('log', { entry, stats: { requests: TelemetryData.requests, threats: TelemetryData.blocked } }); 
     }
 };
@@ -96,29 +90,24 @@ const Telemetry = {
 const getOrigin = (req) => `https://${req.headers['x-forwarded-host'] || req.get('host')}`;
 const getRpId = (req) => (req.headers['x-forwarded-host'] || req.get('host')).split(':')[0];
 
-// ==========================================
-// ROUTES
-// ==========================================
+// --- ROUTES ---
 
-// --- DREAMS V5.1: DIAGNOSTIC ---
+// HARDWARE DIAGNOSTIC
 app.post('/api/v1/hardware/diagnostic', (req, res) => {
     const { deviceId, variance } = req.body;
-    
-    // Log High Variance (Grinding Noise)
     if (variance > 120) {
-        Telemetry.log('HARDWARE', `High Acoustic Variance (${variance.toFixed(0)}) on ${deviceId}`);
+        Telemetry.log('HARDWARE', `High Acoustic Variance (${variance.toFixed(0)})`);
         return res.json({ status: "WARNING" });
     }
-    
     res.json({ status: "OPTIMAL" });
 });
 
-// --- OVERWATCH API ---
+// TELEMETRY
 app.get('/api/v1/admin/telemetry', (req, res) => {
     res.json({ stats: { requests: TelemetryData.requests, threats: TelemetryData.blocked }, logs: TelemetryData.logs });
 });
 
-// --- KEYFORGE API ---
+// KEYFORGE
 app.post('/api/v1/admin/generate-key', (req, res) => {
     if(!Sessions.has(req.headers['x-chaos-token'])) return res.status(401).json({ error: "UNAUTHORIZED" });
     const { tier, clientName } = req.body;
@@ -128,7 +117,7 @@ app.post('/api/v1/admin/generate-key', (req, res) => {
     res.json({ success: true, key: newKey });
 });
 
-// --- AUTH: REGISTER ---
+// AUTH
 app.get('/api/v1/auth/register-options', async (req, res) => {
     const key = req.headers['x-chaos-master-key'];
     if((key !== MASTER_KEY) && REGISTRATION_LOCKED) {
@@ -153,18 +142,12 @@ app.post('/api/v1/auth/register-verify', async (req, res) => {
             const u = Users.get(ADMIN_USER_ID);
             const newCred = { ...v.registrationInfo, credentialID: toBuffer(toBase64(v.registrationInfo.credentialID)) };
             const exists = u.credentials.find(c => toBase64(c.credentialID) === toBase64(newCred.credentialID));
-            if(!exists) { 
-                u.credentials.push(newCred); 
-                Users.set(ADMIN_USER_ID, u); 
-                REGISTRATION_LOCKED=true; 
-                Telemetry.log('AUTH', 'Device Added');
-            }
+            if(!exists) { u.credentials.push(newCred); Users.set(ADMIN_USER_ID, u); REGISTRATION_LOCKED=true; Telemetry.log('AUTH', 'Device Added'); }
             res.json({verified:true});
         } else res.status(400).json({verified:false});
     } catch(e) { res.status(400).json({error:e.message}); }
 });
 
-// --- AUTH: LOGIN ---
 app.get('/api/v1/auth/login-options', async (req, res) => {
     const u = Users.get(ADMIN_USER_ID);
     if(!u || u.credentials.length===0) return res.status(404).json({error:"NO ID"});
@@ -178,11 +161,9 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
         const json = Buffer.from(req.body.response.clientDataJSON, 'base64url').toString('utf8');
         const chal = JSON.parse(json).challenge;
         if(!Challenges.has(chal)) return res.status(400).json({error:"Bad Challenge"});
-        
         const u = Users.get(ADMIN_USER_ID);
         const match = u.credentials.find(c => toBase64(c.credentialID) === req.body.id);
         if(!match) return res.status(400).json({error:"Device Not Found"});
-        
         const v = await verifyAuthenticationResponse({ response: req.body, expectedChallenge: chal, expectedOrigin: getOrigin(req), expectedRPID: getRpId(req), authenticator: match, requireUserVerification: false });
         if(v.verified) {
             match.counter = v.authenticationInfo.newCounter;
@@ -195,7 +176,6 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
     } catch(e) { res.status(500).json({error:e.message}); }
 });
 
-// --- GATE UNLOCK ---
 app.post('/api/v1/auth/unlock-gate', (req, res) => {
     if(!Sessions.has(req.headers['x-chaos-token'])) return res.status(401).json({error:"Login First"});
     REGISTRATION_LOCKED = false;
@@ -205,20 +185,25 @@ app.post('/api/v1/auth/unlock-gate', (req, res) => {
     res.json({success:true, message:"GATE OPEN"});
 });
 
-// --- PUBLIC/DEMO ---
-app.get('/api/v1/beta/pulse-demo', (req, res) => {
-    res.json({ valid: true, hash: crypto.randomBytes(32).toString('hex'), ms: Math.floor(Math.random() * 15) + 5 });
-});
+app.get('/api/v1/beta/pulse-demo', (req, res) => res.json({ valid: true, hash: crypto.randomBytes(32).toString('hex'), ms: 10 }));
 app.post('/api/v1/public/signup', (req, res) => res.json({ success: true }));
 app.post('/api/v1/external/verify', (req, res) => res.json({ valid: true }));
 app.get('/api/v1/health', (req, res) => res.json({ status: "ALIVE" }));
 app.get('/api/v1/stream', (req,res) => LiveWire.addClient(req,res));
 
-// --- FILES ---
+// --- FILE SERVING (RESTORED ROUTES) ---
 const serve = (f, res) => fs.existsSync(path.join(publicPath, f)) ? res.sendFile(path.join(publicPath, f)) : res.status(404).send('Missing: ' + f);
+
 app.get('/', (req, res) => serve('index.html', res));
 app.get('/app', (req, res) => serve('app.html', res));
 app.get('/dashboard', (req, res) => serve('dashboard.html', res));
+
+// THE MISSING LINKS RESTORED:
+app.get('/overwatch', (req, res) => serve('overwatch.html', res));
+app.get('/keyforge', (req, res) => serve('keyforge.html', res));
+app.get('/sdk', (req, res) => serve('sdk.html', res));
+app.get('/dreams', (req, res) => serve('dreams.html', res));
+
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V150 ONLINE (SILENT)`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V150.1 ONLINE`));
