@@ -36,4 +36,181 @@
 <body class="hero-bg">
     <div class="grid-overlay"></div>
 
-    <nav class="fixed w-full z-50 p-6 flex justify-between items-center
+    <nav class="fixed w-full z-50 p-6 flex justify-between items-center backdrop-blur-sm border-b border-white/10">
+        <div class="text-2xl font-bold tracking-tighter text-white">A+ <span class="text-green-500">CHAOS</span></div>
+        <div class="space-x-4">
+            <a href="/app" class="text-sm font-bold hover:text-green-400 transition">LOGIN</a>
+            <a href="/dashboard" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded text-sm font-bold transition">COMMAND CENTER</a>
+        </div>
+    </nav>
+
+    <div class="relative z-10 pt-32 px-6 max-w-4xl mx-auto space-y-24 pb-32">
+        
+        <section class="text-center space-y-6">
+            <div class="inline-block border border-green-500/30 bg-green-900/10 px-3 py-1 rounded-full text-xs text-green-400 tracking-widest mb-4">SYSTEM V151 ONLINE</div>
+            <h1 class="text-5xl md:text-8xl font-black tracking-tighter leading-none">
+                SECURITY <br>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-600">REDEFINED</span>
+            </h1>
+            <p class="text-xl text-gray-400 max-w-2xl mx-auto">
+                A+ Overhead Garage Doors integrates Military-Grade Cryptography with Physical Hardware.
+            </p>
+            <div class="flex justify-center gap-4 pt-8">
+                <button onclick="runBenchmark()" class="border border-green-600 text-green-400 px-8 py-4 rounded hover:bg-green-900/20 transition font-bold">
+                    RUN BENCHMARK
+                </button>
+            </div>
+            <div id="benchmark-result" class="h-10 text-sm font-mono text-blue-400 mt-4"></div>
+        </section>
+
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+            <div class="p-8 border border-white/10 rounded bg-black/50 backdrop-blur">
+                <i class="fas fa-shield-alt text-4xl text-green-500 mb-4"></i>
+                <h3 class="text-xl font-bold mb-2">Impossible Triad</h3>
+                <p class="text-gray-500 text-sm">256-bit Entropy verification.</p>
+            </div>
+            <div class="p-8 border border-white/10 rounded bg-black/50 backdrop-blur">
+                <i class="fas fa-wave-square text-4xl text-blue-500 mb-4"></i>
+                <h3 class="text-xl font-bold mb-2">Dreams V5</h3>
+                <p class="text-gray-500 text-sm">Acoustic diagnostics.</p>
+            </div>
+            <div class="p-8 border border-white/10 rounded bg-black/50 backdrop-blur">
+                <i class="fas fa-robot text-4xl text-purple-500 mb-4"></i>
+                <h3 class="text-xl font-bold mb-2">Sentinel AI</h3>
+                <p class="text-gray-500 text-sm">Behavioral bot detection.</p>
+            </div>
+        </section>
+
+        <div class="h-screen flex flex-col items-center justify-center text-gray-700 font-mono text-xs space-y-4">
+            <p>SCROLL DOWN TO TEST SENTINEL...</p>
+            <i class="fas fa-arrow-down animate-bounce"></i>
+        </div>
+        <div class="h-screen flex items-center justify-center text-gray-700 font-mono text-xs">
+            KEEP SCROLLING...
+        </div>
+         <div class="h-screen flex items-center justify-center text-gray-700 font-mono text-xs">
+            ALMOST THERE...
+        </div>
+    </div>
+
+    <div class="sentinel-hud">
+        <div class="flex justify-between items-center mb-2">
+            <span class="text-xs text-gray-400 tracking-widest">SENTINEL AI</span>
+            <i class="fas fa-user text-green-500" id="hud-icon"></i>
+        </div>
+        
+        <div class="text-[10px] text-gray-500 flex justify-between">
+            <span>HUMANITY SCORE</span>
+            <span id="hud-pct">100%</span>
+        </div>
+        <div class="hud-bar"><div class="hud-fill" id="hud-score" style="width: 100%"></div></div>
+        
+        <div class="flex justify-between mt-3 border-t border-gray-800 pt-2">
+            <div class="text-[10px]">VAR: <span id="hud-var" class="text-white">0.00</span></div>
+            <div class="text-[10px] text-green-400 font-bold" id="hud-status">VERIFIED</div>
+        </div>
+    </div>
+
+    <script>
+        const Sentinel = {
+            buffer: [],
+            score: 100,
+            lastY: 0,
+            lastT: Date.now(),
+
+            init: () => {
+                window.addEventListener('scroll', Sentinel.analyze);
+                console.log(">>> [SENTINEL] ACTIVE");
+            },
+
+            analyze: () => {
+                const now = Date.now();
+                const y = window.scrollY;
+                
+                // 1. Calc Velocity
+                const dt = now - Sentinel.lastT;
+                const dy = y - Sentinel.lastY;
+                
+                // Only analyze significant movement
+                if (dt > 10 && Math.abs(dy) > 1) {
+                    const velocity = Math.abs(dy / dt);
+                    
+                    // 2. Buffer
+                    Sentinel.buffer.push(velocity);
+                    if(Sentinel.buffer.length > 20) Sentinel.buffer.shift();
+                    
+                    // 3. Variance (Entropy)
+                    // Humans vary speed. Bots are constant.
+                    const variance = Sentinel.calculateVariance(Sentinel.buffer);
+                    
+                    // 4. Score Logic (More sensitive now)
+                    if(Sentinel.buffer.length > 2) {
+                        if(variance < 0.01) { 
+                            // ROBOTIC (Too smooth)
+                            Sentinel.score = Math.max(0, Sentinel.score - 2); 
+                        } else {
+                            // HUMAN (Messy)
+                            Sentinel.score = Math.min(100, Sentinel.score + 0.5); 
+                        }
+                    }
+
+                    // 5. Update UI
+                    updateHUD(Sentinel.score, variance);
+                }
+
+                Sentinel.lastY = y;
+                Sentinel.lastT = now;
+            },
+
+            calculateVariance: (arr) => {
+                const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+                return arr.reduce((sq, n) => sq + Math.pow(n - mean, 2), 0) / arr.length;
+            }
+        };
+
+        // UI UPDATE FUNCTION
+        const hudFill = document.getElementById('hud-score');
+        const hudVar = document.getElementById('hud-var');
+        const hudStatus = document.getElementById('hud-status');
+        const hudIcon = document.getElementById('hud-icon');
+        const hudPct = document.getElementById('hud-pct');
+
+        function updateHUD(score, variance) {
+            hudFill.style.width = score + '%';
+            hudVar.innerText = variance.toFixed(4);
+            hudPct.innerText = Math.floor(score) + '%';
+
+            if(score < 40) {
+                // BOT
+                hudFill.style.background = '#ff0000';
+                hudStatus.innerText = "BOT DETECTED";
+                hudStatus.className = "text-[10px] text-red-500 font-bold blink";
+                hudIcon.className = "fas fa-robot text-red-500";
+            } else {
+                // HUMAN
+                hudFill.style.background = '#00ff41';
+                hudStatus.innerText = "VERIFIED";
+                hudStatus.className = "text-[10px] text-green-400 font-bold";
+                hudIcon.className = "fas fa-user text-green-500";
+            }
+        }
+
+        // Start Sentinel
+        Sentinel.init();
+
+        // Benchmark Demo
+        function runBenchmark() {
+            const disp = document.getElementById('benchmark-result');
+            disp.innerText = "INITIALIZING ENTROPY STREAM...";
+            fetch('/api/v1/beta/pulse-demo')
+                .then(r => r.json())
+                .then(d => {
+                    setTimeout(() => {
+                        disp.innerText = `>> CRYPTO VALIDATED: ${d.hash.substring(0,20)}...`;
+                    }, 500);
+                })
+                .catch(() => disp.innerText = "OFFLINE");
+        }
+    </script>
+</body>
+</html>
