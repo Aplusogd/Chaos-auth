@@ -1,19 +1,12 @@
 /**
- * A+ CHAOS ID: V144 (ZOMBIE PROTOCOL)
+ * A+ CHAOS ID: V144.1 (THE BUNDLE)
  * STATUS: PRODUCTION
- * FIXES: 
- * 1. Restored Master Key Protection.
- * 2. Added "Uncaught Exception" handlers so server NEVER goes offline.
- * 3. Hardcoded your ID for persistence.
+ * FIX: Serves 'app.html' from memory to ensure Client matches Server.
  */
 import express from 'express';
-import path from 'path';
 import cors from 'cors';
-import fs from 'fs';
 import crypto from 'crypto';
 import helmet from 'helmet';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';     
 import { 
     generateRegistrationOptions, 
     verifyRegistrationResponse, 
@@ -21,29 +14,16 @@ import {
     verifyAuthenticationResponse 
 } from '@simplewebauthn/server';
 
-// --- ZOMBIE MODE (PREVENT CRASHES) ---
-process.on('uncaughtException', (err) => {
-    console.error('>>> CRITICAL ERROR CAUGHT:', err);
-    // Do not exit. Keep running.
-});
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('>>> UNHANDLED REJECTION:', reason);
-});
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const publicPath = path.join(__dirname, 'public');
+// --- ZOMBIE MODE (Anti-Crash) ---
+process.on('uncaughtException', (err) => console.error('>>> CRITICAL:', err));
+process.on('unhandledRejection', (r) => console.error('>>> REJECT:', r));
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-
-// --- CONFIG ---
-const MASTER_KEY = process.env.MASTER_KEY || "chaos-genesis"; // DEFAULT KEY if not set in Render
+const MASTER_KEY = process.env.MASTER_KEY || "chaos-genesis";
 
 // --- UTILS ---
-const toBuffer = (base64) => {
-    try { return Buffer.from(base64, 'base64url'); } catch (e) { return Buffer.alloc(0); }
-};
+const toBuffer = (base64) => { try { return Buffer.from(base64, 'base64url'); } catch (e) { return Buffer.alloc(0); } };
 const toBase64 = (buffer) => Buffer.from(buffer).toString('base64url');
 
 // --- IDENTITY STORE ---
@@ -52,206 +32,253 @@ const ADMIN_USER_ID = 'admin-user';
 const Challenges = new Map();
 const Sessions = new Map();
 
-// HARDCODED IDENTITY (YOUR PHONE)
+// YOUR HARDCODED ID
 const PERMANENT_ID = "cWtBQ3Buc1ZnN2g2QlNGRlRjVGV6QQ";
 const PERMANENT_KEY = "pQECAyYgASFYIHB_wbSVKRbTQgp7v4MEHhUa-GsFUzMQV49jJ1w8OvsqIlggFwXFALOUUKlfasQOhh3rSNG3zT3jVjiJA4ITr7u5uv0";
 
-// Load Identity
 try {
-    const adminData = {
+    Users.set(ADMIN_USER_ID, {
         id: ADMIN_USER_ID,
-        credentials: [{
-            credentialID: toBuffer(PERMANENT_ID),
-            credentialPublicKey: toBuffer(PERMANENT_KEY),
-            counter: 0
-        }]
-    };
-    Users.set(ADMIN_USER_ID, adminData);
+        credentials: [{ credentialID: toBuffer(PERMANENT_ID), credentialPublicKey: toBuffer(PERMANENT_KEY), counter: 0 }]
+    });
     console.log(">>> [SYSTEM] IDENTITY LOADED.");
-} catch (e) {
-    Users.set(ADMIN_USER_ID, { id: ADMIN_USER_ID, credentials: [] });
-    console.log(">>> [WARN] STARTING EMPTY.");
-}
+} catch (e) { console.log(">>> [WARN] EMPTY START."); Users.set(ADMIN_USER_ID, { id: ADMIN_USER_ID, credentials: [] }); }
 
-// GATEKEEPER STATE
-let REGISTRATION_LOCKED = true; // Starts LOCKED (Secure)
+let REGISTRATION_LOCKED = true;
 let GATE_UNLOCK_TIMER = null;
-
-// --- LIVE WIRE ---
-let connectedClients = [];
-const LiveWire = {
-    broadcast: (event, data) => {
-        try { connectedClients.forEach(c => c.res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)); } catch(e){}
-    },
-    addClient: (req, res) => {
-        res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' });
-        connectedClients.push({ id: Date.now(), res });
-    }
-};
-
-const Telemetry = {
-    logs: [],
-    log: (type, msg) => {
-        const entry = `[${type}] ${msg}`;
-        console.log(entry);
-        Telemetry.logs.unshift(entry);
-        if (Telemetry.logs.length > 50) Telemetry.logs.pop();
-        LiveWire.broadcast('log', { entry });
-    }
-};
 
 // --- MIDDLEWARE ---
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: '*' })); 
 app.use(express.json());
-app.use(express.static(publicPath)); 
 
-const DreamsEngine = {
-    start: () => process.hrtime.bigint(),
-    check: (durationMs, kinetic) => true // Disabled for stability
+// --- LIVE WIRE ---
+let connectedClients = [];
+const LiveWire = {
+    broadcast: (event, data) => { try { connectedClients.forEach(c => c.res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)); } catch(e){} },
+    addClient: (req, res) => { res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' }); connectedClients.push({ id: Date.now(), res }); }
+};
+const Telemetry = {
+    log: (type, msg) => { console.log(`[${type}] ${msg}`); LiveWire.broadcast('log', { entry: `[${type}] ${msg}` }); }
 };
 
-const getOrigin = (req) => `https://${req.headers['x-forwarded-host'] || req.get('host')}`;
-const getRpId = (req) => (req.headers['x-forwarded-host'] || req.get('host')).split(':')[0];
-
 // ==========================================
-// 1. GATE UNLOCK (Requires Valid Session)
+// CLIENT SOURCE CODE (EMBEDDED)
 // ==========================================
-app.post('/api/v1/auth/unlock-gate', (req, res) => {
-    const token = req.headers['x-chaos-token'];
-    if (!Sessions.has(token)) return res.status(401).json({ error: "LOGIN REQUIRED" });
-
-    REGISTRATION_LOCKED = false;
-    Telemetry.log('SECURITY', 'GATE UNLOCKED (30s)');
-    if (GATE_UNLOCK_TIMER) clearTimeout(GATE_UNLOCK_TIMER);
-    GATE_UNLOCK_TIMER = setTimeout(() => {
-        REGISTRATION_LOCKED = true;
-        Telemetry.log('SECURITY', 'GATE LOCKED');
-    }, 30000);
-    res.json({ success: true });
-});
-
-// ==========================================
-// 2. AUTH ROUTES
-// ==========================================
-
-// REGISTER - OPTIONS (PROTECTED BY MASTER KEY OR GATE)
-app.get('/api/v1/auth/register-options', async (req, res) => {
-    const clientKey = req.headers['x-chaos-master-key'];
+const HTML_CLIENT = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>A+ CHAOS v144.1</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@simplewebauthn/browser@10.0.0/dist/bundle/index.umd.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
+        body { background-color: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; touch-action: none; overflow: hidden; user-select: none; }
+        .hud-status { font-size: 1.8rem; font-weight: 800; text-align: center; margin-top: 20vh; text-shadow: 0 0 15px #00ff41; pointer-events: none; }
+        .totem { width: 90px; height: 90px; background: #00ff41; border-radius: 50%; position: absolute; bottom: 130px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; font-size: 36px; color: #002200; box-shadow: 0 0 25px #00ff41; transition: all 0.5s; z-index: 50; }
+        .totem.offline { filter: grayscale(100%); opacity: 0.3; }
+        .totem.imprint { background: #0088ff; box-shadow: 0 0 25px #0088ff; color: #001133; }
+        #error-toast { position: fixed; top: 0; left: 0; width: 100%; background: #aa0000; color: white; padding: 5px; font-size: 10px; text-align: center; display: none; z-index: 9999; }
+    </style>
+</head>
+<body class="h-screen w-screen bg-black">
+    <div id="error-toast"></div>
+    <div id="hud" class="hud-status text-yellow-500">CONNECTING...</div>
+    <div class="totem offline" id="totem"><i class="fas fa-fingerprint"></i></div>
     
-    // ALLOW IF: (Master Key matches) OR (Gate is Unlocked)
-    const isMasterKeyValid = (clientKey === MASTER_KEY);
-    const isGateOpen = (!REGISTRATION_LOCKED);
+    <div id="hidden-trigger" style="position:fixed;top:0;left:50%;width:100px;height:50px;transform:translateX(-50%);z-index:100;"></div>
 
-    if (!isMasterKeyValid && !isGateOpen) {
-        Telemetry.log('BLOCK', 'Reg Denied: Locked & No Key');
-        return res.status(403).json({ error: "LOCKED" });
-    }
+    <script>
+        const { startRegistration, startAuthentication } = SimpleWebAuthnBrowser;
+        const API_BASE = '/api/v1';
+        let mode = 'LOGIN';
+        
+        // DEBUGGER
+        window.onerror = function(msg, url, line) {
+            document.getElementById('error-toast').style.display = 'block';
+            document.getElementById('error-toast').innerText = msg;
+        };
+        const log = (txt) => { document.getElementById('error-toast').style.display='block'; document.getElementById('error-toast').innerText = txt; setTimeout(()=>document.getElementById('error-toast').style.display='none', 3000); };
 
-    try {
-        const options = await generateRegistrationOptions({
-            rpName: 'A+ Chaos ID', rpID: getRpId(req), userID: new Uint8Array(Buffer.from(ADMIN_USER_ID)), userName: 'admin@aplus.com',
-            attestationType: 'none', authenticatorSelection: { residentKey: 'required', userVerification: 'preferred', authenticatorAttachment: 'platform' },
-        });
-        Challenges.set(ADMIN_USER_ID, options.challenge);
-        res.json(options);
-    } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-// REGISTER - VERIFY
-app.post('/api/v1/auth/register-verify', async (req, res) => {
-    const clientKey = req.headers['x-chaos-master-key'];
-    const isMasterKeyValid = (clientKey === MASTER_KEY);
-    const isGateOpen = (!REGISTRATION_LOCKED);
-
-    if (!isMasterKeyValid && !isGateOpen) return res.status(403).json({ error: "LOCKED" });
-
-    const expectedChallenge = Challenges.get(ADMIN_USER_ID);
-    if (!expectedChallenge) return res.status(400).json({ error: "Expired" });
-
-    try {
-        const verification = await verifyRegistrationResponse({ 
-            response: req.body, expectedChallenge, expectedOrigin: getOrigin(req), expectedRPID: getRpId(req) 
+        async function init() {
+            try {
+                // 1. HEALTH CHECK
+                const health = await fetch(API_BASE + '/health');
+                if(!health.ok) throw new Error("Server Sleeping");
+                
+                // 2. CHECK MODE
+                const resp = await fetch(API_BASE + '/auth/login-options');
+                if(resp.ok) {
+                    mode = 'LOGIN';
+                    document.getElementById('hud').innerText = "CAST TOTEM";
+                    document.getElementById('hud').className = "hud-status text-green-500";
+                    document.getElementById('totem').classList.remove('offline', 'imprint');
+                } else {
+                    mode = 'REGISTER';
+                    document.getElementById('hud').innerText = "IMPRINT IDENTITY";
+                    document.getElementById('hud').className = "hud-status text-blue-500";
+                    document.getElementById('totem').classList.add('imprint');
+                    document.getElementById('totem').classList.remove('offline');
+                }
+            } catch(e) {
+                document.getElementById('hud').innerText = "WAKING SERVER...";
+                setTimeout(init, 2000);
+            }
+        }
+        
+        // INTERACTION
+        document.getElementById('totem').addEventListener('click', async () => {
+            const t = document.getElementById('totem');
+            if(t.classList.contains('offline')) return;
+            
+            document.getElementById('hud').innerText = "PROCESSING...";
+            
+            try {
+                if(mode === 'LOGIN') {
+                    const opts = await (await fetch(API_BASE + '/auth/login-options')).json();
+                    const asseResp = await startAuthentication(opts);
+                    const ver = await fetch(API_BASE + '/auth/login-verify', {
+                        method: 'POST', headers: {'Content-Type':'application/json'},
+                        body: JSON.stringify({...asseResp, kinetic_data: { velocity: 10, entropy: 1.0 }}) // Bypass bot check for recovery
+                    });
+                    const res = await ver.json();
+                    if(res.verified) {
+                        document.getElementById('hud').innerText = "ACCEPTED";
+                        sessionStorage.setItem('chaos_session', res.token);
+                        setTimeout(() => location.href = '/dashboard', 1000);
+                    } else throw new Error("Denied");
+                } else {
+                    // REGISTER MODE
+                    const key = prompt("MASTER KEY:");
+                    const opts = await (await fetch(API_BASE + '/auth/register-options', {headers:{'x-chaos-master-key': key}})).json();
+                    if(opts.error) throw new Error(opts.error);
+                    const attResp = await startRegistration(opts);
+                    const ver = await fetch(API_BASE + '/auth/register-verify', {
+                        method: 'POST', headers: {'Content-Type':'application/json', 'x-chaos-master-key': key},
+                        body: JSON.stringify(attResp)
+                    });
+                    if((await ver.json()).verified) location.reload(); else throw new Error("Reg Failed");
+                }
+            } catch(e) {
+                log(e.message);
+                document.getElementById('hud').innerText = "FAILED";
+                setTimeout(init, 2000);
+            }
         });
         
-        if (verification.verified) {
-            const { credentialID, credentialPublicKey, counter } = verification.registrationInfo;
-            const user = Users.get(ADMIN_USER_ID);
-            
-            // Prevent Duplicates
-            const targetIdStr = toBase64(credentialID);
-            const exists = user.credentials.find(c => toBase64(c.credentialID) === targetIdStr);
+        // Hidden Trigger
+        let taps = 0;
+        document.getElementById('hidden-trigger').addEventListener('click', () => {
+            taps++;
+            if(taps===3) { mode='REGISTER'; document.getElementById('hud').innerText="FORCE ADD"; document.getElementById('totem').classList.add('imprint'); taps=0; }
+        });
 
-            if (!exists) {
-                user.credentials.push({ credentialID, credentialPublicKey, counter });
-                Users.set(ADMIN_USER_ID, user);
-                Telemetry.log('AUTH', `Device Added. Count: ${user.credentials.length}`);
-                REGISTRATION_LOCKED = true; // Auto-Lock
-            }
-            Challenges.delete(ADMIN_USER_ID);
-            res.json({ verified: true });
-        } else { res.status(400).json({ verified: false }); }
-    } catch (e) { res.status(400).json({ error: e.message }); }
+        init();
+    </script>
+</body>
+</html>
+`;
+
+// ==========================================
+// ROUTES
+// ==========================================
+
+// *** SERVE APP.HTML FROM MEMORY ***
+app.get('/app', (req, res) => res.send(HTML_CLIENT));
+// Redirect root to app for ease
+app.get('/', (req, res) => res.redirect('/app'));
+
+// HEALTH
+app.get('/api/v1/health', (req, res) => res.json({ status: "ALIVE" }));
+
+// AUTH ENDPOINTS
+app.get('/api/v1/auth/register-options', async (req, res) => {
+    const key = req.headers['x-chaos-master-key'];
+    if((key !== MASTER_KEY) && REGISTRATION_LOCKED) return res.status(403).json({ error: "LOCKED" });
+    try {
+        const o = await generateRegistrationOptions({
+            rpName: 'Chaos', rpID: getRpId(req), userID: new Uint8Array(Buffer.from(ADMIN_USER_ID)), userName: 'admin',
+            attestationType: 'none', authenticatorSelection: { residentKey: 'required', userVerification: 'preferred', authenticatorAttachment: 'platform' },
+        });
+        Challenges.set(ADMIN_USER_ID, o.challenge);
+        res.json(o);
+    } catch(e) { res.status(500).json({error:e.message}); }
 });
 
-// LOGIN
-app.get('/api/v1/auth/login-options', async (req, res) => {
-    const user = Users.get(ADMIN_USER_ID);
-    if (!user || user.credentials.length === 0) return res.status(404).json({ error: "NO IDENTITY" });
+app.post('/api/v1/auth/register-verify', async (req, res) => {
+    if((req.headers['x-chaos-master-key'] !== MASTER_KEY) && REGISTRATION_LOCKED) return res.status(403).json({ error: "LOCKED" });
     try {
-        const allowed = user.credentials.map(c => ({ id: c.credentialID, type: 'public-key' }));
-        const options = await generateAuthenticationOptions({ rpID: getRpId(req), allowCredentials: allowed, userVerification: 'preferred' });
-        Challenges.set(options.challenge, { challenge: options.challenge, startTime: DreamsEngine.start() });
-        res.json(options);
-    } catch (err) { res.status(500).json({ error: err.message }); }
+        const v = await verifyRegistrationResponse({ response: req.body, expectedChallenge: Challenges.get(ADMIN_USER_ID), expectedOrigin: getOrigin(req), expectedRPID: getRpId(req) });
+        if(v.verified) {
+            const u = Users.get(ADMIN_USER_ID);
+            const exists = u.credentials.find(c => toBase64(c.credentialID) === toBase64(v.registrationInfo.credentialID));
+            if(!exists) { u.credentials.push(v.registrationInfo); Users.set(ADMIN_USER_ID, u); REGISTRATION_LOCKED=true; }
+            res.json({verified:true});
+        } else res.status(400).json({verified:false});
+    } catch(e) { res.status(400).json({error:e.message}); }
+});
+
+app.get('/api/v1/auth/login-options', async (req, res) => {
+    const u = Users.get(ADMIN_USER_ID);
+    if(!u || u.credentials.length===0) return res.status(404).json({error:"NO ID"});
+    const o = await generateAuthenticationOptions({ rpID: getRpId(req), allowCredentials: u.credentials.map(c=>({id:c.credentialID, type:'public-key'})), userVerification:'preferred' });
+    Challenges.set(o.challenge, {challenge:o.challenge});
+    res.json(o);
 });
 
 app.post('/api/v1/auth/login-verify', async (req, res) => {
     try {
         const json = Buffer.from(req.body.response.clientDataJSON, 'base64url').toString('utf8');
-        const challengeString = JSON.parse(json).challenge;
-        const challengeData = Challenges.get(challengeString);
-        if (!challengeData) return res.status(400).json({ error: "Invalid Challenge" });
-
-        const user = Users.get(ADMIN_USER_ID);
-        const targetIdStr = req.body.id; 
-        const match = user.credentials.find(c => toBase64(c.credentialID) === targetIdStr);
+        const chal = JSON.parse(json).challenge;
+        if(!Challenges.has(chal)) return res.status(400).json({error:"Bad Challenge"});
         
-        if (!match) return res.status(400).json({ error: "Device Not Found" });
-
-        const verification = await verifyAuthenticationResponse({
-            response: req.body, expectedChallenge: challengeString, expectedOrigin: getOrigin(req), expectedRPID: getRpId(req),
-            authenticator: { credentialID: match.credentialID, credentialPublicKey: match.credentialPublicKey, counter: match.counter },
-            requireUserVerification: false,
-        });
-
-        if (verification.verified) {
-            match.counter = verification.authenticationInfo.newCounter;
-            Users.set(ADMIN_USER_ID, user);
-            Challenges.delete(challengeString);
-            
-            const token = crypto.randomBytes(32).toString('hex');
-            Sessions.set(token, { loginTime: Date.now() });
-            
-            Telemetry.log('AUTH', 'Login Successful');
-            res.json({ verified: true, token });
-        } else { res.status(400).json({ verified: false }); }
-    } catch (e) { 
-        console.error("LOGIN ERROR:", e); // Log it, don't crash
-        res.status(500).json({ error: e.message }); 
-    }
+        const u = Users.get(ADMIN_USER_ID);
+        const match = u.credentials.find(c => toBase64(c.credentialID) === req.body.id);
+        if(!match) return res.status(400).json({error:"Device Not Found"});
+        
+        const v = await verifyAuthenticationResponse({ response: req.body, expectedChallenge: chal, expectedOrigin: getOrigin(req), expectedRPID: getRpId(req), authenticator: match, requireUserVerification: false });
+        if(v.verified) {
+            match.counter = v.authenticationInfo.newCounter;
+            Users.set(ADMIN_USER_ID, u);
+            const t = crypto.randomBytes(32).toString('hex');
+            Sessions.set(t, true);
+            res.json({verified:true, token:t});
+        } else res.status(400).json({verified:false});
+    } catch(e) { res.status(500).json({error:e.message}); }
 });
 
-// --- ROUTES ---
-app.get('/api/v1/health', (req, res) => res.json({ status: "ALIVE" }));
-app.get('/api/v1/stream', (req, res) => LiveWire.addClient(req, res));
-app.get('/api/v1/beta/pulse-demo', (req, res) => res.json({ valid: true }));
-app.post('/api/v1/public/signup', (req, res) => res.json({ success: true }));
+// Gate Unlock
+app.post('/api/v1/auth/unlock-gate', (req, res) => {
+    if(!Sessions.has(req.headers['x-chaos-token'])) return res.status(401).json({error:"Login First"});
+    REGISTRATION_LOCKED = false;
+    if(GATE_UNLOCK_TIMER) clearTimeout(GATE_UNLOCK_TIMER);
+    GATE_UNLOCK_TIMER = setTimeout(()=>REGISTRATION_LOCKED=true, 30000);
+    res.json({success:true, message:"UNLOCKED 30s"});
+});
 
-const serve = (f, res) => fs.existsSync(path.join(publicPath, f)) ? res.sendFile(path.join(publicPath, f)) : res.status(404).send('Missing: ' + f);
-app.get('/', (req, res) => serve('index.html', res));
-app.get('/app', (req, res) => serve('app.html', res));
-app.get('/dashboard', (req, res) => serve('dashboard.html', res));
-app.get('*', (req, res) => res.redirect('/'));
+// STREAM
+app.get('/api/v1/stream', (req,res) => LiveWire.addClient(req,res));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V144 ONLINE (ZOMBIE MODE)`));
+// DASHBOARD (Basic for now)
+app.get('/dashboard', (req, res) => res.send(`
+    <body style="background:#000;color:#0f0;font-family:monospace;text-align:center;padding:50px;">
+        <h1>A+ DASHBOARD</h1>
+        <p>SECURE CONNECTION ESTABLISHED</p>
+        <button onclick="unlock()" style="padding:20px;background:#300;color:#fff;border:none;margin-top:20px;">UNLOCK GATE (30s)</button>
+        <script>
+            function unlock() {
+                fetch('/api/v1/auth/unlock-gate', {method:'POST', headers:{'x-chaos-token':sessionStorage.getItem('chaos_session')}})
+                .then(r=>r.json()).then(d=>alert(d.message||d.error));
+            }
+        </script>
+    </body>
+`));
+
+const getOrigin = (req) => `https://${req.headers['x-forwarded-host'] || req.get('host')}`;
+const getRpId = (req) => (req.headers['x-forwarded-host'] || req.get('host')).split(':')[0];
+
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> V144.1 BUNDLE ONLINE`));
