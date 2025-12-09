@@ -2,51 +2,21 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>A+ CHAOS | OVERWATCH</title>
+    <title>A+ CHAOS | WAR ROOM</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono:wght@400;700&display=swap');
-        body { 
-            background-color: #050505; 
-            color: #00ff41; 
-            font-family: 'Share Tech Mono', monospace; 
-            overflow: hidden;
-            background-image: radial-gradient(circle at 50% 50%, #112211 0%, #000000 100%);
-        }
-        
-        /* PANELS */
-        .panel { 
-            border: 1px solid #1a4d1a; 
-            background: rgba(0, 10, 0, 0.9); 
-            box-shadow: 0 0 10px rgba(0, 255, 65, 0.05); 
-            backdrop-filter: blur(4px);
-        }
-        
-        /* SCROLLBARS */
-        .scroll-box { scrollbar-width: thin; scrollbar-color: #004400 #000; }
-        .scroll-box::-webkit-scrollbar { width: 4px; }
-        .scroll-box::-webkit-scrollbar-track { background: #000; }
-        .scroll-box::-webkit-scrollbar-thumb { background: #004400; }
-
-        /* LOG TYPES */
-        .log-entry { padding: 4px 8px; border-bottom: 1px solid #112211; font-size: 11px; animation: slideIn 0.2s ease-out; }
+        body { background-color: #050505; color: #00ff41; font-family: 'Share Tech Mono', monospace; overflow: hidden; background-image: radial-gradient(circle at 50% 50%, #112211 0%, #000000 100%); }
+        .panel { border: 1px solid #1a4d1a; background: rgba(0, 10, 0, 0.9); box-shadow: 0 0 10px rgba(0, 255, 65, 0.05); backdrop-filter: blur(4px); }
+        .scroll-box::-webkit-scrollbar { width: 4px; } .scroll-box::-webkit-scrollbar-track { background: #000; } .scroll-box::-webkit-scrollbar-thumb { background: #004400; }
+        .blink { animation: blink 1s step-end infinite; } @keyframes blink { 50% { opacity: 0; } }
+        .log-entry { padding: 4px 8px; border-bottom: 1px solid #112211; font-size: 11px; display: flex; justify-content: space-between; align-items: center; }
         .log-BLOCK { color: #ff3333; border-left: 2px solid #ff3333; background: rgba(50,0,0,0.2); }
-        .log-AUTH { color: #00ff41; border-left: 2px solid #00ff41; }
-        .log-SYSTEM { color: #ffff33; border-left: 2px solid #ffff33; }
-        .log-FEEDBACK { color: #3388ff; border-left: 2px solid #3388ff; background: rgba(0,20,50,0.2); }
-        
-        @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
-
-        /* ANIMATIONS */
-        .blink { animation: blink 1s step-end infinite; }
-        @keyframes blink { 50% { opacity: 0; } }
-        
-        .pulse-text { animation: textFlash 0.5s; }
-        @keyframes textFlash { 0% { color: #fff; text-shadow: 0 0 10px #fff; } 100% { color: inherit; } }
-        
-        .pulse-red { animation: textFlashRed 0.5s; }
-        @keyframes textFlashRed { 0% { color: #fff; text-shadow: 0 0 10px #f00; } 100% { color: inherit; } }
+        .log-AUTH { color: #00ff41; border-left: 2px solid #00ff41; cursor: pointer; }
+        .log-AUTH:hover { background: rgba(0, 255, 65, 0.1); }
+        .ban-btn { background: #500; color: white; padding: 2px 6px; border-radius: 3px; cursor: pointer; font-size: 9px; margin-left: 10px; }
+        .ban-btn:hover { background: #f00; }
     </style>
 </head>
 <body class="h-screen flex flex-col p-2 md:p-4">
@@ -54,57 +24,38 @@
     <!-- HEADER -->
     <div class="flex justify-between items-center mb-4 border-b border-green-900 pb-2 bg-black/60 p-3 rounded panel">
         <div class="flex items-center gap-3">
-            <h1 class="text-2xl font-bold tracking-widest text-white">
-                <i class="fas fa-satellite-dish text-green-500 mr-2"></i>OVERWATCH
-            </h1>
-            <span class="text-[10px] text-gray-500 border border-green-900 px-2 rounded bg-green-900/10">V125 LIVE</span>
+            <h1 class="text-2xl font-bold tracking-widest text-white"><i class="fas fa-satellite-dish text-green-500 mr-2"></i>WAR ROOM</h1>
+            <span class="text-[10px] text-gray-500 border border-green-900 px-2 rounded bg-green-900/10">V132 ACTIVE</span>
         </div>
         <div class="flex gap-4 text-sm items-center">
-            <div id="connection-status" class="text-green-500 font-bold flex items-center gap-2">
-                <span class="w-2 h-2 bg-green-500 rounded-full blink"></span> ONLINE
-            </div>
-            <button onclick="location.href='/dashboard'" class="text-gray-500 hover:text-white border border-gray-800 px-3 py-1 rounded hover:bg-gray-800 transition text-xs">
-                EXIT
-            </button>
+            <div id="connection-status" class="text-green-500 font-bold flex items-center gap-2"><span class="w-2 h-2 bg-green-500 rounded-full blink"></span> ONLINE</div>
+            <button onclick="location.href='/dashboard'" class="text-gray-500 hover:text-white border border-gray-800 px-3 py-1 rounded hover:bg-gray-800 transition text-xs">EXIT</button>
         </div>
     </div>
 
     <!-- MAIN GRID -->
     <div class="flex-grow grid grid-cols-1 md:grid-cols-4 gap-4 overflow-hidden">
         
-        <!-- COL 1: METRICS -->
+        <!-- COL 1: METRICS & HEARTBEAT -->
         <div class="flex flex-col gap-4 h-full overflow-hidden">
-            
-            <!-- TRAFFIC CARD -->
             <div class="panel p-4 text-center rounded">
                 <div class="text-[10px] text-gray-400 mb-1 uppercase tracking-widest">Global Traffic</div>
-                <div id="stat-reqs" class="text-5xl font-bold text-white transition-all">0</div>
-                <div class="text-[9px] text-green-600 mt-2">HITS / SESSION</div>
+                <div id="stat-reqs" class="text-4xl font-bold text-white transition-all">0</div>
+                <!-- HEARTBEAT CANVAS -->
+                <canvas id="heartbeat" width="200" height="40" class="mt-2 w-full opacity-70"></canvas>
             </div>
             
-            <!-- THREAT CARD -->
             <div class="panel p-4 text-center border-red-900/30 rounded">
                 <div class="text-[10px] text-red-500 mb-1 uppercase tracking-widest">Threats Blocked</div>
-                <div id="stat-threats" class="text-5xl font-bold text-red-500 transition-all">0</div>
-                <div class="text-[9px] text-red-800 mt-2">NIGHTMARE ACTIVE</div>
+                <div id="stat-threats" class="text-4xl font-bold text-red-500 transition-all">0</div>
             </div>
 
-            <!-- DREAMS STATUS -->
-            <div class="panel p-4 flex-grow rounded flex flex-col">
-                <div class="text-xs text-purple-400 mb-2 border-b border-purple-900/30 pb-1">DREAMS V4 ENGINE</div>
-                <div class="space-y-4 mt-2">
-                    <div>
-                        <div class="flex justify-between text-xs text-gray-400"><span>Status</span> <span class="text-green-400">LEARNING</span></div>
-                        <div class="w-full bg-gray-900 h-1 mt-1"><div class="bg-purple-500 h-1 w-[80%] animate-pulse"></div></div>
-                    </div>
-                    <div class="flex justify-between text-xs">
-                        <span class="text-gray-500">Human Baseline (μ)</span>
-                        <span id="dream-mu" class="text-white font-mono">--</span>
-                    </div>
-                     <div class="flex justify-between text-xs">
-                        <span class="text-gray-500">Sigma Variance (σ)</span>
-                        <span id="dream-sigma" class="text-white font-mono">--</span>
-                    </div>
+            <!-- FORENSIC REPLAY -->
+            <div class="panel p-4 flex-grow rounded flex flex-col border-blue-900/30">
+                <div class="text-xs text-blue-400 mb-2 border-b border-blue-900/30 pb-1">KINETIC FORENSICS</div>
+                <div class="flex-grow bg-black/50 rounded relative border border-blue-900/20">
+                    <canvas id="replayCanvas" class="w-full h-full"></canvas>
+                    <div id="replay-hint" class="absolute inset-0 flex items-center justify-center text-[10px] text-gray-600">CLICK AUTH LOG TO REPLAY</div>
                 </div>
             </div>
         </div>
@@ -113,29 +64,21 @@
         <div class="md:col-span-2 flex flex-col h-full overflow-hidden panel rounded">
             <div class="flex justify-between items-center border-b border-green-900/30 p-2 bg-black/40">
                 <span class="text-xs text-gray-400 font-bold"><i class="fas fa-terminal mr-2"></i> SYSTEM EVENT STREAM</span>
-                <span class="text-[10px] text-gray-600 font-mono">POLLING: 1000ms</span>
+                <span class="text-[10px] text-gray-600 font-mono">LIVE WIRE: ACTIVE</span>
             </div>
             <div id="terminal" class="flex-grow overflow-y-auto font-mono text-xs p-2 scroll-box">
-                <div class="text-gray-600 italic p-2">> Establishing Secure Uplink to Abyss...</div>
+                <div class="text-gray-600 italic p-2">> Establishing Secure Uplink...</div>
             </div>
         </div>
 
-        <!-- COL 4: COMMS & INBOX -->
+        <!-- COL 4: COMMS & CONTROL -->
         <div class="flex flex-col gap-4 h-full overflow-hidden">
             <div class="panel flex-grow flex flex-col rounded border-blue-900/30">
                 <div class="flex justify-between items-center border-b border-blue-900/30 p-2 bg-black/40">
                     <span class="text-xs text-blue-400 font-bold"><i class="fas fa-inbox mr-2"></i> INBOX (<span id="inbox-count">0</span>)</span>
-                    <button onclick="sync()" class="text-[10px] hover:text-white text-blue-600"><i class="fas fa-sync"></i></button>
                 </div>
-                <div id="comms-feed" class="flex-grow overflow-y-auto font-mono text-xs p-2 scroll-box space-y-2">
-                    <div class="text-gray-700 text-center mt-10">No signals detected.</div>
-                </div>
+                <div id="comms-feed" class="flex-grow overflow-y-auto font-mono text-xs p-2 scroll-box space-y-2"></div>
             </div>
-            
-            <!-- Quick Actions -->
-            <button onclick="runPentest()" id="pentest-btn" class="panel py-3 text-xs font-bold text-yellow-500 hover:text-white hover:bg-yellow-900/20 transition uppercase">
-                <i class="fas fa-bug mr-2"></i> RUN SELF-DIAGNOSTIC
-            </button>
         </div>
 
     </div>
@@ -143,118 +86,142 @@
     <script>
         const API_BASE = '/api/v1';
         const token = sessionStorage.getItem('chaos_session');
-        
-        // Security Check
         if (!token) window.location.href = '/app.html';
 
-        // State Tracking for Animation
-        let lastReq = 0;
-        let lastThreat = 0;
-        let knownLogCount = 0;
-        let knownMsgCount = 0;
-
-        async function sync() {
-            try {
-                const headers = { 
-                    'x-chaos-token': token,
-                    'Content-Type': 'application/json' 
-                };
-
-                // 1. TELEMETRY FETCH
-                const res = await fetch(`${API_BASE}/admin/telemetry`, { headers });
-                if (res.status === 401) return window.location.href = '/app.html'; // Kick if token invalid
-                
-                const data = await res.json();
-                
-                // Update Counters (with Flash Effect)
-                updateStat('stat-reqs', data.stats.requests, lastReq, 'pulse-text');
-                updateStat('stat-threats', data.stats.threats, lastThreat, 'pulse-red');
-                
-                lastReq = data.stats.requests;
-                lastThreat = data.stats.threats;
-
-                // Update Logs
-                const term = document.getElementById('terminal');
-                if (data.logs && data.logs.length > 0) {
-                    // Only render if new logs exist (simple length check or content check)
-                    // For V1, we just re-render to keep it synced perfectly
-                    const currentHTML = term.innerHTML;
-                    // Build new HTML buffer
-                    let newHTML = '';
-                    data.logs.forEach(log => {
-                        let cls = 'log-SYSTEM';
-                        if (log.includes('BLOCK')) cls = 'log-BLOCK';
-                        else if (log.includes('AUTH')) cls = 'log-AUTH';
-                        else if (log.includes('FEEDBACK')) cls = 'log-FEEDBACK';
-                        
-                        newHTML += `<div class="log-entry ${cls}">${log}</div>`;
-                    });
-                    
-                    // Only touch DOM if changed
-                    if(term.childElementCount !== data.logs.length || !currentHTML.includes(data.logs[0])) {
-                        term.innerHTML = newHTML;
-                    }
-                }
-
-                // 2. FEEDBACK FETCH
-                const feedRes = await fetch(`${API_BASE}/admin/feedback`, { headers });
-                const feedData = await feedRes.json();
-                const messages = feedData.feedback || [];
-                
-                document.getElementById('inbox-count').innerText = messages.length;
-                
-                if (messages.length !== knownMsgCount) {
-                    const comms = document.getElementById('comms-feed');
-                    if(messages.length > 0) {
-                        comms.innerHTML = '';
-                        messages.forEach(msg => {
-                            const div = document.createElement('div');
-                            div.className = "bg-blue-900/10 border-l-2 border-blue-500 p-2 rounded";
-                            div.innerHTML = `
-                                <div class="flex justify-between mb-1">
-                                    <strong class="text-blue-300 text-[10px]">${msg.name}</strong>
-                                    <span class="text-gray-600 text-[8px]">${new Date(msg.timestamp).toLocaleTimeString()}</span>
-                                </div>
-                                <div class="text-gray-300 break-words">${msg.message}</div>
-                            `;
-                            comms.appendChild(div);
-                        });
-                    }
-                    knownMsgCount = messages.length;
-                }
-                
-                // 3. PROFILE STATS
-                const profRes = await fetch(`${API_BASE}/admin/profile-stats`);
-                const prof = await profRes.json();
-                document.getElementById('dream-mu').innerText = prof.mu + "ms";
-                document.getElementById('dream-sigma').innerText = prof.sigma + "ms";
-
-            } catch(e) { 
-                document.getElementById('connection-status').className = "text-red-500 font-bold";
-                document.getElementById('connection-status').innerText = "● OFFLINE";
-            }
-        }
-
-        function updateStat(id, newVal, oldVal, animClass) {
-            const el = document.getElementById(id);
-            el.innerText = newVal;
-            if (newVal !== oldVal) {
-                el.classList.remove(animClass);
-                void el.offsetWidth; // Trigger reflow
-                el.classList.add(animClass);
-            }
-        }
+        // --- 1. HEARTBEAT GRAPH ---
+        const hbCanvas = document.getElementById('heartbeat');
+        const hbCtx = hbCanvas.getContext('2d');
+        const hbData = new Array(50).fill(20);
         
-        async function runPentest() {
-            const btn = document.getElementById('pentest-btn');
-            btn.innerHTML = "<i class='fas fa-circle-notch fa-spin'></i> RUNNING...";
-            await fetch(`${API_BASE}/admin/pentest`, { method: 'POST' });
-            setTimeout(() => btn.innerHTML = "<i class='fas fa-check'></i> SECURE", 1000);
-            setTimeout(() => btn.innerHTML = "<i class='fas fa-bug'></i> RUN SELF-DIAGNOSTIC", 3000);
+        function drawHeartbeat() {
+            hbCtx.fillStyle = '#000'; hbCtx.fillRect(0,0,200,40);
+            hbCtx.beginPath(); hbCtx.strokeStyle = '#00ff41'; hbCtx.lineWidth = 2;
+            const step = 200/50;
+            hbData.push(Math.random() * 5 + 15); // Idle noise
+            if(hbData.length > 50) hbData.shift();
+            
+            hbData.forEach((y, i) => {
+                if(i===0) hbCtx.moveTo(i*step, y);
+                else hbCtx.lineTo(i*step, y);
+            });
+            hbCtx.stroke();
+        }
+        setInterval(drawHeartbeat, 100);
+
+        // --- 2. SSE LIVE WIRE ---
+        const eventSource = new EventSource('/api/v1/stream?token=' + token);
+        
+        eventSource.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if(data.stats) updateStats(data.stats);
+            if(data.entry) addLog(data.entry, data.meta);
+        };
+
+        function updateStats(stats) {
+            document.getElementById('stat-reqs').innerText = stats.requests;
+            document.getElementById('stat-threats').innerText = stats.threats;
+            // Pulse graph on activity
+            hbData.push(Math.random() * 20 + 10);
         }
 
-        setInterval(sync, 2000);
-        sync();
+        function addLog(msg, meta) {
+            const term = document.getElementById('terminal');
+            const div = document.createElement('div');
+            
+            let cls = 'log-SYSTEM';
+            if (msg.includes('BLOCK')) cls = 'log-BLOCK';
+            else if (msg.includes('AUTH')) { 
+                cls = 'log-AUTH'; 
+                // Attach Replay Data
+                if(meta && meta.path) {
+                    div.onclick = () => replayKinetic(meta.path);
+                    div.title = "Click to Replay";
+                    msg += " [REPLAY]";
+                }
+            }
+            
+            div.className = `log-entry ${cls}`;
+            
+            // BAN BUTTON
+            let banHtml = '';
+            if (meta && meta.ip) {
+                banHtml = `<button class="ban-btn" onclick="banIP('${meta.ip}', this)">BAN</button>`;
+            }
+            
+            div.innerHTML = `<span>${msg}</span> ${banHtml}`;
+            term.insertBefore(div, term.firstChild);
+            if(term.children.length > 50) term.removeChild(term.lastChild);
+        }
+
+        // --- 3. FORENSIC REPLAY ---
+        const rCanvas = document.getElementById('replayCanvas');
+        const rCtx = rCanvas.getContext('2d');
+        // Handle High DPI
+        rCanvas.width = rCanvas.offsetWidth; rCanvas.height = rCanvas.offsetHeight;
+
+        function replayKinetic(pathData) {
+            document.getElementById('replay-hint').style.display = 'none';
+            rCtx.clearRect(0, 0, rCanvas.width, rCanvas.height);
+            rCtx.strokeStyle = '#00ff41'; rCtx.lineWidth = 2; rCtx.beginPath();
+            
+            // Normalize path to canvas
+            const scaleY = rCanvas.height / 300; 
+            const scaleX = 1; // Center
+            const startX = rCanvas.width / 2;
+
+            let i = 0;
+            function animate() {
+                if(i >= pathData.length) return;
+                const p = pathData[i];
+                const x = startX; // Simplified 1D drag for now, or use p.x if captured relative
+                const y = rCanvas.height - (p.y * scaleY) - 20; // Invert Y
+                
+                if(i===0) rCtx.moveTo(x, y);
+                else rCtx.lineTo(x, y);
+                rCtx.stroke();
+                
+                i++;
+                requestAnimationFrame(animate);
+            }
+            animate();
+        }
+
+        // --- 4. BAN SYSTEM ---
+        async function banIP(ip, btn) {
+            if(!confirm(`PERMANENTLY BAN IP: ${ip}?`)) return;
+            btn.innerText = "...";
+            try {
+                await fetch(`${API_BASE}/admin/ban`, {
+                    method: 'POST',
+                    headers: { 'x-chaos-token': token, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ip })
+                });
+                btn.innerText = "BANNED";
+                btn.style.background = "#333";
+                btn.disabled = true;
+            } catch(e) { alert("Ban Failed"); }
+        }
+
+        // Sync Feedback
+        async function syncFeedback() {
+             const res = await fetch(`${API_BASE}/admin/feedback`, { headers: { 'x-chaos-token': token } });
+             const data = await res.json();
+             const comms = document.getElementById('comms-feed');
+             if(data.feedback) {
+                 document.getElementById('inbox-count').innerText = data.feedback.length;
+                 comms.innerHTML = '';
+                 data.feedback.forEach(m => {
+                     const d = document.createElement('div');
+                     d.className = "bg-blue-900/10 border-l-2 border-blue-500 p-2 rounded text-[10px] text-gray-300";
+                     d.innerText = `${m.name}: ${m.message}`;
+                     comms.appendChild(d);
+                 });
+             }
+        }
+        setInterval(syncFeedback, 5000);
+        syncFeedback();
     </script>
 </body>
 </html>
+
+
