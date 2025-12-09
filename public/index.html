@@ -3,35 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A+ OVERHEAD GARAGE DOORS | INTELLIGENT SYSTEMS</title>
+    <title>A+ CHAOS CORE | SECURITY REDEFINED</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { background-color: #050505; color: #fff; font-family: sans-serif; overflow-x: hidden; }
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
+        
+        body { background-color: #050505; color: #e5e5e5; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        h1, h2, h3, .mono { font-family: 'JetBrains Mono', monospace; }
+        
         .hero-bg {
-            background: radial-gradient(circle at center, #002200 0%, #000000 70%);
+            background: radial-gradient(circle at 50% 30%, #002200 0%, #000000 60%);
             min-height: 100vh;
         }
+        
         .grid-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-image: linear-gradient(rgba(0, 255, 65, 0.03) 1px, transparent 1px),
             linear-gradient(90deg, rgba(0, 255, 65, 0.03) 1px, transparent 1px);
-            background-size: 30px 30px;
+            background-size: 40px 40px;
             pointer-events: none;
             z-index: 0;
         }
         
-        /* SENTINEL HUD */
+        /* SENTINEL HUD (Bottom Right Monitor) */
         .sentinel-hud {
-            position: fixed; bottom: 20px; right: 20px; width: 220px;
-            background: rgba(0,0,0,0.9); border: 1px solid #333;
-            padding: 15px; border-radius: 8px; z-index: 999;
-            font-family: monospace; backdrop-filter: blur(5px);
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            position: fixed; bottom: 20px; right: 20px; width: 240px;
+            background: rgba(5, 5, 5, 0.9); border: 1px solid #1a1a1a;
+            padding: 15px; border-radius: 4px; z-index: 999;
+            font-family: 'JetBrains Mono', monospace; backdrop-filter: blur(10px);
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            border-left: 2px solid #00ff41;
             transition: opacity 0.5s;
         }
-        .hud-bar { height: 6px; background: #333; margin-top: 5px; border-radius: 3px; overflow: hidden; }
-        .hud-fill { height: 100%; background: #00ff41; width: 100%; transition: width 0.3s ease-out, background 0.2s; }
+        .hud-bar { height: 4px; background: #222; margin-top: 8px; border-radius: 2px; overflow: hidden; }
+        .hud-fill { height: 100%; background: #00ff41; width: 100%; transition: width 0.3s ease-out; }
+        
+        .card-hover { transition: all 0.3s; border: 1px solid rgba(255,255,255,0.1); }
+        .card-hover:hover { transform: translateY(-5px); border-color: #00ff41; box-shadow: 0 10px 40px -10px rgba(0,255,65,0.15); }
+
         .blink { animation: blinker 1s linear infinite; }
         @keyframes blinker { 50% { opacity: 0; } }
     </style>
@@ -39,78 +49,117 @@
 <body class="hero-bg">
     <div class="grid-overlay"></div>
 
-    <nav class="fixed w-full z-50 p-6 flex justify-between items-center backdrop-blur-sm border-b border-white/10">
-        <div class="text-2xl font-bold tracking-tighter text-white">A+ <span class="text-green-500">CHAOS</span></div>
-        <div class="space-x-4">
-            <a href="/app" class="text-sm font-bold hover:text-green-400 transition">LOGIN</a>
-            <a href="/dashboard" class="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded text-sm font-bold transition">COMMAND CENTER</a>
+    <nav class="fixed w-full z-50 px-6 py-6 flex justify-between items-center backdrop-blur-md border-b border-white/5 bg-black/50">
+        <div class="text-xl font-bold tracking-tighter text-white mono">
+            A+ <span class="text-green-500">CHAOS CORE</span>
+        </div>
+        <div class="space-x-6 flex items-center">
+            <a href="/dreams" class="text-xs font-bold text-gray-400 hover:text-white transition tracking-widest hidden md:block">ACOUSTICS</a>
+            <a href="/app" class="text-xs font-bold text-gray-400 hover:text-white transition tracking-widest">SECURE LOGIN</a>
+            <a href="/dashboard" class="bg-green-600 hover:bg-green-500 text-white px-5 py-2 rounded-sm text-xs font-bold transition tracking-widest">
+                COMMAND CENTER
+            </a>
         </div>
     </nav>
 
-    <div class="relative z-10 pt-32 px-6 max-w-4xl mx-auto space-y-24 pb-32">
-        
-        <section class="text-center space-y-6">
-            <div class="inline-block border border-green-500/30 bg-green-900/10 px-3 py-1 rounded-full text-xs text-green-400 tracking-widest mb-4">SYSTEM V151.2 ONLINE</div>
-            <h1 class="text-5xl md:text-8xl font-black tracking-tighter leading-none">
-                SECURITY <br>
-                <span class="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-600">REDEFINED</span>
+    <div class="relative z-10 pt-40 px-6 max-w-6xl mx-auto pb-24">
+        <section class="text-center space-y-8 mb-24">
+            <div class="inline-flex items-center gap-2 border border-green-500/30 bg-green-900/10 px-4 py-1.5 rounded-full mb-4">
+                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                <span class="text-[10px] text-green-400 tracking-[0.2em] font-bold mono">SYSTEM V152 ONLINE</span>
+            </div>
+            
+            <h1 class="text-5xl md:text-8xl font-black tracking-tighter leading-none text-white">
+                THE FUTURE OF <br>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-700">PHYSICAL SECURITY</span>
             </h1>
-            <p class="text-xl text-gray-400 max-w-2xl mx-auto">
-                A+ Overhead Garage Doors integrates Military-Grade Cryptography with Physical Hardware.
+            
+            <p class="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
+                A+ Overhead Garage Doors isn't just hardware. It's intelligence. 
+                We integrate military-grade cryptography, acoustic diagnostics, and behavioral AI 
+                to protect what matters most.
             </p>
-            <div class="flex justify-center gap-4 pt-8">
-                <button onclick="runBenchmark()" class="border border-green-600 text-green-400 px-8 py-4 rounded hover:bg-green-900/20 transition font-bold">
-                    RUN BENCHMARK
+
+            <div class="flex flex-col md:flex-row justify-center gap-4 pt-4">
+                <a href="/app" class="bg-white text-black px-8 py-4 rounded font-bold hover:bg-gray-200 transition tracking-wide">
+                    LAUNCH SECURE APP
+                </a>
+                <button onclick="runBenchmark()" class="border border-green-800 text-green-500 px-8 py-4 rounded font-bold hover:bg-green-900/20 transition tracking-wide">
+                    RUN TRIAD AUDIT
                 </button>
             </div>
-            <div id="benchmark-result" class="h-10 text-sm font-mono text-blue-400 mt-4"></div>
+            <div id="benchmark-result" class="h-6 text-xs mono text-green-400 mt-2"></div>
         </section>
 
-        <section class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div class="p-8 border border-white/10 rounded bg-black/50 backdrop-blur">
-                <i class="fas fa-shield-alt text-4xl text-green-500 mb-4"></i>
-                <h3 class="text-xl font-bold mb-2">Impossible Triad</h3>
-                <p class="text-gray-500 text-sm">256-bit Entropy verification.</p>
+        <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-32">
+            <div class="p-8 rounded bg-black/40 backdrop-blur card-hover group">
+                <div class="w-12 h-12 bg-green-900/20 rounded flex items-center justify-center mb-6 group-hover:bg-green-900/40 transition">
+                    <i class="fas fa-fingerprint text-2xl text-green-500"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3">Chaos Identity</h3>
+                <p class="text-gray-400 text-sm leading-relaxed">
+                    Gone are passwords. We use "Kinetic Entropy"—the unique velocity of your thumb swipe—combined with FIDO2 hardware keys to prove identity.
+                </p>
             </div>
-            <div class="p-8 border border-white/10 rounded bg-black/50 backdrop-blur">
-                <i class="fas fa-wave-square text-4xl text-blue-500 mb-4"></i>
-                <h3 class="text-xl font-bold mb-2">Dreams V5</h3>
-                <p class="text-gray-500 text-sm">Acoustic diagnostics.</p>
-            </div>
-            <div class="p-8 border border-white/10 rounded bg-black/50 backdrop-blur">
-                <i class="fas fa-robot text-4xl text-purple-500 mb-4"></i>
-                <h3 class="text-xl font-bold mb-2">Sentinel AI</h3>
-                <p class="text-gray-500 text-sm">Behavioral bot detection.</p>
+
+            <a href="/dreams" class="p-8 rounded bg-black/40 backdrop-blur card-hover group block cursor-pointer border-t-2 border-t-blue-500/50">
+                <div class="w-12 h-12 bg-blue-900/20 rounded flex items-center justify-center mb-6 group-hover:bg-blue-900/40 transition">
+                    <i class="fas fa-wave-square text-2xl text-blue-500"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3 flex items-center gap-2">
+                    Dreams V5 <span class="text-[10px] bg-blue-900 text-blue-300 px-2 py-0.5 rounded">NEW</span>
+                </h3>
+                <p class="text-gray-400 text-sm leading-relaxed">
+                    Our AI listens to the acoustic frequency of your garage motor. It detects spring fatigue and grinding gears weeks before they break.
+                </p>
+            </a>
+
+            <div class="p-8 rounded bg-black/40 backdrop-blur card-hover group">
+                <div class="w-12 h-12 bg-purple-900/20 rounded flex items-center justify-center mb-6 group-hover:bg-purple-900/40 transition">
+                    <i class="fas fa-eye text-2xl text-purple-500"></i>
+                </div>
+                <h3 class="text-xl font-bold text-white mb-3">Sentinel AI</h3>
+                <p class="text-gray-400 text-sm leading-relaxed">
+                    You are being watched right now. Our behavioral engine analyzes your scroll patterns in real-time to distinguish humans from bots.
+                </p>
             </div>
         </section>
 
-        <div class="h-screen flex flex-col items-center justify-center text-gray-700 font-mono text-xs space-y-4">
-            <p>SCROLL DOWN TO TEST SENTINEL...</p>
-            <i class="fas fa-arrow-down animate-bounce"></i>
-        </div>
-        <div class="h-screen flex items-center justify-center text-gray-700 font-mono text-xs">
-            KEEP SCROLLING...
-        </div>
-         <div class="h-screen flex items-center justify-center text-gray-700 font-mono text-xs">
-            ALMOST THERE...
-        </div>
+        <footer class="border-t border-white/10 pt-12 pb-12 text-center">
+            <div class="text-2xl font-bold tracking-tighter text-white mb-4 mono">A+</div>
+            <p class="text-gray-500 text-sm mb-8">
+                San Antonio, TX • (210) 478-2275<br>
+                &copy; 2025 A+ Overhead Garage Doors
+            </p>
+            <div class="flex justify-center gap-6 text-gray-600 text-sm">
+                <a href="#" class="hover:text-green-500 transition">Privacy</a>
+                <a href="#" class="hover:text-green-500 transition">Terms</a>
+                <a href="/sdk" class="hover:text-green-500 transition">Developer SDK</a>
+            </div>
+        </footer>
     </div>
 
     <div class="sentinel-hud" id="hud-box">
-        <div class="flex justify-between items-center mb-2">
-            <span class="text-xs text-gray-400 tracking-widest">SENTINEL AI</span>
-            <i class="fas fa-user text-green-500" id="hud-icon"></i>
+        <div class="flex justify-between items-center mb-3 pb-2 border-b border-white/10">
+            <span class="text-[10px] text-gray-400 tracking-[0.2em] font-bold">SENTINEL AI</span>
+            <i class="fas fa-shield-alt text-green-500 text-xs" id="hud-icon"></i>
         </div>
         
-        <div class="text-[10px] text-gray-500 flex justify-between">
-            <span>HUMANITY SCORE</span>
-            <span id="hud-pct">100%</span>
+        <div class="flex justify-between items-end mb-1">
+            <span class="text-[10px] text-gray-500 mono">HUMANITY SCORE</span>
+            <span class="text-sm font-bold text-white mono" id="hud-pct">100%</span>
         </div>
         <div class="hud-bar"><div class="hud-fill" id="hud-score" style="width: 100%"></div></div>
         
-        <div class="flex justify-between mt-3 border-t border-gray-800 pt-2">
-            <div class="text-[10px]">STATE: <span id="hud-state" class="text-white">IDLE</span></div>
-            <div class="text-[10px] text-green-400 font-bold" id="hud-status">VERIFIED</div>
+        <div class="grid grid-cols-2 gap-2 mt-3 pt-2">
+            <div>
+                <div class="text-[8px] text-gray-500 tracking-wider">STATE</div>
+                <div id="hud-state" class="text-[10px] text-white font-bold mono">IDLE</div>
+            </div>
+            <div class="text-right">
+                <div class="text-[8px] text-gray-500 tracking-wider">VERDICT</div>
+                <div id="hud-status" class="text-[10px] text-green-400 font-bold mono">VERIFIED</div>
+            </div>
         </div>
     </div>
 
@@ -120,62 +169,43 @@
             score: 100,
             lastY: 0,
             lastT: Date.now(),
-            idleTimer: null,
 
             init: () => {
                 window.addEventListener('scroll', Sentinel.analyze);
-                console.log(">>> [SENTINEL] ACTIVE");
+                // Initial Fade In
+                setTimeout(() => document.getElementById('hud-box').style.opacity = 1, 1000);
             },
 
             analyze: () => {
                 const now = Date.now();
                 const y = window.scrollY;
-                
-                // 1. Calc Time Delta
                 const dt = now - Sentinel.lastT;
                 const dy = y - Sentinel.lastY;
                 
-                // === THE IDLE GATE ===
-                // If dt > 100ms, the user paused. Reset tracking.
+                // IDLE GATE: Reset if pause > 100ms
                 if (dt > 100) {
                     Sentinel.lastT = now;
                     Sentinel.lastY = y;
-                    document.getElementById('hud-state').innerText = "IDLE";
-                    document.getElementById('hud-box').style.opacity = "0.5"; // Dim HUD when idle
-                    return; // DO NOT SCORE
+                    updateState("IDLE");
+                    return;
                 }
 
-                // If we are here, the user is ACTIVELY scrolling
-                document.getElementById('hud-state').innerText = "ACTIVE";
-                document.getElementById('hud-box').style.opacity = "1";
+                updateState("ANALYZING");
 
                 if (Math.abs(dy) > 0) {
                     const velocity = Math.abs(dy / dt);
-                    
-                    // 2. Buffer (Velocity History)
                     Sentinel.buffer.push(velocity);
                     if(Sentinel.buffer.length > 20) Sentinel.buffer.shift();
                     
-                    // 3. Variance (The Human "Tremor")
                     const variance = Sentinel.calculateVariance(Sentinel.buffer);
                     
-                    // 4. Score Logic (Only update if buffer is full enough)
+                    // Logic: Bots have variance < 0.005
                     if(Sentinel.buffer.length > 5) {
-                        // Bots have near 0 variance (perfect speed)
-                        // Humans vary (0.01+)
-                        if(variance < 0.005) { 
-                            // ROBOTIC
-                            Sentinel.score = Math.max(0, Sentinel.score - 5); 
-                        } else {
-                            // HUMAN (Heal score slowly)
-                            Sentinel.score = Math.min(100, Sentinel.score + 1); 
-                        }
+                        if(variance < 0.005) Sentinel.score = Math.max(0, Sentinel.score - 5); 
+                        else Sentinel.score = Math.min(100, Sentinel.score + 1); 
                     }
-
-                    // 5. Update UI
-                    updateHUD(Sentinel.score, variance);
+                    updateHUD(Sentinel.score);
                 }
-
                 Sentinel.lastY = y;
                 Sentinel.lastT = now;
             },
@@ -186,27 +216,32 @@
             }
         };
 
+        function updateState(status) {
+            const el = document.getElementById('hud-state');
+            el.innerText = status;
+            el.style.color = status === "IDLE" ? "#666" : "#fff";
+            document.getElementById('hud-box').style.opacity = status === "IDLE" ? "0.7" : "1";
+        }
+
         const hudFill = document.getElementById('hud-score');
         const hudStatus = document.getElementById('hud-status');
         const hudIcon = document.getElementById('hud-icon');
         const hudPct = document.getElementById('hud-pct');
 
-        function updateHUD(score, variance) {
+        function updateHUD(score) {
             hudFill.style.width = score + '%';
             hudPct.innerText = Math.floor(score) + '%';
 
             if(score < 40) {
-                // BOT
                 hudFill.style.background = '#ff0000';
-                hudStatus.innerText = "BOT DETECTED";
-                hudStatus.className = "text-[10px] text-red-500 font-bold blink";
+                hudStatus.innerText = "BOT THREAT";
+                hudStatus.className = "text-[10px] text-red-500 font-bold mono blink";
                 hudIcon.className = "fas fa-robot text-red-500";
             } else {
-                // HUMAN
                 hudFill.style.background = '#00ff41';
                 hudStatus.innerText = "VERIFIED";
-                hudStatus.className = "text-[10px] text-green-400 font-bold";
-                hudIcon.className = "fas fa-user text-green-500";
+                hudStatus.className = "text-[10px] text-green-400 font-bold mono";
+                hudIcon.className = "fas fa-shield-alt text-green-500";
             }
         }
 
@@ -214,15 +249,15 @@
 
         function runBenchmark() {
             const disp = document.getElementById('benchmark-result');
-            disp.innerText = "INITIALIZING ENTROPY STREAM...";
+            disp.innerText = ">> PINGING ENTROPY STREAM...";
             fetch('/api/v1/beta/pulse-demo')
                 .then(r => r.json())
                 .then(d => {
                     setTimeout(() => {
-                        disp.innerText = `>> CRYPTO VALIDATED: ${d.hash.substring(0,20)}...`;
+                        disp.innerText = `>> CHAOS TRIAD PASS: ${d.hash.substring(0,24)}...`;
                     }, 500);
                 })
-                .catch(() => disp.innerText = "OFFLINE");
+                .catch(() => disp.innerText = ">> CONNECTION ERROR");
         }
     </script>
 </body>
