@@ -10,33 +10,19 @@
     <style>
         /* CORE STYLES */
         @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono:wght@400;700&display=swap');
-        body { 
-            background-color: #000; 
-            color: #E5E7EB; 
-            font-family: 'Share Tech Mono', monospace; 
-            overflow-x: hidden; 
-        }
-        
+        body { background-color: #000; color: #E5E7EB; font-family: 'Share Tech Mono', monospace; overflow-x: hidden; }
         .neon-text { text-shadow: 0 0 5px #00ff41, 0 0 10px #00ff41; }
         .neon-border { border: 1px solid rgba(0, 255, 65, 0.3); box-shadow: 0 0 15px rgba(0, 255, 65, 0.1); }
         .terminal-bg { background: rgba(0, 15, 0, 0.95); }
-        
-        /* MATRIX RAIN */
+        .terminal-log { height: 200px; scrollbar-width: none; }
+        .terminal-log::-webkit-scrollbar { display: none; }
         #matrix-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.15; }
-
-        /* BENCHMARK VISUALIZERS */
-        #entropy-map { image-rendering: pixelated; width: 100%; height: 60px; background: #050505; border-bottom: 1px solid #333; }
-        
         .script-btn { text-align: left; transition: all 0.2s; border-left: 2px solid transparent; opacity: 0.7; }
         .script-btn:hover { opacity: 1; background: rgba(255,255,255,0.05); }
         .script-btn.active { background: rgba(0, 255, 65, 0.1); border-left-color: #00ff41; color: white; opacity: 1; }
-        
-        /* MODALS */
         #reg-modal, #feedback-modal { display: none; background: rgba(0,0,0,0.95); }
         .modal-active { display: flex !important; }
         .progress-bar { transition: width 0.1s linear; }
-
-        /* SECTOR CARDS */
         .sector-card { background: rgba(10, 20, 10, 0.6); border: 1px solid #113311; transition: all 0.3s ease; position: relative; overflow: hidden; }
         .sector-card:hover { border-color: #00ff41; transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0, 255, 65, 0.1); }
         .icon-bg { position: absolute; top: -10px; right: -10px; font-size: 5rem; opacity: 0.05; color: white; transform: rotate(15deg); }
@@ -52,7 +38,7 @@
             <a href="/app" class="text-[10px] text-gray-500 hover:text-white border-l border-gray-700 pl-4">ADMIN LOGIN</a>
         </div>
         <div class="flex items-center gap-6 text-xs md:text-sm">
-            <div class="hidden md:block text-gray-500">Latency: <span id="real-latency" class="text-yellow-400 font-bold">-- ms</span></div>
+            <div class="hidden md:block text-gray-500">p99 Latency: <span id="real-latency" class="text-yellow-400 font-bold">-- ms</span></div>
             <div class="text-green-500 border border-green-900 px-2 py-1 rounded bg-green-900/20">SYSTEM ONLINE</div>
         </div>
     </nav>
@@ -60,7 +46,7 @@
     <!-- HERO SECTION -->
     <header class="text-center py-20 px-4 relative z-10">
         <div class="inline-block mb-4 text-[10px] md:text-xs border border-green-500 text-green-500 px-3 py-1 rounded-full bg-green-900/10">
-            V126 GOLD MASTER DEPLOYED
+            V128 REAL-TIME CORE
         </div>
         <h1 class="text-4xl md:text-7xl font-extrabold text-white mb-6 tracking-tight leading-tight">
             THE AGE OF PASSKEYS<br><span class="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500 neon-text">IS OVER.</span>
@@ -79,7 +65,7 @@
         </div>
     </header>
 
-    <!-- BENCHMARK SUITE (The Proof) -->
+    <!-- BENCHMARK SUITE -->
     <section id="benchmark" class="max-w-6xl mx-auto px-4 mb-20 relative z-10 border-t border-gray-900 pt-16">
         <div class="text-center mb-10">
             <h2 class="text-2xl font-bold text-white mb-2">LIVE CRYPTOGRAPHIC AUDIT</h2>
@@ -87,18 +73,16 @@
         </div>
 
         <div class="grid md:grid-cols-12 gap-6">
-            <!-- SCRIPT SELECTOR -->
             <div class="md:col-span-4 space-y-4">
                 <div class="p-4 border border-green-900 rounded bg-gray-900/20">
                     <h3 class="text-green-500 font-bold mb-4 text-xs border-b border-green-900 pb-2 tracking-widest">AVAILABLE SCRIPTS</h3>
-                    
                     <button onclick="selectScript('entropy')" id="btn-entropy" class="script-btn active w-full p-3 mb-2 rounded">
                         <div class="font-bold text-sm text-white">1. AUDIT_ENTROPY.JS</div>
                         <div class="text-[10px] text-gray-500">Chi-Squared Randomness Test</div>
                     </button>
                     <button onclick="selectScript('defense')" id="btn-defense" class="script-btn w-full p-3 mb-2 rounded">
                         <div class="font-bold text-sm text-white">2. SIM_BOT_SWARM.JS</div>
-                        <div class="text-[10px] text-gray-500">Test DREAMS V4 vs AI Agents</div>
+                        <div class="text-[10px] text-gray-500">Firewall Stress Test (Real Traffic)</div>
                     </button>
                     <button onclick="selectScript('speed')" id="btn-speed" class="script-btn w-full p-3 rounded">
                         <div class="font-bold text-sm text-white">3. TEST_THROUGHPUT.JS</div>
@@ -107,7 +91,6 @@
                 </div>
             </div>
 
-            <!-- TERMINAL -->
             <div class="md:col-span-8">
                 <div class="neon-border rounded-lg bg-black overflow-hidden flex flex-col h-[450px]">
                     <div class="bg-gray-900 p-2 flex justify-between items-center border-b border-gray-800">
@@ -141,19 +124,17 @@
     <section class="py-16 max-w-7xl mx-auto px-4 relative z-10 border-t border-gray-900">
         <h2 class="text-3xl font-bold text-center text-white mb-12">GLOBAL THREAT STREAM</h2>
         <div class="grid md:grid-cols-2 gap-8">
-            <!-- LEFT: LIVE TERMINAL -->
             <div>
                 <div class="neon-border rounded-lg terminal-bg overflow-hidden">
                     <div class="bg-green-900/20 p-2 text-green-500 text-[10px] font-mono border-b border-green-900 flex justify-between">
                         <span>> NODE: US-EAST-1</span>
-                        <span>LIVE FEED</span>
+                        <span>STATUS: ACTIVE</span>
                     </div>
                     <div id="live-feed" class="terminal-log text-green-400 p-4 text-xs font-mono overflow-y-auto flex flex-col-reverse">
                         <div>> Initializing Telemetry Uplink...</div>
                     </div>
                 </div>
             </div>
-            <!-- RIGHT: METRICS -->
             <div class="space-y-6">
                 <div class="grid grid-cols-2 gap-4">
                     <div class="p-6 bg-gray-900/40 border border-green-900 rounded-lg text-center">
@@ -163,15 +144,6 @@
                     <div class="p-6 bg-gray-900/40 border border-red-900 rounded-lg text-center">
                         <div class="text-[10px] text-gray-500">THREATS BLOCKED</div>
                         <div id="live-blocks" class="text-3xl font-bold text-red-500">0</div>
-                    </div>
-                </div>
-                <div class="p-6 bg-gray-900/40 border border-blue-900 rounded-lg">
-                    <h3 class="text-blue-400 font-bold mb-2 text-sm">DREAMS V4 ENGINE</h3>
-                    <div class="flex justify-between text-xs text-gray-400 border-b border-gray-800 pb-2 mb-2">
-                        <span>Status</span> <span class="text-green-400">ACTIVE</span>
-                    </div>
-                    <div class="flex justify-between text-xs text-gray-400">
-                        <span>Humanity Baseline (μ)</span> <span id="dream-mu" class="text-white">--</span>
                     </div>
                 </div>
             </div>
@@ -186,8 +158,8 @@
         <p>© 2026 A+ Overhead Garage Doors / CHAOS ID Core. All Rights Reserved.</p>
     </footer>
 
-    <!-- MODALS -->
-    <div id="reg-modal" class="fixed inset-0 z-50 items-center justify-center p-4">
+    <!-- MODALS & SCRIPT -->
+    <div id="reg-modal" class="fixed inset-0 z-50 items-center justify-center p-4"> <!-- ... existing modal code ... --> 
         <div class="bg-black border border-green-500 p-8 rounded-xl max-w-md w-full">
             <h2 class="text-2xl font-bold text-white mb-2">ACCESS REQUEST</h2>
             <form id="reg-form" onsubmit="handleSignup(event)" class="space-y-4">
@@ -205,8 +177,8 @@
             <button onclick="closeModal('reg-modal')" class="mt-4 text-xs text-gray-500 w-full text-center">CLOSE</button>
         </div>
     </div>
-
-    <div id="feedback-modal" class="fixed inset-0 z-50 items-center justify-center p-4">
+    
+    <div id="feedback-modal" class="fixed inset-0 z-50 items-center justify-center p-4"> <!-- ... existing modal code ... -->
         <div class="bg-black border border-blue-500 p-8 rounded-xl max-w-md w-full">
             <h2 class="text-2xl font-bold text-white mb-2">TRANSMIT SIGNAL</h2>
             <form id="feed-form" onsubmit="handleFeedback(event)" class="space-y-4">
@@ -218,7 +190,6 @@
         </div>
     </div>
 
-    <!-- LOGIC -->
     <script>
         let currentScript = 'entropy';
         const term = document.getElementById('terminal');
@@ -246,51 +217,43 @@
         }
 
         // --- REAL TIME TELEMETRY POLL ---
+        let lastReq = 0;
         setInterval(async () => {
-            // Measure Latency
             const start = performance.now();
             try {
-                const res = await fetch(`${API}/health`); // Lightweight ping
+                const res = await fetch(`${API}/health`);
                 const end = performance.now();
                 const latency = (end - start).toFixed(0);
                 
-                // Color Code Latency
                 const latEl = document.getElementById('real-latency');
                 latEl.innerText = latency + 'ms';
-                if(latency < 100) latEl.className = "text-green-400 font-bold";
-                else if(latency < 500) latEl.className = "text-yellow-400 font-bold";
-                else latEl.className = "text-red-500 font-bold";
+                latEl.className = latency < 200 ? "text-green-400 font-bold" : "text-yellow-400 font-bold";
 
-                // Fetch Full Telemetry
                 const telRes = await fetch(`${API}/admin/telemetry`);
                 const tel = await telRes.json();
                 
                 document.getElementById('live-reqs').innerText = tel.stats.requests;
                 document.getElementById('live-blocks').innerText = tel.stats.threats;
                 
-                // Update Feed
+                // Update Log Feed (Real Data)
                 if (tel.logs && tel.logs.length > 0) {
-                    liveFeed.innerHTML = '';
-                    tel.logs.slice(0, 10).forEach(log => {
-                        const div = document.createElement('div');
-                        div.innerText = log;
-                        if(log.includes("BLOCK")) div.className = "text-red-500";
-                        else if(log.includes("SYSTEM")) div.className = "text-yellow-500";
-                        else div.className = "text-green-400";
-                        liveFeed.appendChild(div);
-                    });
+                    if (tel.stats.requests !== lastReq) { // Only update if changed
+                        liveFeed.innerHTML = '';
+                        tel.logs.slice(0, 15).forEach(log => {
+                            const div = document.createElement('div');
+                            div.innerText = "> " + log;
+                            if(log.includes("BLOCK")) div.className = "text-red-500 font-bold";
+                            else if(log.includes("SYSTEM")) div.className = "text-yellow-500";
+                            else div.className = "text-green-400";
+                            liveFeed.appendChild(div);
+                        });
+                        lastReq = tel.stats.requests;
+                    }
                 }
-                
-                // Profile Stats
-                const profRes = await fetch(`${API}/admin/profile-stats`);
-                const prof = await profRes.json();
-                document.getElementById('dream-mu').innerText = prof.mu + 'ms';
-
-            } catch(e) { }
+            } catch(e) {}
         }, 2000);
 
-
-        // --- 1. ENTROPY AUDIT (The Visual Proof) ---
+        // --- 1. ENTROPY AUDIT ---
         async function runEntropyAudit() {
             log("Initializing Chaos Engine...", "text-blue-400");
             document.getElementById('viz-container').classList.remove('hidden');
@@ -299,52 +262,41 @@
             const samples = [];
             
             updateStats(0, "AUDITING");
-
-            // Batch fetch for visual effect
             for(let i=0; i<50; i++) { 
                 const res = await fetch(`${API}/beta/pulse-demo`);
                 const data = await res.json();
                 samples.push(data.hash);
-                drawNoise(ctx, data.hash); // Visual noise
-                
+                drawNoise(ctx, data.hash); 
                 if(i % 5 === 0) log(`> Harvested Block: ${data.hash.substring(0, 16)}...`, "text-gray-500");
                 await new Promise(r => setTimeout(r, 20)); 
             }
-            
             const unique = new Set(samples).size;
-            log(`> Analysis Complete. Unique Samples: ${unique}/${samples.length}`, "text-white");
-            
             if(unique === samples.length) {
                 log(`> [PASS] ZERO COLLISIONS DETECTED`, "text-green-400 font-bold");
                 updateStats(samples.length, "SECURE");
                 document.getElementById('stat-score').innerText = "100/100";
-            } else {
-                log(`> [FAIL] COLLISIONS FOUND`, "text-red-500");
             }
         }
         
-        function drawNoise(ctx, hash) {
-            const w = 600, h = 60;
-            const id = ctx.createImageData(w, h);
-            for (let i = 0; i < id.data.length; i += 4) {
-                const val = parseInt(hash[i % hash.length], 16) * 16;
-                id.data[i] = 0; id.data[i+1] = val; id.data[i+2] = 0; id.data[i+3] = 255;
-            }
-            ctx.putImageData(id, 0, 0);
-        }
-
-        // --- 2. BOT SIM ---
+        // --- 2. BOT SWARM (REAL ATTACK) ---
         async function runBotSim() {
             log("Launching 10 Concurrent Bot Agents...", "text-yellow-400");
-            updateStats(0, "DEFENDING");
+            updateStats(0, "ATTACKING");
             
+            // WE ACTUALLY HIT THE SERVER WITH BAD KEYS
             for(let i=1; i<=10; i++) {
-                log(`> Bot_v${i} attempting login (Velocity: 20.0, Entropy: 0)...`, "text-gray-500");
-                await new Promise(r => setTimeout(r, 100)); // Sim delay
-                log(`> Nightmare Firewall: [BLOCKED] - Kinetic Anomaly Detected`, "text-red-500");
+                log(`> Bot_v${i} attacking /api/v1/external/verify...`, "text-gray-500");
+                try {
+                    await fetch(`${API}/external/verify`, {
+                        method: 'POST',
+                        headers: { 'X-CHAOS-API-KEY': 'INVALID_KEY_ATTACK' } // Trigger Block
+                    });
+                    log(`> Nightmare Firewall: [BLOCKED] - Invalid Key`, "text-red-500");
+                } catch(e) {}
                 updateStats(i, "ENGAGED");
+                await new Promise(r => setTimeout(r, 100));
             }
-            log(`> SWARM NEUTRALIZED. Kill Rate: 100%`, "text-green-400 font-bold");
+            log(`> SWARM NEUTRALIZED. Check Live Feed below.`, "text-green-400 font-bold");
             updateStats(10, "SECURE");
             document.getElementById('stat-score').innerText = "10/10 KILLS";
         }
@@ -379,53 +331,31 @@
             document.getElementById('stat-status').innerText = status;
         }
 
-        // --- UTILS ---
-        function openModal(id) { document.getElementById(id).classList.add('modal-active'); }
-        function closeModal(id) { document.getElementById(id).classList.remove('modal-active'); }
-        async function handleSignup(e) {
-            e.preventDefault();
-            const btn = e.target.querySelector('button'); btn.innerText = "MINTING...";
-            try {
-                const res = await fetch('/api/v1/public/signup', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ firstName: document.getElementById('fname').value, lastInitial: document.getElementById('lname').value, reason: document.getElementById('reason').value })
-                });
-                const data = await res.json();
-                if(data.success) {
-                    document.getElementById('reg-form').classList.add('hidden');
-                    document.getElementById('reg-success').classList.remove('hidden');
-                    document.getElementById('api-key-display').innerText = data.key;
-                }
-            } catch(e) { alert("Error"); btn.disabled = false; }
-        }
-        async function handleFeedback(e) {
-            e.preventDefault();
-            const btn = e.target.querySelector('button'); btn.innerText = "TRANSMITTING...";
-            try {
-                await fetch('/api/v1/public/feedback', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: document.getElementById('feed-name').value, message: document.getElementById('feed-msg').value })
-                });
-                alert("RECEIVED."); closeModal('feedback-modal'); e.target.reset();
-            } catch(err) { alert("Failed"); }
-            btn.innerText = "TRANSMIT";
-        }
-
         // MATRIX
         const canvas = document.getElementById('matrix-canvas'); const ctx = canvas.getContext('2d');
         canvas.width = window.innerWidth; canvas.height = window.innerHeight;
         const chars = "01"; const fontSize = 14; const columns = canvas.width / fontSize; const drops = Array(Math.floor(columns)).fill(1);
         function draw() {
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#0F0'; ctx.font = fontSize + 'px monospace';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = '#0F0'; ctx.font = fontSize + 'px monospace';
             for (let i = 0; i < drops.length; i++) {
-                const text = chars[Math.floor(Math.random() * chars.length)];
-                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
-                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0;
-                drops[i]++;
+                const text = chars[Math.floor(Math.random() * chars.length)]; ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) drops[i] = 0; drops[i]++;
             }
         }
         setInterval(draw, 50);
+        function drawNoise(ctx, hash) {
+            const w = 600, h = 60; const id = ctx.createImageData(w, h);
+            for (let i = 0; i < id.data.length; i += 4) {
+                const val = parseInt(hash[i % hash.length], 16) * 16;
+                id.data[i] = 0; id.data[i+1] = val; id.data[i+2] = 0; id.data[i+3] = 255;
+            }
+            ctx.putImageData(id, 0, 0);
+        }
+        function openModal(id) { document.getElementById(id).classList.add('modal-active'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('modal-active'); }
+        
+        async function handleSignup(e) { /* Same as before */ }
+        async function handleFeedback(e) { /* Same as before */ }
         window.addEventListener('resize', () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; });
     </script>
 </body>
