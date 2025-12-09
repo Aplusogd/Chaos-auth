@@ -1,11 +1,8 @@
 /**
- * A+ CHAOS ID: V148 (TRINITY RESTORATION)
- * STATUS: FULL SUITE ACTIVE
- * MODULES:
- * - CORE: Auth, Zombie Mode, Black Box Vault
- * - OVERWATCH: Live Telemetry API restored
- * - KEYFORGE: API Key Generation restored
- * - SDK: Documentation route restored
+ * A+ CHAOS ID: V150 (SILENT RUNNING)
+ * STATUS: PRODUCTION
+ * CONFIG: Web-Only. Telegram features removed.
+ * MODULES: Auth, Zombie Mode, Black Box, Dreams V5, Overwatch, KeyForge.
  */
 import express from 'express';
 import path from 'path';
@@ -47,7 +44,8 @@ const Users = new Map();
 const ADMIN_USER_ID = 'admin-user';
 const Challenges = new Map();
 const Sessions = new Map();
-const ApiKeys = new Map(); // Store for KeyForge
+const ApiKeys = new Map();
+const TelemetryData = { requests: 0, blocked: 0, logs: [] };
 
 // --- DNA LOADING ---
 if (PERMANENT_ID && PERMANENT_KEY) {
@@ -72,10 +70,8 @@ app.use(cors({ origin: '*' }));
 app.use(express.json());
 app.use(express.static(publicPath));
 
-// --- LIVE WIRE (TELEMETRY ENGINE) ---
+// --- LIVE WIRE (SSE) ---
 let connectedClients = [];
-const TelemetryData = { requests: 0, blocked: 0, logs: [] };
-
 const LiveWire = {
     broadcast: (event, data) => { try { connectedClients.forEach(c => c.res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)); } catch(e){} },
     addClient: (req, res) => { res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' }); connectedClients.push({ id: Date.now(), res }); }
@@ -85,10 +81,14 @@ const Telemetry = {
     log: (type, msg) => { 
         console.log(`[${type}] ${msg}`); 
         const entry = `[${type}] ${msg}`;
+        
+        // Update Internal Storage
         TelemetryData.logs.unshift(entry);
         if(TelemetryData.logs.length > 50) TelemetryData.logs.pop();
         if(type === 'BLOCK') TelemetryData.blocked++;
         TelemetryData.requests++;
+
+        // Broadcast to Overwatch
         LiveWire.broadcast('log', { entry, stats: { requests: TelemetryData.requests, threats: TelemetryData.blocked } }); 
     }
 };
@@ -97,44 +97,42 @@ const getOrigin = (req) => `https://${req.headers['x-forwarded-host'] || req.get
 const getRpId = (req) => (req.headers['x-forwarded-host'] || req.get('host')).split(':')[0];
 
 // ==========================================
-// 1. OVERWATCH & KEYFORGE APIS (RESTORED)
+// ROUTES
 // ==========================================
 
-// OVERWATCH: Fetch Logs/Stats
+// --- DREAMS V5.1: DIAGNOSTIC ---
+app.post('/api/v1/hardware/diagnostic', (req, res) => {
+    const { deviceId, variance } = req.body;
+    
+    // Log High Variance (Grinding Noise)
+    if (variance > 120) {
+        Telemetry.log('HARDWARE', `High Acoustic Variance (${variance.toFixed(0)}) on ${deviceId}`);
+        return res.json({ status: "WARNING" });
+    }
+    
+    res.json({ status: "OPTIMAL" });
+});
+
+// --- OVERWATCH API ---
 app.get('/api/v1/admin/telemetry', (req, res) => {
-    // In production, add session check here
     res.json({ stats: { requests: TelemetryData.requests, threats: TelemetryData.blocked }, logs: TelemetryData.logs });
 });
 
-// KEYFORGE: Generate New API Key
+// --- KEYFORGE API ---
 app.post('/api/v1/admin/generate-key', (req, res) => {
-    // Check for Session Token (Must be logged in)
     if(!Sessions.has(req.headers['x-chaos-token'])) return res.status(401).json({ error: "UNAUTHORIZED" });
-    
     const { tier, clientName } = req.body;
     const newKey = `sk_chaos_${crypto.randomBytes(16).toString('hex')}`;
-    
-    ApiKeys.set(newKey, { tier: tier || 'standard', client: clientName || 'Unknown', created: Date.now() });
-    Telemetry.log('KEYFORGE', `New Key Minted: ${clientName} (${tier})`);
-    
-    res.json({ success: true, key: newKey, tier: tier });
+    ApiKeys.set(newKey, { tier, client: clientName, created: Date.now() });
+    Telemetry.log('KEYFORGE', `New Key: ${clientName}`);
+    res.json({ success: true, key: newKey });
 });
 
-// KEYFORGE: List Keys (Optional)
-app.get('/api/v1/admin/keys', (req, res) => {
-    if(!Sessions.has(req.headers['x-chaos-token'])) return res.status(401).json({ error: "UNAUTHORIZED" });
-    const keys = Array.from(ApiKeys.entries()).map(([k, v]) => ({ key: k.substring(0, 10) + '...', ...v }));
-    res.json({ keys });
-});
-
-// ==========================================
-// 2. CORE AUTH ROUTES
-// ==========================================
-
+// --- AUTH: REGISTER ---
 app.get('/api/v1/auth/register-options', async (req, res) => {
     const key = req.headers['x-chaos-master-key'];
     if((key !== MASTER_KEY) && REGISTRATION_LOCKED) {
-        Telemetry.log('BLOCK', 'Locked Reg Attempt');
+        Telemetry.log('BLOCK', 'Reg Locked');
         return res.status(403).json({ error: "LOCKED" });
     }
     try {
@@ -155,12 +153,18 @@ app.post('/api/v1/auth/register-verify', async (req, res) => {
             const u = Users.get(ADMIN_USER_ID);
             const newCred = { ...v.registrationInfo, credentialID: toBuffer(toBase64(v.registrationInfo.credentialID)) };
             const exists = u.credentials.find(c => toBase64(c.credentialID) === toBase64(newCred.credentialID));
-            if(!exists) { u.credentials.push(newCred); Users.set(ADMIN_USER_ID, u); REGISTRATION_LOCKED=true; Telemetry.log('AUTH', 'Device Added'); }
+            if(!exists) { 
+                u.credentials.push(newCred); 
+                Users.set(ADMIN_USER_ID, u); 
+                REGISTRATION_LOCKED=true; 
+                Telemetry.log('AUTH', 'Device Added');
+            }
             res.json({verified:true});
         } else res.status(400).json({verified:false});
     } catch(e) { res.status(400).json({error:e.message}); }
 });
 
+// --- AUTH: LOGIN ---
 app.get('/api/v1/auth/login-options', async (req, res) => {
     const u = Users.get(ADMIN_USER_ID);
     if(!u || u.credentials.length===0) return res.status(404).json({error:"NO ID"});
@@ -185,46 +189,36 @@ app.post('/api/v1/auth/login-verify', async (req, res) => {
             Users.set(ADMIN_USER_ID, u);
             const t = crypto.randomBytes(32).toString('hex');
             Sessions.set(t, true);
-            Telemetry.log('AUTH', 'Login Successful');
+            Telemetry.log('AUTH', 'Login Success');
             res.json({verified:true, token:t});
         } else res.status(400).json({verified:false});
     } catch(e) { res.status(500).json({error:e.message}); }
 });
 
+// --- GATE UNLOCK ---
 app.post('/api/v1/auth/unlock-gate', (req, res) => {
     if(!Sessions.has(req.headers['x-chaos-token'])) return res.status(401).json({error:"Login First"});
     REGISTRATION_LOCKED = false;
     if(GATE_UNLOCK_TIMER) clearTimeout(GATE_UNLOCK_TIMER);
     GATE_UNLOCK_TIMER = setTimeout(()=>REGISTRATION_LOCKED=true, 30000);
+    Telemetry.log('SECURITY', 'Gate Unlocked');
     res.json({success:true, message:"GATE OPEN"});
 });
 
-// --- PUBLIC/DEMO ROUTES ---
+// --- PUBLIC/DEMO ---
 app.get('/api/v1/beta/pulse-demo', (req, res) => {
-    const entropy = crypto.randomBytes(32).toString('hex'); // 256-bit Triad Compliant
-    res.json({ valid: true, hash: entropy, ms: Math.floor(Math.random() * 15) + 5 });
+    res.json({ valid: true, hash: crypto.randomBytes(32).toString('hex'), ms: Math.floor(Math.random() * 15) + 5 });
 });
 app.post('/api/v1/public/signup', (req, res) => res.json({ success: true }));
 app.post('/api/v1/external/verify', (req, res) => res.json({ valid: true }));
 app.get('/api/v1/health', (req, res) => res.json({ status: "ALIVE" }));
 app.get('/api/v1/stream', (req,res) => LiveWire.addClient(req,res));
 
-// ==========================================
-// 3. HTML FILE ROUTES (THE FINALS)
-// ==========================================
+// --- FILES ---
 const serve = (f, res) => fs.existsSync(path.join(publicPath, f)) ? res.sendFile(path.join(publicPath, f)) : res.status(404).send('Missing: ' + f);
-
-// Main
 app.get('/', (req, res) => serve('index.html', res));
 app.get('/app', (req, res) => serve('app.html', res));
 app.get('/dashboard', (req, res) => serve('dashboard.html', res));
-
-// The Trinity (Restored)
-app.get('/overwatch', (req, res) => serve('overwatch.html', res));
-app.get('/sdk', (req, res) => serve('sdk.html', res));
-app.get('/keyforge', (req, res) => serve('keyforge.html', res));
-
-// Catch-All
 app.get('*', (req, res) => res.redirect('/'));
 
-app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V148 ONLINE (TRINITY RESTORED)`));
+app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V150 ONLINE (SILENT)`));
