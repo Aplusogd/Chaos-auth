@@ -1,7 +1,7 @@
 /**
- * A+ CHAOS ID: V164 (STABILITY PATCH)
+ * A+ CHAOS ID: V164 (STABILITY PATCH & SDK BLACK BOX)
  * STATUS: PRODUCTION HARDENED
- * FIX: Enhanced error handling and structure to prevent "exited early" crashes.
+ * FUNCTION: Provides stability, API routing, and dynamically injects Sentinel SDK into index.html.
  */
 import express from 'express';
 import path from 'path';
@@ -18,7 +18,7 @@ import {
     verifyAuthenticationResponse 
 } from '@simplewebauthn/server';
 
-// --- ZOMBIE PROTOCOL (FIRST EXECUTION BLOCK) ---
+// --- ZOMBIE PROTOCOL (CRITICAL STARTUP PROTECTION) ---
 process.on('uncaughtException', (err) => console.error('>>> [CRASH LOG] FATAL ERROR CAUGHT:', err.message, err));
 process.on('unhandledRejection', (reason) => console.error('>>> [CRASH LOG] REJECTION CAUGHT:', reason));
 
@@ -58,8 +58,10 @@ const SENTINEL_SDK_CODE = `
             const dt = now - this.lastT;
             const dy = y - this.lastY;
             
+            // 1. IDLE GATE
             if (dt > this.CONFIG.IDLE_TIMEOUT_MS) { this.lastT = now; this.lastY = y; return; }
             
+            // 2. VELOCITY SPIKE TRAP
             if (dt < this.CONFIG.SPIKE_THRESHOLD_MS && Math.abs(dy) > this.CONFIG.SPIKE_DISTANCE) {
                 this.score = 0;
                 this.triggerLockout('SPIKE_TRAP');
@@ -196,16 +198,11 @@ app.post('/api/unlock', (req, res) => {
     res.json({ success: true, content: PROTECTED_CONTENT_HTML });
 });
 
-// AUTH routes (Simplified for brevity, assuming standard V160 implementation)
-app.get('/api/v1/auth/login-options', async (req, res) => {
-    // ... (Login logic)
-    res.status(404).json({ error: "No Identity" }); // Placeholder
-});
-app.post('/api/v1/auth/login-verify', async (req, res) => { 
-    // ... (Verify logic)
-    res.status(400).json({ verified: false }); // Placeholder
-});
-// ... (All other API routes: /api/chaos-log, /api/v1/hardware/diagnostic, etc.)
+// --- AUTH, TELEMETRY, DEMO ROUTES (Placeholder for Brevity) ---
+app.get('/api/v1/auth/login-options', async (req, res) => { res.status(404).json({ error: "No Identity" }); });
+app.post('/api/v1/auth/login-verify', async (req, res) => { res.status(400).json({ verified: false }); });
+app.get('/api/v1/beta/pulse-demo', (req, res) => { res.json({ valid: true, hash: crypto.randomBytes(32).toString('hex') }); });
+// ... (All other API routes: /api/chaos-log, /api/v1/hardware/diagnostic, etc. would be fully implemented here)
 
 
 // --- 8. FILE SERVING (Injection Handler) ---
