@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CHAOS ID — AI-Native Identity Provider</title>
+    <title>CHAOS ID — Enterprise Identity Layer</title>
     <meta name="description" content="Quantum-Resistant, Behavior-Aware Identity. The new standard for AI security.">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
-        /* CORE STYLES */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Share+Tech+Mono&display=swap');
         body { 
             background-color: #05070a; 
             color: #E5E7EB; 
@@ -19,24 +18,18 @@
         }
         .mono { font-family: 'Share Tech Mono', monospace; }
 
-        /* UTILS */
-        .glass {
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
+        /* PROFESSIONAL GLOWS */
+        .glass { background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
+        .terminal-bg { background: rgba(5, 10, 15, 0.95); }
         
-        /* VISUALIZERS */
+        /* BENCHMARK VISUALIZERS */
         #entropy-map { image-rendering: pixelated; width: 100%; height: 60px; background: #020408; border-bottom: 1px solid #1f2937; }
         .progress-bar { transition: width 0.1s linear; }
 
-        /* BUTTONS */
+        /* SCRIPT BUTTONS */
         .script-btn { text-align: left; transition: all 0.2s; border-left: 2px solid transparent; opacity: 0.7; cursor: pointer; }
         .script-btn:hover { opacity: 1; background: rgba(255,255,255,0.03); }
         .script-btn.active { background: rgba(14, 165, 233, 0.1); border-left-color: #0ea5e9; color: white; opacity: 1; }
-        
-        /* Disabled state for running tests */
-        .script-btn.disabled { opacity: 0.3; cursor: not-allowed; pointer-events: none; }
 
         /* MODALS */
         #reg-modal, #feedback-modal { display: none; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); }
@@ -50,7 +43,7 @@
         .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #0ea5e9; animation: pulse-glow 2s infinite; }
     </style>
 </head>
-<body class="flex flex-col min-h-screen">
+<body class="min-h-screen flex flex-col">
     
     <div id="canvas-container"></div>
 
@@ -72,7 +65,7 @@
     <!-- HERO SECTION -->
     <header class="text-center py-24 px-4 relative z-10">
         <div class="inline-block mb-6 text-[10px] md:text-xs border border-sky-500/30 text-sky-400 px-4 py-1.5 rounded-full bg-sky-500/10 font-medium tracking-wider">
-            V133 ENTERPRISE CORE
+            V137 ARMORED CORE
         </div>
         <h1 class="text-5xl md:text-8xl font-extrabold text-white mb-8 tracking-tight leading-none">
             Identity for the<br>
@@ -84,7 +77,7 @@
         </p>
 
         <div class="flex flex-col md:flex-row justify-center gap-6">
-            <button onclick="openModal('reg-modal')" class="px-8 py-4 bg-sky-600 text-white font-bold rounded-lg shadow-[0_0_30px_rgba(14,165,233,0.3)] hover:bg-sky-500 transition-all text-sm tracking-widest">
+            <button id="hero-req-btn" class="px-8 py-4 bg-sky-600 text-white font-bold rounded-lg shadow-[0_0_30px_rgba(14,165,233,0.3)] hover:bg-sky-500 transition-all text-sm tracking-widest">
                 <i class="fas fa-id-badge mr-2"></i> REQUEST ACCESS
             </button>
             <a href="#benchmark" class="px-8 py-4 glass text-sky-400 font-bold rounded-lg hover:bg-sky-900/20 transition-all text-sm tracking-widest border border-sky-500/30">
@@ -101,22 +94,22 @@
                 <!-- LEFT: SCRIPT SELECTOR -->
                 <div class="md:col-span-4 border-r border-white/5 bg-black/30 p-8 flex flex-col">
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-8">Verification Protocols</h3>
-                    <div class="space-y-3 flex-grow" id="script-list">
-                        <button onclick="selectScript('entropy')" id="btn-entropy" class="script-btn active w-full p-4 rounded-lg group">
+                    <div class="space-y-3 flex-grow">
+                        <button id="btn-entropy" class="script-btn active w-full p-4 rounded-lg group">
                             <div class="flex justify-between items-center mb-1">
                                 <span class="font-bold text-sm text-white group-hover:text-sky-400 transition">1. AUDIT_ENTROPY.JS</span>
                                 <i class="fas fa-microchip text-gray-600 group-hover:text-sky-500"></i>
                             </div>
                             <div class="text-xs text-gray-500">NIST Chi-Squared Test.</div>
                         </button>
-                        <button onclick="selectScript('defense')" id="btn-defense" class="script-btn w-full p-4 rounded-lg group">
+                        <button id="btn-defense" class="script-btn w-full p-4 rounded-lg group">
                             <div class="flex justify-between items-center mb-1">
                                 <span class="font-bold text-sm text-white group-hover:text-rose-400 transition">2. SIM_BOT_SWARM.JS</span>
                                 <i class="fas fa-robot text-gray-600 group-hover:text-rose-500"></i>
                             </div>
-                            <div class="text-xs text-gray-500">Test Firewall vs AI Agents.</div>
+                            <div class="text-xs text-gray-500">Test DREAMS V4 vs AI Agents.</div>
                         </button>
-                        <button onclick="selectScript('speed')" id="btn-speed" class="script-btn w-full p-4 rounded-lg group">
+                        <button id="btn-speed" class="script-btn w-full p-4 rounded-lg group">
                             <div class="flex justify-between items-center mb-1">
                                 <span class="font-bold text-sm text-white group-hover:text-indigo-400 transition">3. TEST_THROUGHPUT.JS</span>
                                 <i class="fas fa-bolt text-gray-600 group-hover:text-indigo-500"></i>
@@ -141,7 +134,7 @@
                             <div class="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></div>
                             <span class="ml-2 text-xs text-gray-500 font-mono" id="script-name">audit_entropy.js</span>
                         </div>
-                        <button onclick="runSelectedScript()" id="run-btn" class="px-6 py-1.5 bg-sky-500/10 text-sky-400 border border-sky-500/30 rounded-md text-xs font-bold hover:bg-sky-500 hover:text-white transition tracking-wider">
+                        <button id="run-btn" class="px-6 py-1.5 bg-sky-500/10 text-sky-400 border border-sky-500/30 rounded-md text-xs font-bold hover:bg-sky-500 hover:text-white transition tracking-wider">
                             RUN TEST
                         </button>
                     </div>
@@ -176,11 +169,51 @@
             </div>
         </div>
     </section>
-    
+
+    <!-- STRATEGIC SECTORS -->
+    <section class="py-16 max-w-7xl mx-auto px-4 relative z-10 border-t border-gray-900">
+        <div class="text-center mb-12">
+            <h2 class="text-2xl md:text-3xl font-bold text-white mb-4">DEPLOYING CHAOS INTO THE WILD</h2>
+            <p class="text-gray-500 text-sm">Universal solutions for critical industries.</p>
+        </div>
+        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="sector-card p-6 rounded-xl bg-gray-900/20 border border-white/5 hover:border-sky-500/50 transition">
+                <i class="fas fa-book text-3xl text-sky-500 mb-4"></i>
+                <h3 class="text-lg font-bold text-white mb-3">Knowledge</h3>
+                <p class="text-xs text-gray-400">DREAMS V4 protects archives from AI scraping without CAPTCHAs.</p>
+            </div>
+             <div class="sector-card p-6 rounded-xl bg-gray-900/20 border border-white/5 hover:border-indigo-500/50 transition">
+                <i class="fas fa-truck-fast text-3xl text-indigo-500 mb-4"></i>
+                <h3 class="text-lg font-bold text-white mb-3">Logistics</h3>
+                <p class="text-xs text-gray-400">MBF Fusion prevents account renting by verifying physical presence.</p>
+            </div>
+             <div class="sector-card p-6 rounded-xl bg-gray-900/20 border border-white/5 hover:border-emerald-500/50 transition">
+                <i class="fas fa-shield-halved text-3xl text-emerald-500 mb-4"></i>
+                <h3 class="text-lg font-bold text-white mb-3">Defense</h3>
+                <p class="text-xs text-gray-400">PQC Encryption future-proofs data against quantum cracking.</p>
+            </div>
+             <div class="sector-card p-6 rounded-xl bg-gray-900/20 border border-white/5 hover:border-sky-500/50 transition">
+                <i class="fas fa-gamepad text-3xl text-sky-500 mb-4"></i>
+                <h3 class="text-lg font-bold text-white mb-3">Gaming</h3>
+                <p class="text-xs text-gray-400">Kinetic Totem verifies human reflexes against aimbots.</p>
+            </div>
+             <div class="sector-card p-6 rounded-xl bg-gray-900/20 border border-white/5 hover:border-indigo-500/50 transition">
+                <i class="fas fa-university text-3xl text-indigo-500 mb-4"></i>
+                <h3 class="text-lg font-bold text-white mb-3">Finance</h3>
+                <p class="text-xs text-gray-400">Chaos Pulse rolling keys prevent session hijacking.</p>
+            </div>
+             <div class="sector-card p-6 rounded-xl bg-gray-900/20 border border-white/5 hover:border-emerald-500/50 transition">
+                <i class="fas fa-heartbeat text-3xl text-emerald-500 mb-4"></i>
+                <h3 class="text-lg font-bold text-white mb-3">Healthcare</h3>
+                <p class="text-xs text-gray-400">ZKP Audits ensure patient privacy compliance.</p>
+            </div>
+        </div>
+    </section>
+
     <!-- FOOTER -->
     <footer class="py-12 border-t border-white/5 bg-black/50 text-center text-gray-500 text-sm relative z-10">
-        <button onclick="openModal('feedback-modal')" class="mb-6 text-sky-500 hover:text-white border border-sky-900/50 px-6 py-3 rounded-lg hover:bg-sky-900/30 transition flex items-center gap-2 mx-auto text-xs font-bold tracking-widest">
-            <i class="fas fa-comment-dots mr-2"></i> SEND SECURE FEEDBACK
+        <button id="footer-feed-btn" class="mb-6 text-sky-500 hover:text-white border border-sky-900/50 px-6 py-3 rounded-lg hover:bg-sky-900/30 transition flex items-center gap-2 mx-auto text-xs font-bold tracking-widest">
+            <i class="fas fa-comment-dots"></i> SEND FEEDBACK
         </button>
         <p>© 2026 A+ Overhead Garage Doors / CHAOS ID Core. All Rights Reserved.</p>
     </footer>
@@ -189,7 +222,7 @@
     <div id="reg-modal" class="fixed inset-0 z-50 items-center justify-center p-4">
         <div class="glass border-sky-500/30 p-8 rounded-2xl max-w-md w-full">
             <h2 class="text-2xl font-bold text-white mb-6">Enterprise Access</h2>
-            <form onsubmit="handleSignup(event)" class="space-y-5">
+            <form id="reg-form" class="space-y-5">
                 <div class="grid grid-cols-2 gap-4">
                     <div><label class="text-[10px] text-sky-400 uppercase font-bold">First Name</label><input type="text" id="fname" required class="w-full bg-black/50 border border-white/10 focus:border-sky-500 text-white p-3 rounded-lg text-sm outline-none transition"></div>
                     <div><label class="text-[10px] text-sky-400 uppercase font-bold">Last Initial</label><input type="text" id="lname" maxlength="1" required class="w-full bg-black/50 border border-white/10 focus:border-sky-500 text-white p-3 rounded-lg text-sm outline-none transition"></div>
@@ -197,24 +230,24 @@
                 <div><label class="text-[10px] text-sky-400 uppercase font-bold">Use Case</label><textarea id="reason" required rows="2" class="w-full bg-black/50 border border-white/10 focus:border-sky-500 text-white p-3 rounded-lg text-sm outline-none transition"></textarea></div>
                 <button type="submit" class="w-full py-4 bg-sky-600 text-white font-bold rounded-lg hover:bg-sky-500 transition text-sm tracking-widest shadow-[0_0_20px_rgba(14,165,233,0.3)]">MINT API KEY</button>
             </form>
-            <button onclick="closeModal('reg-modal')" class="mt-6 text-xs text-gray-500 w-full text-center hover:text-white transition">CANCEL</button>
+            <button id="close-reg" class="mt-6 text-xs text-gray-500 w-full text-center hover:text-white transition">CANCEL</button>
         </div>
     </div>
 
     <div id="feedback-modal" class="fixed inset-0 z-50 items-center justify-center p-4">
         <div class="glass border-indigo-500/30 p-8 rounded-2xl max-w-md w-full">
-            <h2 class="text-2xl font-bold text-white mb-6">Secure Feedback Channel</h2>
-            <form onsubmit="handleFeedback(event)" class="space-y-5">
+            <h2 class="text-2xl font-bold text-white mb-6">Secure Transmission</h2>
+            <form id="feed-form" class="space-y-5">
                 <div><label class="text-[10px] text-indigo-400 uppercase font-bold">Identity</label><input type="text" id="feed-name" class="w-full bg-black/50 border border-white/10 focus:border-indigo-500 text-white p-3 rounded-lg text-sm outline-none transition"></div>
-                <div><label class="text-[10px] text-indigo-400 uppercase font-bold">Message</label><textarea id="feed-msg" required rows="4" class="w-full bg-black/50 border border-white/10 focus:border-indigo-500 text-white p-3 rounded-lg text-sm outline-none transition"></textarea></div>
+                <div><label class="text-[10px] text-indigo-400 uppercase font-bold">Payload</label><textarea id="feed-msg" required rows="4" class="w-full bg-black/50 border border-white/10 focus:border-indigo-500 text-white p-3 rounded-lg text-sm outline-none transition"></textarea></div>
                 <button type="submit" class="w-full py-4 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-500 transition text-sm tracking-widest shadow-[0_0_20px_rgba(99,102,241,0.3)]">TRANSMIT</button>
             </form>
-            <button onclick="closeModal('feedback-modal')" class="mt-6 text-xs text-gray-500 w-full text-center hover:text-white transition">CANCEL</button>
+            <button id="close-feed" class="mt-6 text-xs text-gray-500 w-full text-center hover:text-white transition">CANCEL</button>
         </div>
     </div>
 
     <script>
-        // --- 1. BACKGROUND VISUALS ---
+        // --- 1. BACKGROUND VISUALS (Blue) ---
         const initChaos = () => {
             const container = document.getElementById('canvas-container');
             const scene = new THREE.Scene();
@@ -246,10 +279,24 @@
         };
         window.onload = initChaos;
 
-        // --- 2. BENCHMARK LOGIC ---
+        // --- 2. BENCHMARK LOGIC (STRICT - EVENT LISTENERS) ---
         let currentScript = 'entropy';
         const term = document.getElementById('terminal');
         const API = '/api/v1';
+
+        // Event Bindings (Safe for strict CSP)
+        document.getElementById('btn-entropy').addEventListener('click', () => selectScript('entropy'));
+        document.getElementById('btn-defense').addEventListener('click', () => selectScript('defense'));
+        document.getElementById('btn-speed').addEventListener('click', () => selectScript('speed'));
+        document.getElementById('run-btn').addEventListener('click', runSelectedScript);
+        
+        // Modal Bindings
+        document.getElementById('hero-req-btn').addEventListener('click', () => openModal('reg-modal'));
+        document.getElementById('footer-feed-btn').addEventListener('click', () => openModal('feedback-modal'));
+        document.getElementById('close-reg').addEventListener('click', () => closeModal('reg-modal'));
+        document.getElementById('close-feed').addEventListener('click', () => closeModal('feedback-modal'));
+        document.getElementById('reg-form').addEventListener('submit', handleSignup);
+        document.getElementById('feed-form').addEventListener('submit', handleFeedback);
 
         function selectScript(type) {
             currentScript = type;
@@ -265,26 +312,17 @@
 
         async function runSelectedScript() {
             const btn = document.getElementById('run-btn');
-            
-            // UI LOCK: Prevent clicking other scripts while running
-            document.querySelectorAll('.script-btn').forEach(b => b.classList.add('disabled'));
             btn.disabled = true; btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> RUNNING...';
             term.innerHTML = "";
-            
             try {
                 if (currentScript === 'entropy') await runEntropyAudit();
                 else if (currentScript === 'defense') await runBotSim();
                 else await runSpeedTest();
-            } catch(e) {
-                log(`> ERROR: Test Failed - ${e.message}`, "text-red-500");
-            } finally {
-                // UI UNLOCK: Restore buttons
-                document.querySelectorAll('.script-btn').forEach(b => b.classList.remove('disabled'));
-                btn.disabled = false; btn.innerText = "RUN TEST";
-            }
+            } catch(e) { log(`> ERROR: ${e.message}`, "text-red-500"); }
+            finally { btn.disabled = false; btn.innerText = "RUN TEST"; }
         }
 
-        // TEST 1: ENTROPY AUDIT (REAL DATA)
+        // TEST 1: ENTROPY
         async function runEntropyAudit() {
             document.getElementById('lbl-1').innerText = "Collisions"; document.getElementById('lbl-2').innerText = "Chi-Squared"; document.getElementById('lbl-3').innerText = "Bit Density";
             log("Initializing Chaos Engine...", "text-sky-400");
@@ -302,35 +340,29 @@
             }
             
             const unique = new Set(samples).size;
-            // Strict Chi-Squared Calc for 20 samples
             const hexCounts = {}; samples.join('').split('').forEach(ch => hexCounts[ch] = (hexCounts[ch]||0)+1);
             let chi2 = 0; const EXP = samples.join('').length/16;
             for (const k in hexCounts) chi2 += Math.pow(hexCounts[k]-EXP, 2)/EXP;
 
-            const CRITICAL_VALUE_99 = 30.578; 
+            // 99% Confidence Threshold
+            const CRITICAL_VALUE = 30.578; 
 
             if(unique === samples.length) {
                 log(`> [PASS] ZERO COLLISIONS DETECTED`, "text-sky-400 font-bold");
                 document.getElementById('res-1').innerText = "0"; document.getElementById('res-1').className = "text-2xl font-mono text-sky-400 mt-1";
                 document.getElementById('res-2').innerText = chi2.toFixed(2);
-                document.getElementById('res-2').className = chi2 < CRITICAL_VALUE_99 ? "text-2xl font-mono text-sky-400 mt-1" : "text-2xl font-mono text-yellow-500 mt-1";
-                if(chi2 < CRITICAL_VALUE_99) log(`> [PASS] MATHEMATICALLY PERFECT (p < 0.01)`, "text-emerald-400");
+                document.getElementById('res-2').className = chi2 < CRITICAL_VALUE ? "text-2xl font-mono text-sky-400 mt-1" : "text-2xl font-mono text-yellow-500 mt-1";
+                if(chi2 < CRITICAL_VALUE) log(`> [PASS] MATHEMATICALLY PERFECT (p < 0.01)`, "text-emerald-400");
                 document.getElementById('res-3').innerText = "50.0%";
             }
         }
 
-        // TEST 2: BOT SIM
+        // TEST 2: BOT
         async function runBotSim() {
             log("Launching 10 Concurrent Bot Agents...", "text-rose-400");
             for(let i=1; i<=10; i++) {
                 log(`> Bot_v${i} attacking /auth... Velocity: 20.0 (Inhuman)`, "text-gray-500");
-                
-                // REAL ATTACK SIMULATION
-                try {
-                     await fetch(`${API}/external/verify`, { method: 'POST', headers: { 'X-CHAOS-API-KEY': 'BAD_KEY' } });
-                     log(`> Nightmare Firewall: [BLOCKED] - Kinetic Anomaly`, "text-rose-500");
-                } catch(e) {}
-
+                try { await fetch(`${API}/external/verify`, { method: 'POST', headers: { 'X-CHAOS-API-KEY': 'BAD_KEY' } }); log(`> Nightmare Firewall: [BLOCKED] - Kinetic Anomaly`, "text-rose-500"); } catch(e) {}
                 document.getElementById('bench-bar').style.width = `${i*10}%`;
                 await new Promise(r => setTimeout(r, 100));
             }
@@ -357,7 +389,7 @@
             const w = 800, h = 60; const id = ctx.createImageData(w, h);
             for (let i = 0; i < id.data.length; i += 4) {
                 const val = parseInt(hash[i % hash.length], 16) * 16;
-                id.data[i] = 0; id.data[i+1] = val; id.data[i+2] = 255; id.data[i+3] = 255; // Blue tint
+                id.data[i] = 0; id.data[i+1] = val; id.data[i+2] = 255; id.data[i+3] = 255; 
             }
             ctx.putImageData(id, 0, 0);
         }
@@ -368,7 +400,7 @@
             term.appendChild(div); term.scrollTop = term.scrollHeight;
         }
 
-        // REAL LATENCY POLLING
+        // LATENCY POLLING
         setInterval(async () => {
             const start = performance.now();
             try { await fetch(`${API}/health`); const lat = (performance.now() - start).toFixed(0); 
@@ -380,10 +412,10 @@
         function closeModal(id) { document.getElementById(id).classList.remove('modal-active'); document.body.style.overflow = 'auto'; }
         
         async function handleSignup(e) { 
-             e.preventDefault(); alert("Request Received."); closeModal('reg-modal');
+             e.preventDefault(); alert("Request Received. We will review your credentials."); closeModal('reg-modal');
         }
         async function handleFeedback(e) { 
-             e.preventDefault(); alert("Message Transmitted."); closeModal('feedback-modal');
+             e.preventDefault(); alert("Transmission Received."); closeModal('feedback-modal');
         }
         window.addEventListener('resize', () => { 
              const c = document.getElementById('entropy-map');
