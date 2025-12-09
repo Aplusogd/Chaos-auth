@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>A+ KEYFORGE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>body{background:#000;color:#fff;font-family:monospace;}</style>
+</head>
+<body class="flex items-center justify-center h-screen bg-gray-900">
+
+    <div class="w-full max-w-md bg-black border border-gray-700 p-8 rounded shadow-2xl">
+        <h1 class="text-2xl mb-6 text-purple-400 font-bold border-b border-gray-800 pb-2">
+            <i class="fas fa-key"></i> KEYFORGE
+        </h1>
+
+        <div class="space-y-4">
+            <div>
+                <label class="text-xs text-gray-500">CLIENT NAME</label>
+                <input id="clientName" type="text" class="w-full bg-gray-900 border border-gray-700 p-2 text-white focus:outline-none focus:border-purple-500" placeholder="e.g. North Star Logistics">
+            </div>
+            
+            <div>
+                <label class="text-xs text-gray-500">TIER</label>
+                <select id="tier" class="w-full bg-gray-900 border border-gray-700 p-2 text-white">
+                    <option value="standard">Standard (5k req/mo)</option>
+                    <option value="enterprise">Enterprise (Unlimited)</option>
+                </select>
+            </div>
+
+            <button onclick="mintKey()" class="w-full bg-purple-900 hover:bg-purple-700 text-white p-3 rounded font-bold transition">
+                MINT KEY
+            </button>
+        </div>
+
+        <div id="result" class="mt-6 hidden">
+            <div class="text-xs text-green-500 mb-1">KEY GENERATED SUCCESSFULLY</div>
+            <div class="bg-gray-800 p-3 rounded break-all border border-green-900 text-green-400 font-mono text-sm" id="key-display">
+                sk_chaos_...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function mintKey() {
+            const token = sessionStorage.getItem('chaos_session');
+            if(!token) { alert("ACCESS DENIED: Please Log In via App first."); return; }
+
+            const client = document.getElementById('clientName').value;
+            const tier = document.getElementById('tier').value;
+
+            fetch('/api/v1/admin/generate-key', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-chaos-token': token },
+                body: JSON.stringify({ clientName: client, tier: tier })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if(data.success) {
+                    document.getElementById('result').classList.remove('hidden');
+                    document.getElementById('key-display').innerText = data.key;
+                } else {
+                    alert("ERROR: " + (data.error || "Unknown"));
+                }
+            })
+            .catch(e => alert("Network Error"));
+        }
+    </script>
+</body>
+</html>
