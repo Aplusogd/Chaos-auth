@@ -13,16 +13,17 @@ const PORT = process.env.PORT || 3000;
 // --- MIDDLEWARE ---
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public')); // Serves index.html, dashboard.html, etc.
+app.use(express.static('public')); // Serves your HTML files
 
 // --- IN-MEMORY DATABASES (The Vault) ---
-// In production, you would use Redis/SQLite. For now, this lives in RAM.
+// Note: In a real production app with millions of users, you'd swap this Map for a Redis or SQL DB.
+// For now, this runs in RAM.
 const KeyVault = new Map();
 const RateLimit = new Map();
 const Clients = new Set(); // For LiveWire dashboard connections
 
 // --- SEED ADMIN KEY (God Mode) ---
-// This key always exists when server starts
+// This key always exists when server starts.
 const ADMIN_KEY = "sk_chaos_ee3aeaaaa3d193cee40bf7b2bc2e2432";
 KeyVault.set(ADMIN_KEY, { 
     key: ADMIN_KEY, 
@@ -34,12 +35,15 @@ KeyVault.set(ADMIN_KEY, {
 // --- LIVE WIRE (Real-Time Dashboard Stream) ---
 const LiveWire = {
     broadcast: (type, data) => {
+        // Send data to all connected dashboard clients
         const payload = `data: ${JSON.stringify({ type, data, time: Date.now() })}\n\n`;
         Clients.forEach(res => res.write(payload));
     }
 };
 
-// --- ROUTES ---
+// ==================================================================
+// API ROUTES
+// ==================================================================
 
 // 1. LIVE WIRE ENDPOINT (Dashboard listens here)
 app.get('/api/live-wire', (req, res) => {
@@ -51,14 +55,13 @@ app.get('/api/live-wire', (req, res) => {
     Clients.add(res);
     req.on('close', () => Clients.delete(res));
     
-    // Heartbeat
+    // Heartbeat to confirm connection
     res.write(`data: ${JSON.stringify({ type: 'SYSTEM', data: 'CONNECTED' })}\n\n`);
 });
 
-// 2. ADMIN VERIFICATION (Login Screen)
+// 2. ADMIN VERIFICATION (Login Screen Logic)
 app.post('/api/admin/verify', (req, res) => {
     const { token } = req.body;
-    // Check if key exists in Vault
     if (KeyVault.has(token)) {
         res.json({ valid: true });
     } else {
@@ -66,11 +69,11 @@ app.post('/api/admin/verify', (req, res) => {
     }
 });
 
-// 3. KEY MINTING (Key Forge)
+// 3. KEY MINTING (Key Forge Logic)
 app.post('/api/admin/keys/create', (req, res) => {
     const { token, clientName, scope } = req.body;
     
-    // Only Admin Key can mint
+    // Only Admin Key can mint new permanent keys
     if (token !== ADMIN_KEY) return res.status(403).json({ error: "FORBIDDEN" });
 
     const newKey = "sk_" + scope.split('-')[0] + "_" + crypto.randomBytes(8).toString('hex');
@@ -85,20 +88,22 @@ app.post('/api/admin/keys/create', (req, res) => {
     res.json({ success: true, key: newKey });
 });
 
-// 4. GHOST REGISTER (Anonymous Identity - NOW ACCEPTS CLIENT KEYS)
+// 4. GHOST REGISTER (Anonymous Identity - SELF-HEALING)
 app.post('/api/auth/ghost-register', (req, res) => {
     const { alias, chaos_metric, provided_key } = req.body;
 
-    // Silent Bot Check
+    // A. Silent Bot Check
     if (!chaos_metric || chaos_metric === 0) {
         LiveWire.broadcast('THREAT', { status: 'BOT_BLOCKED', target: alias });
         return res.status(403).json({ error: "BIOMETRIC_FAIL" });
     }
 
-    // CRITICAL FIX: Use the key the client calculated (from the words), 
-    // or generate a new one if missing.
+    // B. Key Logic (The Fix)
+    // If the client sends a key (from Recovery), we accept it. 
+    // Otherwise, we mint a new random one.
     const ghostKey = provided_key || ("sk_guest_" + crypto.randomBytes(12).toString('hex'));
 
+    // C. Store in Vault
     KeyVault.set(ghostKey, { 
         key: ghostKey, 
         client: alias || "Anonymous", 
@@ -109,42 +114,28 @@ app.post('/api/auth/ghost-register', (req, res) => {
     
     LiveWire.broadcast('SYSTEM', `GHOST IDENTITY ESTABLISHED: ${alias}`);
     
-    // Return the key so client confirms we have it
+    // D. Return Success
     res.json({ success: true, key: ghostKey });
 });
 
-    // Generate Key
-    const ghostKey = "sk_guest_" + crypto.randomBytes(12).toString('hex');
-    KeyVault.set(ghostKey, { 
-        key: ghostKey, 
-        client: alias || "Anonymous", 
-        scope: "guest", 
-        created: Date.now(),
-        trustScore: 50
-    });
-    
-    LiveWire.broadcast('SYSTEM', `NEW GHOST IDENTITY: ${alias}`);
-    res.json({ success: true, key: ghostKey });
-});
-
-// 5. SENTINEL VERIFY (The Trust Engine + Reputation Ramp)
+// 5. SENTINEL VERIFY (Trust Engine & Reputation Ramp)
 app.post('/api/v1/sentinel/verify', (req, res) => {
-    // 1. Get Key
+    // A. Get Key
     const apiKey = req.headers['x-api-key'];
     
-    // 2. Check Validity
+    // B. Check Validity
     if (!apiKey || !KeyVault.has(apiKey)) {
         return res.status(401).json({ error: "INVALID_KEY", status: "DENIED" });
     }
 
     const keyData = KeyVault.get(apiKey);
     
-    // 3. REPUTATION RAMP LOGIC
+    // C. REPUTATION RAMP (Calculate Trust based on Age)
     const now = Date.now();
     const ageDays = (now - keyData.created) / (1000 * 60 * 60 * 24);
     
     let rank = "NEWBORN";
-    let limit = 10; // Req/min
+    let limit = 10; // Requests per minute
 
     if (keyData.scope === 'full-access') {
         rank = "GOD_MODE";
@@ -155,9 +146,9 @@ app.post('/api/v1/sentinel/verify', (req, res) => {
         else if (ageDays >= 3) { rank = "SURVIVOR"; limit = 60; }
     }
 
-    // 4. RATE LIMITING
+    // D. RATE LIMITING
     if (!RateLimit.has(apiKey)) RateLimit.set(apiKey, []);
-    let usage = RateLimit.get(apiKey).filter(t => t > now - 60000); // Filter strictly to last minute
+    let usage = RateLimit.get(apiKey).filter(t => t > now - 60000); // Last minute window
 
     if (usage.length >= limit) {
         LiveWire.broadcast('BLOCK', { reason: 'RATE_LIMIT', rank: rank, client: keyData.client });
@@ -167,7 +158,7 @@ app.post('/api/v1/sentinel/verify', (req, res) => {
     usage.push(now);
     RateLimit.set(apiKey, usage);
     
-    // 5. SUCCESS
+    // E. SUCCESS RESPONSE
     const trustScore = Math.min(100, 50 + (ageDays * 2)); // Score grows with age
     
     LiveWire.broadcast('TRAFFIC', { status: 'VERIFIED', project: keyData.client, rank: rank, score: trustScore.toFixed(0) });
@@ -177,6 +168,7 @@ app.post('/api/v1/sentinel/verify', (req, res) => {
         status: "VERIFIED",
         trustScore: trustScore.toFixed(0), 
         rank: rank, 
+        daysAlive: ageDays.toFixed(2),
         limit: limit + "/min"
     });
 });
@@ -188,18 +180,19 @@ app.post('/api/chaos-log', (req, res) => {
 
     const payload = req.body;
     LiveWire.broadcast('SYSTEM', `ARCHIVE: ${payload.type || "DATA"} SAVED`);
-    // In production, save to DB here.
+    // In production, you would save this to a persistent DB.
     res.json({ success: true, timestamp: Date.now() });
 });
 
 // --- CLIENT ROUTING (SPA Fallback) ---
+// Directs clean URLs to the correct HTML files
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public/dashboard.html')));
-app.get('/app', (req, res) => res.sendFile(path.join(__dirname, 'public/index.html'))); // Redirect old app link to new root
+app.get('/app', (req, res) => res.sendFile(path.join(__dirname, 'public/index.html'))); 
 app.get('/keyforge', (req, res) => res.sendFile(path.join(__dirname, 'public/keyforge.html')));
 app.get('/check.html', (req, res) => res.sendFile(path.join(__dirname, 'public/check.html')));
 
 // --- START SERVER ---
 app.listen(PORT, () => {
-    console.log(`⚡ A+ CHAOS CORE V184 ONLINE: PORT ${PORT}`);
+    console.log(`⚡ A+ CHAOS CORE V187 ONLINE: PORT ${PORT}`);
     console.log(`🔒 GOD KEY ACTIVE: ${ADMIN_KEY.substring(0, 10)}...`);
 });
