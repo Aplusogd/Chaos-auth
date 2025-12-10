@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ENTER THE ABYSS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+        body { background: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; height: 100vh; display: flex; align-items: center; justify-content: center; }
+        
+        .portal-card {
+            background: rgba(5,5,5,0.9); border: 1px solid #222; padding: 40px; 
+            max-width: 500px; width: 100%; box-shadow: 0 0 80px rgba(0, 255, 65, 0.05);
+            backdrop-filter: blur(5px);
+        }
+
+        /* CANVAS STYLING */
+        #chaosCanvas {
+            border: 1px solid #005500; background: #000; margin-bottom: 20px;
+            cursor: crosshair;
+            box-shadow: inset 0 0 10px rgba(0, 255, 65, 0.1);
+        }
+
+        .input-line {
+            background: #111; border: 1px solid #333; color: white; padding: 10px; text-align: center;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loading" class="absolute inset-0 bg-black z-50 flex items-center justify-center hidden">
+        <i class="fas fa-cog fa-spin text-4xl text-green-500 mb-4"></i>
+    </div>
+
+    <div class="portal-card text-center">
+        <h1 class="text-2xl font-bold tracking-widest mb-2 text-white">BIOMETRIC HANDSHAKE</h1>
+        <p class="text-gray-500 text-xs mb-8">Trace the shape below to verify human inertia.</p>
+
+        <div id="challenge-area">
+            <canvas id="chaosCanvas" width="400" height="200"></canvas>
+            <p class="text-[10px] text-red-500 mb-4" id="challenge-status">Move your mouse/finger over the canvas to begin.</p>
+        </div>
+
+        <input type="text" id="aliasInput" class="input-line w-full mb-4" placeholder="Enter Your Callsign (Codename)">
+        
+        <button onclick="attemptManifest()" id="manifest-btn" class="bg-green-600 hover:bg-green-500 text-black px-8 py-3 rounded font-bold text-sm transition duration-300 w-full disabled:opacity-50">
+            MINT TEMPORARY KEY
+        </button>
+
+        <div class="mt-6 border-t border-gray-800 pt-4">
+            <a href="/" class="text-gray-600 hover:text-white text-xs mr-4">← Back to Landing</a>
+            <a href="/login" class="text-blue-400 hover:text-white text-xs">Admin/Staff Login</a>
+        </div>
+    </div>
+
+    <script src="/js/biometrics.js"></script>
+    <script>
+        // --- CLIENT-SIDE LOGIC ---
+        
+        // 1. DYNAMICALLY LOAD JS FOR CHALLENGE
+        // We will create public/js/biometrics.js later. For now, this is a placeholder.
+
+        const challengeStatus = document.getElementById('challenge-status');
+        const canvas = document.getElementById('chaosCanvas');
+        const ctx = canvas.getContext('2d');
+        const manifestBtn = document.getElementById('manifest-btn');
+
+        let isTracing = false;
+        let tracePoints = [];
+        let chaosMetric = 0; // The metric sent to the server
+
+        // Draw the target shape (A simple star or geometric shape)
+        function drawTarget() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = 'rgba(0, 255, 65, 0.2)';
+            ctx.lineWidth = 2;
+            
+            // Draw a simple Hexagon
+            const center = { x: canvas.width / 2, y: canvas.height / 2 };
+            const size = 60;
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const angle = (Math.PI / 3) * i;
+                const x = center.x + size * Math.cos(angle);
+                const y = center.y + size * Math.sin(angle);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.closePath();
+            ctx.stroke();
+            
+            challengeStatus.innerText = "Trace the shape to build your identity hash.";
+        }
+        drawTarget();
+
+        // Start tracing on mouse down
+        canvas.addEventListener('mousedown', (e) => {
+            isTracing = true;
+            tracePoints = [];
+            chaosMetric = 0;
+        });
+
+        // Track movement and calculate chaos metric (Jitter)
+        canvas.addEventListener('mousemove', (e) => {
+            if (!isTracing) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            tracePoints.push({ x, y, dx: e.movementX, dy: e.movementY });
+            
+            // Accumulate movement jitter as the chaos metric
+            chaosMetric += (Math.abs(e.movementX) + Math.abs(e.movementY)); 
+
+            // Draw the trace line
+            if (tracePoints.length > 1) {
+                ctx.strokeStyle = '#00ff41';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(tracePoints[tracePoints.length - 2].x, tracePoints[tracePoints.length - 2].y);
+                ctx.lineTo(x, y);
+                ctx.stroke();
+            }
+        });
+
+        // Stop tracing and check results
+        canvas.addEventListener('mouseup', () => {
+            isTracing = false;
+            
+            // Check if the trace was long enough
+            if (chaosMetric > 500) { // Arbitrary threshold for human movement
+                challengeStatus.innerText = `[HASH SUCCESS] Jitter Metric: ${chaosMetric.toFixed(0)}`;
+                challengeStatus.classList.remove('text-red-500');
+                challengeStatus.classList.add('text-green-500');
+                manifestBtn.disabled = false;
+            } else {
+                challengeStatus.innerText = "Trace too short or movement too robotic. Try again.";
+                challengeStatus.classList.add('text-red-500');
+                manifestBtn.disabled = true;
+                drawTarget(); // Reset canvas
+            }
+        });
+        
+        manifestBtn.disabled = true; // Disabled until challenge is met
+
+        // --- IDENTITY MANIFEST LOGIC ---
+        
+        async function attemptManifest() {
+            const alias = document.getElementById('aliasInput').value.trim() || "Ghost_User";
+            const msg = document.getElementById('challenge-status');
+
+            if (chaosMetric < 500) {
+                msg.innerText = "Biometric check failed. Please trace the shape again.";
+                return;
+            }
+            
+            // 1. Generate the 3-Word Callsign based on the Jitter Hash (Chaos magic)
+            const phrase = generateChaosCallsign(alias, chaosMetric); 
+            const key = phraseToKey(phrase);
+
+            // 2. SHOW LOADING
+            document.getElementById('loading').classList.remove('hidden');
+            
+            // 3. SYNC WITH SERVER (CRITICAL: Registers the new key)
+            const success = await registerWithServer(key, alias, chaosMetric);
+
+            document.getElementById('loading').classList.add('hidden');
+
+            if (success) {
+                // SUCCESS: Save Key, redirect to success screen which displays the words
+                localStorage.setItem('chaos_key_vault', key);
+                window.location.href = '/'; // Redirects back to main page for auto-login/success flow
+            } else {
+                msg.innerText = "Server communication failed. Retry.";
+            }
+        }
+        
+        // --- HELPER FUNCTIONS (Copy from your existing index.html) ---
+
+        // We use a simplified version of the key generation logic here for the demo
+        function phraseToKey(phrase) {
+            return "sk_test_" + CryptoJS.SHA256(phrase + "SEED").toString().substring(0, 32);
+        }
+
+        // Placeholder for the full 20-dimension chaos engine
+        function generateChaosCallsign(alias, metric) {
+            // In the final version, the metric would influence the word selection for greater entropy.
+            // For now, it's just random + alias to ensure uniqueness.
+            const prefix = alias.toUpperCase().substring(0, 4);
+            const w1 = CHAOS_DIMENSIONS.color[Math.floor(Math.random() * CHAOS_DIMENSIONS.color.length)];
+            const w2 = CHAOS_DIMENSIONS.force[Math.floor(Math.random() * CHAOS_DIMENSIONS.force.length)];
+            const w3 = CHAOS_DIMENSIONS.texture[Math.floor(Math.random() * CHAOS_DIMENSIONS.texture.length)];
+            return `${w1}-${w2}-${w3}`;
+        }
+
+        // Simulating the necessary registerWithServer function
+        async function registerWithServer(key, alias, chaosMetric) {
+            try {
+                const res = await fetch('/api/auth/ghost-register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        alias: alias, 
+                        chaos_metric: chaosMetric, // Send the validated biometric data
+                        provided_key: key
+                    })
+                });
+                const data = await res.json();
+                return data.success;
+            } catch(e) {
+                return false;
+            }
+        }
+    </script>
+</body>
+</html>
