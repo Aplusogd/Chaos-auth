@@ -22,25 +22,10 @@
             backdrop-filter: blur(10px);
         }
 
-        /* BUTTONS */
-        .btn-action {
-            margin-top: 15px; width: 100%; padding: 16px; font-weight: bold; cursor: pointer;
-            transition: all 0.3s; text-transform: uppercase; letter-spacing: 3px; font-size: 0.8rem;
-        }
-        .btn-mint {
-            background: #004400; color: #00ff41; border: 1px solid #004400;
-        }
-        .btn-mint:hover { background: #00ff41; color: black; box-shadow: 0 0 20px rgba(0,255,65,0.4); }
-        .btn-secondary {
-            background: #111; color: #999; border: 1px solid #333;
-        }
-        .btn-secondary:hover { background: #222; color: white; }
-
-        /* WORD DISPLAY */
-        .word-pill {
-            background: #000; border: 1px solid #333; padding: 10px 18px; color: #fff; 
-            text-transform: capitalize; font-size: 1rem; letter-spacing: 1px; min-width: 100px;
-        }
+        /* BUTTONS and WORD DISPLAY remain the same */
+        .btn-action { margin-top: 15px; width: 100%; padding: 16px; font-weight: bold; cursor: pointer; transition: all 0.3s; text-transform: uppercase; letter-spacing: 3px; font-size: 0.8rem; }
+        .btn-mint { background: #004400; color: #00ff41; border: 1px solid #004400; }
+        .word-pill { background: #000; border: 1px solid #333; padding: 10px 18px; color: #fff; text-transform: capitalize; font-size: 1rem; letter-spacing: 1px; min-width: 100px; }
     </style>
 </head>
 <body>
@@ -61,19 +46,10 @@
             <button onclick="manifestIdentity()" class="btn-action btn-mint">
                 <i class="fas fa-meteor mr-2"></i> MINT NEW CALLSIGN
             </button>
-            <button onclick="toggleRecall()" class="btn-action btn-secondary">
+            <button onclick="window.location.href='/login';" class="btn-action btn-secondary">
                 <i class="fas fa-redo mr-2"></i> RECALL EXISTING KEY
             </button>
         </div>
-
-        <div id="view-recall" class="hidden mt-4">
-            <input type="text" id="recallInput" class="input-line w-full bg-transparent border border-gray-700 text-white text-center p-3 text-sm focus:border-green-500 outline-none" placeholder="Paste Callsign Key OR 3 Words">
-            <button onclick="processRecall()" class="btn-action btn-secondary mt-3">
-                <i class="fas fa-fingerprint mr-2"></i> VALIDATE KEY
-            </button>
-            <p id="recall-msg" class="text-red-400 text-xs mt-2"></p>
-        </div>
-
 
         <div id="view-success" class="hidden text-center mt-6">
             <div class="text-green-500 text-sm mb-2 tracking-widest font-bold">IDENTITY FORGED</div>
@@ -83,7 +59,7 @@
                 </div>
 
             <button onclick="enterPortal()" class="btn-action btn-mint text-white hover:bg-white hover:text-black">
-                <i class="fas fa-door-open mr-2"></i> ENTER PORTAL
+                <i class="fas fa-door-open mr-2"></i> VERIFY AND PROCEED
             </button>
         </div>
         
@@ -101,11 +77,10 @@
             FORCE: ["THUNDER", "ABYSS", "ECLIPSE", "VORTEX", "RAGNAROK", "NOVA", "STORM", "QUAKE", "TSUNAMI", "FLOOD"]
         };
 
-        // --- MINTING LOGIC ---
+        // --- MINTING LOGIC (Unchanged) ---
         async function manifestIdentity() {
             const alias = document.getElementById('aliasInput').value.trim() || "Anonymous Entity";
 
-            // 1. Generate 3 Random Words
             const c = DICT.COLOR[Math.floor(Math.random() * DICT.COLOR.length)];
             const t = DICT.TEXTURE[Math.floor(Math.random() * DICT.TEXTURE.length)];
             const f = DICT.FORCE[Math.floor(Math.random() * DICT.FORCE.length)];
@@ -113,11 +88,9 @@
             const phrase = `${c}-${t}-${f}`;
             const key = phraseToKey(phrase);
 
-            // 2. SYNC WITH SERVER (Self-Healing Registration)
             const success = await registerWithServer(key, alias, 1.0); 
 
             if (success) {
-                // 3. Render UI
                 const display = document.getElementById('word-display');
                 display.innerHTML = `
                     <div class="word-pill border-b-2 border-red-900">${c}</div>
@@ -127,11 +100,9 @@
                     <div class="word-pill border-b-2 border-blue-900">${f}</div>
                 `;
 
-                // 4. Save Key & Callsign
                 localStorage.setItem('chaos_key_vault', key);
-                localStorage.setItem('callsign_history', phrase); // Save for login auto-fill
+                localStorage.setItem('callsign_history', phrase); 
                 
-                // 5. Transition
                 document.getElementById('view-options').classList.add('hidden');
                 document.getElementById('view-success').classList.remove('hidden');
                 document.getElementById('hint-display').classList.add('hidden');
@@ -140,69 +111,17 @@
             }
         }
         
-        // --- RECALL LOGIC ---
-        function toggleRecall() {
-            const recallView = document.getElementById('view-recall');
-            if (recallView.classList.contains('hidden')) {
-                recallView.classList.remove('hidden');
-            } else {
-                recallView.classList.add('hidden');
-            }
-        }
-
-        async function processRecall() {
-            const input = document.getElementById('recallInput').value.trim();
-            const msg = document.getElementById('recall-msg');
-            msg.innerText = "Processing...";
-
-            let key;
-            if (input.toLowerCase().startsWith('sk_')) {
-                key = input;
-            } else if (input.split(/\s+|-/).length >= 3) {
-                const phrase = input.toLowerCase().replace(/\s+/, '-').replace(/[^a-z0-9-]/g, '');
-                key = phraseToKey(phrase);
-            } else {
-                msg.innerText = "Invalid input format.";
-                return;
-            }
-
-            const isValid = await verifyWithServer(key);
-
-            if (isValid) {
-                localStorage.setItem('chaos_key_vault', key);
-                localStorage.setItem('callsign_history', input.toUpperCase().replace(/\s+/, '-')); // Save for history
-                msg.innerText = "Key validated. Entering portal...";
-                enterPortal();
-            } else {
-                msg.innerText = "Validation FAILED. Key or Callsign unknown.";
-            }
-        }
-
-        // --- FINAL REDIRECT (The Fix) ---
+        // --- FINAL REDIRECT (FIXED: Send to Login for Verification) ---
         function enterPortal() {
             // New users MUST verify their new key via the Biometric Login page first.
             window.location.href = '/login';
         }
 
-        // --- SHARED UTILS ---
+        // --- SHARED UTILS (Unchanged) ---
         function phraseToKey(phrase) {
             return "sk_ghost_" + CryptoJS.SHA256(phrase.toLowerCase() + "INFINITE_ABYSS_2025").toString().substring(0,32);
         }
 
-        async function verifyWithServer(key) {
-            try {
-                const res = await fetch('/api/auth/ghost-register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ alias: 'RECALL_ATTEMPT', chaos_metric: 1.0, provided_key: key })
-                });
-                const data = await res.json();
-                return data.success;
-            } catch (e) {
-                return false;
-            }
-        }
-        
         async function registerWithServer(key, alias, chaosMetric) {
             try {
                 const res = await fetch('/api/auth/ghost-register', {
