@@ -1,141 +1,26 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A+ SENTINEL SDK | DEVELOPER PORTAL</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <title>Chaos SDK Codex</title>
+    <script src="chaos-sdk.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
-        body { background-color: #000; color: #e5e5e5; font-family: 'JetBrains Mono', monospace; }
-        .cyber-card { border: 1px solid #333; background: #0a0a0a; padding: 20px; transition: all 0.3s; }
-        .cyber-card:hover { border-color: #00ff41; box-shadow: 0 0 15px rgba(0, 255, 65, 0.1); }
-        .cyber-input { width: 100%; background: #111; border: 1px solid #333; color: white; padding: 10px; margin-top: 5px; outline: none; }
-        .cyber-input:focus { border-color: #00ff41; }
-        .code-block { background: #111; padding: 15px; border-left: 3px solid #00ff41; color: #00ff41; font-size: 0.8rem; overflow-x: auto; }
+        body { background: #000; color: #00ff41; font-family: monospace; text-align: center; padding: 50px; }
+        #live { height: 200px; font-size: 2.5em; text-align: center; margin-top: 50px; border: 1px solid #222; padding: 20px; }
     </style>
 </head>
-<body class="p-6 max-w-5xl mx-auto">
-
-    <nav class="flex justify-between items-center mb-12 border-b border-gray-800 pb-4">
-        <div class="text-xl font-bold text-white">A+ <span class="text-green-500">DEVELOPER</span></div>
-        <div>
-            <a href="/" class="text-xs text-gray-500 hover:text-white mr-4">HOME</a>
-            <a href="/app" class="text-xs text-gray-500 hover:text-white">LOGIN</a>
-        </div>
-    </nav>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
-        
-        <div>
-            <h1 class="text-3xl font-bold text-white mb-4">BUILD WITH CHAOS</h1>
-            <p class="text-gray-400 text-sm mb-8">
-                Integrate Sentinel's behavioral analysis and DREAMS V6 predictive maintenance into your own applications.
-                <br><br>
-                <span class="text-yellow-500">SANDBOX ACCESS:</span> Register your project to receive a limited Test Key instantly.
-            </p>
-
-            <div class="cyber-card" id="reg-form">
-                <div class="mb-4">
-                    <label class="text-[10px] text-gray-500 uppercase">Developer Email</label>
-                    <input type="email" id="devEmail" class="cyber-input" placeholder="dev@example.com">
-                </div>
-                <div class="mb-4">
-                    <label class="text-[10px] text-gray-500 uppercase">Project Name</label>
-                    <input type="text" id="devProject" class="cyber-input" placeholder="My Security App">
-                </div>
-                <div class="mb-6">
-                    <label class="text-[10px] text-gray-500 uppercase">Intended Use Case</label>
-                    <select id="devUseCase" class="cyber-input">
-                        <option value="research">Security Research</option>
-                        <option value="integration">Product Integration</option>
-                        <option value="student">Student / Education</option>
-                    </select>
-                </div>
-                <button onclick="registerProject()" class="w-full bg-green-900 hover:bg-green-700 text-white p-3 font-bold transition border border-green-800">
-                    INITIALIZE PROJECT
-                </button>
-            </div>
-
-            <div id="key-display" class="hidden">
-                <div class="bg-green-900/20 border border-green-500 p-6 rounded text-center">
-                    <i class="fas fa-check-circle text-4xl text-green-500 mb-4"></i>
-                    <h2 class="text-xl font-bold text-white">ACCESS GRANTED</h2>
-                    <p class="text-xs text-gray-400 mb-4">Store this key securely. It allows 50 requests/hour.</p>
-                    <div class="bg-black p-3 rounded border border-green-900 text-green-400 font-mono text-sm break-all" id="api-key-box">
-                        sk_test_...
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="space-y-8">
-            <div>
-                <h3 class="text-lg font-bold text-white mb-2">QUICKSTART</h3>
-                <p class="text-gray-500 text-xs mb-2">Verify a session using your new API Key.</p>
-                <div class="code-block">
-curl -X POST https://overthere.ai/api/v1/sentinel/verify \
-  -H "x-api-key: YOUR_KEY_HERE" \
-  -H "Content-Type: application/json" \
-  -d '{"entropy": 0.85}'
-                </div>
-            </div>
-
-            <div>
-                <h3 class="text-lg font-bold text-white mb-2">LIMITS</h3>
-                <ul class="text-gray-500 text-xs space-y-2">
-                    <li>• <span class="text-white">Sandbox:</span> 50 requests / hour</li>
-                    <li>• <span class="text-white">Features:</span> Basic Sentinel Score only</li>
-                    <li>• <span class="text-white">DREAMS V6:</span> Not available in Sandbox</li>
-                </ul>
-            </div>
-            
-            <div class="border-t border-gray-800 pt-4">
-                <p class="text-xs text-gray-600">
-                    Need Enterprise throughput or DREAMS V6 access?
-                    <a href="mailto:admin@overthere.ai" class="text-green-500 hover:underline">Contact Sales</a>.
-                </p>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        async function registerProject() {
-            const email = document.getElementById('devEmail').value;
-            const project = document.getElementById('devProject').value;
-            const useCase = document.getElementById('devUseCase').value;
-            const btn = document.querySelector('button');
-
-            if(!email || !project) return alert("Please complete all fields.");
-
-            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> MINTING...';
-            btn.disabled = true;
-
-            try {
-                const res = await fetch('/api/developer/register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, project, useCase })
-                });
-                
-                const data = await res.json();
-                
-                if (data.success) {
-                    document.getElementById('reg-form').style.display = 'none';
-                    document.getElementById('key-display').style.display = 'block';
-                    document.getElementById('api-key-box').innerText = data.key;
-                } else {
-                    alert("Registration Failed");
-                    btn.innerHTML = 'TRY AGAIN';
-                    btn.disabled = false;
-                }
-            } catch (e) {
-                alert("Network Error");
-                btn.innerHTML = 'TRY AGAIN';
-                btn.disabled = false;
-            }
+<body>
+<h1>CHAOS SDK CODEX</h1>
+<p>Mouse movement generates live, unique callsigns based on entropy.</p>
+<div id="live"></div>
+<script>
+    document.addEventListener('mousemove', () => {
+        if (typeof generateInfiniteChaosCode !== 'undefined') {
+            const entropy = performance.now() + event.clientX + event.clientY;
+            document.getElementById('live').textContent = generateInfiniteChaosCode("mouse"+entropy, 3).join('-');
+        } else {
+             document.getElementById('live').textContent = 'SDK Engine Offline.';
         }
-    </script>
+    });
+</script>
 </body>
 </html>
