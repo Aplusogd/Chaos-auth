@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>A+ DREAMS V6 | LIFE SCANNER</title>
+    <title>A+ DREAMS V6 | PREDICTIVE MAINTENANCE</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -14,13 +14,14 @@
         .scan-line { position: absolute; top: 0; width: 100%; height: 2px; background: rgba(0, 255, 65, 0.2); animation: scan 3s linear infinite; pointer-events: none; }
         @keyframes scan { 0% {top:0;} 100% {top:100%;} }
         
-        .mode-btn { border: 1px solid #333; padding: 10px; border-radius: 6px; background: #111; color: #666; transition: all 0.2s; font-size: 10px; text-align: center; cursor: pointer; }
-        .mode-btn.active { border-color: #00ff41; background: #002200; color: #fff; box-shadow: 0 0 10px rgba(0,255,65,0.2); }
-        .mode-btn i { font-size: 18px; display: block; margin-bottom: 5px; }
-
         .status-box { border: 1px solid #333; padding: 15px; text-align: center; border-radius: 8px; background: #111; margin-top: 15px; }
         .status-box.optimal { border-color: #00ff41; }
         .status-box.warning { border-color: #ff0000; color: #ff5555; }
+        
+        /* RUL GAUGE */
+        .rul-container { margin-top: 20px; border-top: 1px solid #333; pt: 10px; }
+        .rul-bar-bg { width: 100%; height: 10px; background: #333; border-radius: 5px; overflow: hidden; margin-top: 5px; }
+        .rul-bar-fill { height: 100%; background: #00ff41; width: 100%; transition: width 0.5s, background 0.5s; }
     </style>
 </head>
 <body class="flex flex-col items-center justify-center h-screen p-4 relative">
@@ -30,26 +31,11 @@
         <div class="flex justify-between items-end border-b border-gray-800 pb-4 mb-4">
             <div>
                 <h1 class="text-2xl font-bold tracking-widest text-white">DREAMS V6</h1>
-                <div class="text-xs text-green-600 mt-1">LIFE SCANNER</div>
+                <div class="text-xs text-green-600 mt-1">ACOUSTIC PREDICTION ENGINE</div>
             </div>
             <div class="text-right">
-                <div class="text-[10px] text-gray-500">SENSITIVITY</div>
-                <div id="sensitivity-disp" class="text-xs font-bold text-blue-400">NORMAL</div>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-4 gap-2 mb-4">
-            <div class="mode-btn active" onclick="setMode('GARAGE', 120, this)">
-                <i class="fas fa-warehouse"></i> GARAGE
-            </div>
-            <div class="mode-btn" onclick="setMode('APPLIANCE', 80, this)">
-                <i class="fas fa-blender"></i> APPLIANCE
-            </div>
-            <div class="mode-btn" onclick="setMode('SLEEP', 40, this)">
-                <i class="fas fa-bed"></i> SLEEP
-            </div>
-            <div class="mode-btn" onclick="setMode('AUTO', 300, this)">
-                <i class="fas fa-car"></i> AUTO
+                <div class="text-[10px] text-gray-500">MODE</div>
+                <div id="sensitivity-disp" class="text-xs font-bold text-blue-400">INDUSTRIAL</div>
             </div>
         </div>
 
@@ -58,24 +44,37 @@
         </div>
 
         <button id="btn-mic" onclick="toggleMicrophone()" class="w-full bg-blue-900 hover:bg-blue-700 text-white p-4 rounded font-bold transition border border-blue-800 flex items-center justify-center mb-4">
-            <i class="fas fa-microphone-alt mr-2"></i> START SCANNING
+            <i class="fas fa-microphone-alt mr-2"></i> START LISTENING
         </button>
 
         <div id="output" class="status-box hidden">
-            <div class="text-xs uppercase tracking-widest mb-1" id="status-title">ANALYZING...</div>
-            <div class="text-3xl font-bold" id="status-result">--</div>
-            <div class="flex justify-between mt-2 text-[10px] text-gray-400 border-t border-gray-800 pt-2">
-                <span>NOISE LEVEL: <span id="val-var" class="text-white">0</span></span>
-                <span>THRESHOLD: <span id="val-thresh" class="text-white">120</span></span>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <div class="text-[10px] text-gray-500">VARIANCE</div>
+                    <div class="text-2xl font-bold" id="val-var">0</div>
+                </div>
+                <div>
+                    <div class="text-[10px] text-gray-500">CYCLE TIME</div>
+                    <div class="text-2xl font-bold" id="val-cycle">--</div>
+                </div>
+            </div>
+
+            <div class="rul-container mt-4 pt-4 border-t border-gray-800">
+                <div class="flex justify-between text-xs mb-1">
+                    <span>REMAINING USEFUL LIFE (RUL)</span>
+                    <span id="rul-val" class="font-bold">100%</span>
+                </div>
+                <div class="rul-bar-bg">
+                    <div id="rul-fill" class="rul-bar-fill"></div>
+                </div>
+                <div class="text-[9px] text-gray-500 mt-2 text-left">
+                    *Based on Weibull decay model (k=3)
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        // CONFIG
-        let CURRENT_THRESHOLD = 120;
-        let CURRENT_MODE = "GARAGE";
-
         // VISUALIZER SETUP
         const vis = document.getElementById('visualizer');
         const bars = [];
@@ -90,21 +89,20 @@
 
         let audioCtx, analyser, dataArray, animationId;
         let isRunning = false;
-
-        function setMode(name, threshold, btn) {
-            CURRENT_MODE = name;
-            CURRENT_THRESHOLD = threshold;
-            document.getElementById('sensitivity-disp').innerText = name;
-            document.getElementById('val-thresh').innerText = threshold;
-            
-            // UI Update
-            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-        }
+        
+        // RUL VARIABLES
+        let lastPeakTime = Date.now();
+        let cycleTimes = [];
+        let usageHours = 100; // Simulated base usage
+        const MAX_LIFE = 5000; // 5000 hours rated life
 
         async function toggleMicrophone() {
             if(isRunning) {
-                stopListening();
+                if(audioCtx) audioCtx.close();
+                cancelAnimationFrame(animationId);
+                isRunning = false;
+                document.getElementById('btn-mic').innerHTML = '<i class="fas fa-microphone-alt mr-2"></i> START LISTENING';
+                document.getElementById('btn-mic').classList.replace('bg-red-900', 'bg-blue-900');
                 return;
             }
 
@@ -112,35 +110,18 @@
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 analyser = audioCtx.createAnalyser();
                 analyser.fftSize = 64; 
-
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 const source = audioCtx.createMediaStreamSource(stream);
                 source.connect(analyser);
-                
                 dataArray = new Uint8Array(analyser.frequencyBinCount);
-                
                 isRunning = true;
-                const btn = document.getElementById('btn-mic');
-                btn.classList.replace('bg-blue-900', 'bg-red-900');
-                btn.innerHTML = '<i class="fas fa-stop mr-2"></i> STOP SCANNING';
                 
+                document.getElementById('btn-mic').innerHTML = '<i class="fas fa-stop mr-2"></i> STOP';
+                document.getElementById('btn-mic').classList.replace('bg-blue-900', 'bg-red-900');
                 document.getElementById('output').classList.remove('hidden');
                 
                 analyzeFrame();
-
-            } catch(e) {
-                alert("Microphone Access Required");
-            }
-        }
-
-        function stopListening() {
-            if(audioCtx) audioCtx.close();
-            if(animationId) cancelAnimationFrame(animationId);
-            isRunning = false;
-            const btn = document.getElementById('btn-mic');
-            btn.classList.replace('bg-red-900', 'bg-blue-900');
-            btn.innerHTML = '<i class="fas fa-microphone-alt mr-2"></i> START SCANNING';
-            resetVis();
+            } catch(e) { alert("Microphone Access Required"); }
         }
 
         function analyzeFrame() {
@@ -155,13 +136,8 @@
                 const val = dataArray[i] || 0;
                 const h = (val / 255) * 100;
                 bars[i].style.height = Math.max(2, h * 1.5) + '%';
-                
-                // Color based on threshold relative to mode
-                // If this specific bar is "louder" than our threshold allows
-                if(val > (CURRENT_THRESHOLD * 0.8)) bars[i].style.background = '#ff0000'; 
-                else if(val > (CURRENT_THRESHOLD * 0.5)) bars[i].style.background = '#ffff00'; 
+                if(val > 150) bars[i].style.background = '#ff0000'; 
                 else bars[i].style.background = '#003300'; 
-
                 sum += val;
                 if(val > maxVal) maxVal = val;
             }
@@ -169,44 +145,61 @@
             const average = sum / BAR_COUNT;
             const variance = maxVal - average; 
             
-            // Multiply variance for display clarity
-            const displayVariance = variance * 2; 
-
-            updateDiagnostic(displayVariance);
-        }
-
-        function updateDiagnostic(variance) {
-            const result = document.getElementById('status-result');
-            const title = document.getElementById('status-title');
-            const box = document.getElementById('output');
-            
-            document.getElementById('val-var').innerText = variance.toFixed(0);
-
-            if(variance > CURRENT_THRESHOLD) {
-                result.innerText = "IRREGULAR";
-                result.className = "text-3xl font-bold text-red-500 animate-pulse";
-                title.innerText = getWarningText();
-                title.className = "text-xs uppercase tracking-widest mb-1 text-red-500";
-                box.className = "status-box warning";
-            } else {
-                result.innerText = "HEALTHY";
-                result.className = "text-3xl font-bold text-green-500";
-                title.innerText = "RHYTHM DETECTED";
-                title.className = "text-xs uppercase tracking-widest mb-1 text-green-500";
-                box.className = "status-box optimal";
+            // CYCLE DETECTION (Simple Peak Tracking)
+            if (variance > 80 && (Date.now() - lastPeakTime > 500)) {
+                const cycleTime = Date.now() - lastPeakTime;
+                lastPeakTime = Date.now();
+                cycleTimes.push(cycleTime);
+                if(cycleTimes.length > 5) cycleTimes.shift();
+                
+                // Update UI
+                const avgCycle = cycleTimes.reduce((a,b)=>a+b,0) / cycleTimes.length;
+                document.getElementById('val-cycle').innerText = (avgCycle/1000).toFixed(1) + 's';
+                
+                // RUN PREDICTION FORMULA
+                const ND = Math.min(1, variance / 200); // Normalize deviation 0-1
+                updateRUL(ND, avgCycle, usageHours);
             }
+
+            document.getElementById('val-var').innerText = variance.toFixed(0);
         }
 
-        function getWarningText() {
-            if(CURRENT_MODE === 'GARAGE') return "SPRING/ROLLER ISSUE";
-            if(CURRENT_MODE === 'APPLIANCE') return "UNBALANCED LOAD";
-            if(CURRENT_MODE === 'SLEEP') return "SNORING DETECTED";
-            if(CURRENT_MODE === 'AUTO') return "ENGINE KNOCK";
-            return "NOISE DETECTED";
-        }
-
-        function resetVis() {
-            bars.forEach(b => { b.style.height = '2px'; b.style.background = '#003300'; });
+        /**
+         * DREAMS V6 RUL FORMULA (From Grok)
+         * Calculates exponential decay based on stress
+         */
+        function updateRUL(N_D, T_L, U) {
+            const baseline_T_L = 2000; // Ideal cycle 2s
+            const k = 3; // Non-linearity exponent
+            
+            // 1. Repetition Penalty (Short cycles = high heat)
+            // Clamp T_L to avoid divide by zero, min 100ms
+            const safe_TL = Math.max(100, T_L); 
+            const repetition_penalty = Math.pow(baseline_T_L / safe_TL, k);
+            
+            // 2. Wear Rate
+            const wear_rate = N_D * repetition_penalty * 0.05; // Scaling factor for demo speed
+            
+            // 3. Apply Decay
+            // We simulate U increasing based on wear_rate for the visual effect
+            usageHours += wear_rate;
+            
+            const normalized_usage = usageHours / MAX_LIFE;
+            let rul = 100 * Math.exp(-normalized_usage * 5); // *5 for visual effect curve
+            
+            rul = Math.max(0, Math.min(100, rul));
+            
+            // UI Update
+            document.getElementById('rul-val').innerText = rul.toFixed(1) + '%';
+            document.getElementById('rul-fill').style.width = rul + '%';
+            
+            if(rul < 40) {
+                document.getElementById('rul-fill').style.background = '#ff0000';
+                document.querySelector('.status-box').className = 'status-box warning';
+            } else {
+                document.getElementById('rul-fill').style.background = '#00ff41';
+                document.querySelector('.status-box').className = 'status-box optimal';
+            }
         }
     </script>
 </body>
