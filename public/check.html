@@ -3,170 +3,309 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A+ SECURE UPLINK</title>
+    <title>A+ SANCTUARY | NEXUS</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
-        body { background: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; height: 100vh; overflow: hidden; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap');
         
-        .grid-bg {
-            background-size: 40px 40px;
-            background-image: linear-gradient(to right, rgba(0, 255, 65, 0.05) 1px, transparent 1px),
-                              linear-gradient(to bottom, rgba(0, 255, 65, 0.05) 1px, transparent 1px);
-            position: absolute; inset: 0; z-index: -1;
+        body { background-color: #050505; color: #e5e5e5; font-family: 'Inter', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        /* ABYSS BACKGROUND */
+        .sanctuary-bg {
+            position: fixed; inset: 0; z-index: -1;
+            background: 
+                radial-gradient(circle at 15% 50%, rgba(0, 255, 65, 0.03) 0%, transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(0, 255, 65, 0.03) 0%, transparent 25%);
+            background-color: #050505;
+        }
+        .grid-lines {
+            position: fixed; inset: 0; z-index: -1;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            mask-image: radial-gradient(circle at center, black 60%, transparent 100%);
         }
 
-        .status-card {
-            background: rgba(10,10,10,0.9); border: 1px solid #333; padding: 30px;
-            max-width: 400px; width: 100%; border-radius: 4px; position: relative;
-            box-shadow: 0 0 40px rgba(0,0,0,0.8);
+        /* CARDS */
+        .dash-card {
+            background: rgba(20, 20, 20, 0.6); border: 1px solid #222; 
+            backdrop-filter: blur(10px); border-radius: 12px; padding: 1.5rem;
+            transition: all 0.3s ease; height: 100%; display: flex; flex-direction: column;
+        }
+        .dash-card:hover { border-color: #333; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+        
+        .active-border { border-color: #00ff41; box-shadow: 0 0 15px rgba(0,255,65,0.1); }
+
+        /* STATUS PILLS */
+        .rank-pill {
+            background: #002200; color: #00ff41; border: 1px solid #005500;
+            padding: 4px 12px; border-radius: 4px; font-size: 0.75rem; 
+            font-weight: bold; letter-spacing: 1px; text-transform: uppercase;
         }
 
-        .rank-badge {
-            display: inline-block; padding: 5px 15px; background: #003300; 
-            border: 1px solid #00ff41; color: #00ff41; font-weight: bold; 
-            letter-spacing: 2px; font-size: 0.8rem; margin-bottom: 20px;
-            box-shadow: 0 0 10px rgba(0,255,65,0.2);
-        }
-
-        .stat-row { display: flex; justify-content: space-between; border-bottom: 1px solid #222; padding: 12px 0; }
-        .stat-label { color: #555; font-size: 0.8rem; }
-        .stat-val { color: #fff; font-weight: bold; }
-
-        .loading-overlay {
-            position: absolute; inset: 0; background: #000; z-index: 50;
-            display: flex; flex-col; align-items: center; justify-content: center;
+        /* TOOLTIP */
+        .tooltip-trigger:hover .tooltip-content { display: block; }
+        .tooltip-content {
+            display: none; position: absolute; bottom: 100%; right: 0; 
+            background: #111; border: 1px solid #333; padding: 10px; 
+            width: 250px; border-radius: 8px; z-index: 50; font-size: 0.75rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
         }
     </style>
 </head>
-<body class="flex items-center justify-center relative">
+<body class="min-h-screen p-6 md:p-12">
 
-    <div class="grid-bg"></div>
+    <div class="sanctuary-bg"></div>
+    <div class="grid-lines"></div>
 
-    <div id="loading" class="loading-overlay">
-        <i class="fas fa-satellite-dish fa-spin text-4xl text-green-600 mb-4"></i>
-        <div class="text-xs tracking-widest text-green-500">ESTABLISHING UPLINK...</div>
-        <div id="log" class="text-[10px] text-gray-600 mt-2 font-mono">Connecting to Chaos Core...</div>
+    <div id="loading" class="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center">
+        <i class="fas fa-fingerprint fa-spin text-4xl text-green-600 mb-4"></i>
+        <div class="text-xs tracking-widest text-green-500 font-mono">AUTHENTICATING...</div>
     </div>
 
-    <div id="main-ui" class="status-card hidden">
-        <div class="text-center">
-            <div id="rank-display" class="rank-badge">UNKNOWN</div>
-            <h1 class="text-2xl font-bold text-white mb-1">IDENTITY CONFIRMED</h1>
-            <div id="callsign-display" class="text-xs text-gray-500 uppercase tracking-widest mb-6">---</div>
-        </div>
-
-        <div class="space-y-1">
-            <div class="stat-row">
-                <span class="stat-label">TRUST SCORE</span>
-                <span id="score-val" class="stat-val text-green-400">0%</span>
+    <div id="dashboard-ui" class="max-w-6xl mx-auto hidden">
+        
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+            <div>
+                <div class="text-xs text-gray-500 font-mono mb-1 flex items-center gap-2">
+                    <i class="fas fa-shield-alt text-green-500"></i> SECURE NEXUS
+                </div>
+                <h1 class="text-3xl md:text-4xl font-bold text-white tracking-tight" id="callsign-header">LOADING...</h1>
             </div>
-            <div class="stat-row">
-                <span class="stat-label">SESSION AGE</span>
-                <span id="age-val" class="stat-val">0 Days</span>
-            </div>
-            <div class="stat-row">
-                <span class="stat-label">RATE LIMIT</span>
-                <span id="limit-val" class="stat-val">0/min</span>
-            </div>
-            <div class="stat-row border-none">
-                <span class="stat-label">DEVICE ID</span>
-                <span class="stat-val text-[10px] text-gray-600">SECURE_ENCLAVE</span>
-            </div>
-        </div>
-
-        <div class="mt-8 pt-4 border-t border-gray-800 text-center">
-            <div class="text-[10px] text-gray-500 mb-4">ACCESS GRANTED TO A+ SYSTEMS</div>
             
-            <button class="w-full bg-white text-black font-bold py-3 hover:bg-gray-200 transition text-xs tracking-widest mb-2">
-                VIEW APPOINTMENT STATUS
-            </button>
-            
-            <a href="/dashboard" id="tech-btn" class="block w-full py-3 text-gray-500 hover:text-green-500 text-[10px] transition hidden">
-                [ ACCESS COMMAND CENTER ]
-            </a>
+            <div class="flex items-center gap-6 bg-black/40 p-3 rounded-lg border border-gray-800">
+                <div class="text-right">
+                    <div class="text-[10px] text-gray-500 uppercase">RANK</div>
+                    <div id="rank-badge" class="rank-pill">NEWBORN</div>
+                </div>
+                
+                <div class="text-right relative tooltip-trigger cursor-help">
+                    <div class="text-[10px] text-gray-500 uppercase flex items-center justify-end gap-1">
+                        TRUST SCORE <i class="fas fa-info-circle text-gray-600"></i>
+                    </div>
+                    <div id="trust-score" class="text-2xl font-bold text-white font-mono">0%</div>
+                    
+                    <div class="tooltip-content text-left">
+                        <h4 class="text-green-500 font-bold mb-2 uppercase text-[10px] tracking-widest">Trust Metrics</h4>
+                        <ul class="space-y-2 text-gray-400">
+                            <li><span class="text-white">Longevity:</span> +1% per day active.</li>
+                            <li><span class="text-white">Consistency:</span> Valid biometric logins boost score.</li>
+                            <li><span class="text-white">Impact:</span> High trust unlocks "God Mode" speed limits and API access.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+            <div class="md:col-span-1">
+                <div class="dash-card active-border">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-sm font-bold text-white tracking-widest uppercase">
+                            <i class="fas fa-link mr-2 text-green-500"></i> Chaos Attached
+                        </h3>
+                        <div class="animate-pulse h-2 w-2 bg-green-500 rounded-full"></div>
+                    </div>
+                    
+                    <p class="text-xs text-gray-500 mb-4">
+                        Your Callsign is currently active on these verified nodes.
+                    </p>
+
+                    <div class="space-y-3 flex-1">
+                        <div class="bg-green-900/10 p-3 rounded border border-green-500/30 flex justify-between items-center">
+                            <div class="flex items-center gap-3">
+                                <i class="fas fa-mobile-alt text-green-500 text-lg"></i>
+                                <div>
+                                    <div class="text-xs text-white font-bold">THIS DEVICE</div>
+                                    <div class="text-[10px] text-green-400">Session Active</div>
+                                </div>
+                            </div>
+                            <i class="fas fa-check-circle text-green-500"></i>
+                        </div>
+
+                        <div class="bg-black/40 p-3 rounded border border-gray-800 flex justify-between items-center opacity-70">
+                            <div class="flex items-center gap-3">
+                                <i class="fas fa-warehouse text-gray-500 text-lg"></i>
+                                <div>
+                                    <div class="text-xs text-gray-300">A+ GARAGE HUB</div>
+                                    <div class="text-[10px] text-gray-600">Standby Mode</div>
+                                </div>
+                            </div>
+                            <div class="h-1.5 w-1.5 bg-yellow-500 rounded-full"></div>
+                        </div>
+
+                        <div class="bg-black/40 p-3 rounded border border-gray-800 flex justify-between items-center opacity-70">
+                            <div class="flex items-center gap-3">
+                                <i class="fas fa-desktop text-gray-500 text-lg"></i>
+                                <div>
+                                    <div class="text-xs text-gray-300">TECH PORTAL</div>
+                                    <div class="text-[10px] text-gray-600">Authorized</div>
+                                </div>
+                            </div>
+                            <div class="h-1.5 w-1.5 bg-blue-500 rounded-full"></div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-4 border-t border-gray-800 text-center">
+                        <div class="text-[10px] text-gray-600 font-mono">SECURE MESH NETWORK</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                <div class="dash-card">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-sm font-bold text-gray-300"><i class="fas fa-fingerprint mr-2 text-blue-500"></i> BIOMETRIC LOCK</h3>
+                        <div id="sigil-status" class="text-[10px] text-red-500 font-bold bg-red-900/10 px-2 py-1 rounded">NOT SET</div>
+                    </div>
+                    <p class="text-xs text-gray-500 mb-4">
+                        Draw a secret shape to login instantly on any device.
+                    </p>
+                    <button onclick="window.location.href='/abyss-forge.html'" class="w-full border border-blue-900 text-blue-400 hover:bg-blue-900/20 py-3 rounded text-xs font-bold transition flex items-center justify-center gap-2">
+                        <i class="fas fa-pen-nib"></i> FORGE SIGIL
+                    </button>
+                </div>
+
+                <div class="dash-card">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-xs font-bold text-gray-400 uppercase">Master Key</h3>
+                        <button onclick="copyKey()" class="text-green-500 hover:text-white text-xs"><i class="fas fa-copy"></i></button>
+                    </div>
+                    <div class="bg-black p-3 rounded font-mono text-xs text-gray-500 truncate" id="api-key-display">
+                        •••••••••••••••••••••
+                    </div>
+                    <div class="mt-2 text-[10px] text-gray-600 flex justify-between">
+                        <span>Used for API / SDK Access</span>
+                        <span class="cursor-pointer hover:text-white transition" onclick="revealKey()">REVEAL</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="md:col-span-1">
+                <div class="dash-card">
+                    <h3 class="text-sm font-bold text-white mb-4"><i class="fas fa-expand-arrows-alt mr-2 text-purple-500"></i> EXPAND CHAOS</h3>
+                    
+                    <p class="text-xs text-gray-400 mb-6">
+                        Your Callsign <span class="text-white font-bold" id="callsign-inline">...</span> is universal. Use it to verify identity across the entire A+ Ecosystem.
+                    </p>
+
+                    <div class="space-y-4">
+                        <div class="flex gap-3">
+                            <div class="bg-purple-900/20 p-2 rounded h-8 w-8 flex items-center justify-center text-purple-500 font-bold text-xs">1</div>
+                            <div>
+                                <h4 class="text-xs font-bold text-white">Add to Desktop</h4>
+                                <p class="text-[10px] text-gray-500 leading-relaxed">
+                                    Go to <code>overthere.ai</code> on your laptop. Click "Recall" and enter your 3 words. Your Trust Score syncs instantly.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-3">
+                            <div class="bg-purple-900/20 p-2 rounded h-8 w-8 flex items-center justify-center text-purple-500 font-bold text-xs">2</div>
+                            <div>
+                                <h4 class="text-xs font-bold text-white">Technician Access</h4>
+                                <p class="text-[10px] text-gray-500 leading-relaxed">
+                                    Staff members can use this Callsign to sign job logs and access the Tech Hub securely.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-auto pt-6">
+                        <a href="/sdk" class="block w-full bg-purple-900/20 border border-purple-900 text-purple-400 text-center py-2 rounded text-xs font-bold hover:bg-purple-900/40 transition">
+                            VIEW INTEGRATION DOCS
+                        </a>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
     <script>
-        const LOG = document.getElementById('log');
-
+        // --- INITIALIZE ---
         window.onload = async () => {
-            // 1. GET KEY
             const apiKey = localStorage.getItem('chaos_key_vault');
+            
             if (!apiKey) {
-                window.location.href = '/'; // Go back to login if no key
+                window.location.href = '/'; 
                 return;
             }
 
-            // 2. HANDSHAKE (Verify with Server)
-            LOG.innerText = "AUTHENTICATING KEY: " + apiKey.substring(0, 10) + "...";
-            
+            // Check Sigil Status
+            if(localStorage.getItem('abyss_sigil_v2')) {
+                const status = document.getElementById('sigil-status');
+                status.innerText = "ACTIVE";
+                status.classList.remove('text-red-500', 'bg-red-900/10');
+                status.classList.add('text-green-500', 'bg-green-900/10');
+            }
+
+            // Fetch Data
             try {
-                // Try to verify
-                let res = await fetch('/api/v1/sentinel/verify', {
+                const res = await fetch('/api/v1/sentinel/verify', {
                     method: 'POST',
                     headers: { 'x-api-key': apiKey }
                 });
-
-                // 3. AUTO-HEAL (If server doesn't know this key yet, register it)
-                if (res.status === 401) {
-                    LOG.innerText = "NEW IDENTITY DETECTED. REGISTERING...";
-                    await registerGhost(apiKey);
-                    // Retry verification
-                    res = await fetch('/api/v1/sentinel/verify', {
-                        method: 'POST',
-                        headers: { 'x-api-key': apiKey }
-                    });
-                }
-
                 const data = await res.json();
-
+                
                 if (data.valid) {
-                    renderStats(data, apiKey);
+                    renderDashboard(data, apiKey);
                 } else {
-                    alert("ACCESS DENIED. KEY INVALID.");
-                    localStorage.removeItem('chaos_key_vault');
-                    window.location.href = '/';
+                    // Auto-Heal attempt for returning users
+                    await registerGhost(apiKey);
+                    location.reload();
                 }
-
             } catch (e) {
-                LOG.innerText = "CONNECTION FAILURE.";
-                LOG.style.color = "red";
-                console.error(e);
+                console.error("Offline Mode");
             }
         };
 
+        function renderDashboard(data, key) {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('dashboard-ui').classList.remove('hidden');
+
+            const callsign = data.project || "UNKNOWN GHOST";
+            document.getElementById('callsign-header').innerText = callsign;
+            document.getElementById('callsign-inline').innerText = callsign;
+            
+            document.getElementById('rank-badge').innerText = data.rank;
+            document.getElementById('trust-score').innerText = data.trustScore + "%";
+            
+            // Key Display
+            document.getElementById('api-key-display').innerText = key.substring(0, 16) + "••••••••";
+
+            // Rank Colors
+            if (data.rank === 'GOD_MODE' || data.rank === 'IMMORTAL') {
+                document.getElementById('rank-badge').classList.replace('bg-002200', 'bg-purple-900');
+                document.getElementById('rank-badge').classList.replace('text-00ff41', 'text-purple-300');
+            }
+        }
+
         async function registerGhost(key) {
-            // Self-register the key since we generated it on the client
-            // We use the entropy hash as the 'alias' for now
             await fetch('/api/auth/ghost-register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     alias: "GHOST-" + key.substring(9, 14), 
-                    chaos_metric: Math.random() // Pass bot check
+                    chaos_metric: 0.8, provided_key: key
                 })
             });
         }
 
-        function renderStats(data, key) {
-            document.getElementById('loading').classList.add('hidden');
-            document.getElementById('main-ui').classList.remove('hidden');
+        function revealKey() {
+            const apiKey = localStorage.getItem('chaos_key_vault');
+            const el = document.getElementById('api-key-display');
+            if(el.innerText.includes('•')) el.innerText = apiKey;
+            else el.innerText = apiKey.substring(0, 16) + "••••••••";
+        }
 
-            document.getElementById('rank-display').innerText = data.rank;
-            document.getElementById('score-val').innerText = data.trustScore + "%";
-            document.getElementById('age-val').innerText = (data.daysAlive || "0.00") + " Days";
-            document.getElementById('limit-val').innerText = data.limit;
-            
-            // Extract callsign from key hash (simulated visual)
-            document.getElementById('callsign-display').innerText = "ID: " + key.substring(0, 16).toUpperCase();
-
-            // Show Tech Button if Rank is high or Admin
-            if (data.rank === "GOD_MODE" || data.rank === "IMMORTAL") {
-                document.getElementById('tech-btn').classList.remove('hidden');
-            }
+        function copyKey() {
+            const apiKey = localStorage.getItem('chaos_key_vault');
+            navigator.clipboard.writeText(apiKey);
+            alert("Identity Key Copied");
         }
     </script>
 </body>
