@@ -3,72 +3,252 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A+ CHAOS CORE | SYSTEM OVERVIEW</title>
+    <title>A+ VERIFY: BIOMETRIC TRACE</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+        body { background: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         
-        body { background-color: #000; color: #e5e5e5; font-family: 'Inter', sans-serif; overflow-x: hidden; }
-        .font-mono { font-family: 'JetBrains Mono', monospace; }
+        .portal-card {
+            background: rgba(5,5,5,0.9); border: 1px solid #222; padding: 40px; 
+            max-width: 500px; width: 100%; box-shadow: 0 0 80px rgba(0, 255, 65, 0.05);
+            backdrop-filter: blur(5px);
+        }
 
-        .hero-section {
-            position: relative; height: 100vh; display: flex; align-items: center; justify-content: center;
-            background: radial-gradient(circle at 50% 50%, #0a1a0a 0%, #000 100%);
-            overflow: hidden;
+        #chaosCanvas {
+            border: 1px solid #005500; background: #000; margin-bottom: 20px;
+            cursor: crosshair; touch-action: none; /* Crucial for preventing scroll on mobile */
+            box-shadow: inset 0 0 10px rgba(0, 255, 65, 0.1);
         }
-        .grid-overlay {
-            position: absolute; inset: 0; 
-            background-image: linear-gradient(rgba(0, 255, 65, 0.03) 1px, transparent 1px),
-                              linear-gradient(90deg, rgba(0, 255, 65, 0.03) 1px, transparent 1px);
-            background-size: 50px 50px;
-            mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+
+        .input-line {
+            background: #111; border: 1px solid #333; color: white; padding: 10px; text-align: center;
+            border-radius: 4px; text-transform: uppercase;
         }
-        
-        .gradient-text {
-            background: linear-gradient(to right, #fff, #4ade80);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        }
+        .btn-action { margin-top: 15px; width: 100%; padding: 16px; font-weight: bold; cursor: pointer; }
+        .btn-secondary { background: #111; color: #999; border: 1px solid #333; }
+        .btn-secondary:hover { background: #222; color: white; }
     </style>
 </head>
 <body>
 
-    <nav class="absolute top-0 w-full flex justify-end items-center p-6 z-50">
-        <a href="/login" class="text-xs font-mono text-gray-500 hover:text-green-500 transition border border-gray-800 hover:border-green-800 px-4 py-2 rounded">
-            <i class="fas fa-terminal mr-2"></i>COMMAND ACCESS
-        </a>
-    </nav>
+    <div class="portal-card text-center">
+        <h1 class="text-2xl font-bold tracking-widest mb-2 text-white">ENTER ABYSS</h1>
+        <p class="text-gray-500 text-xs mb-8">Verify identity via Sigil or Voice.</p>
 
-    <section class="hero-section">
-        <div class="grid-overlay"></div>
-        
-        <div class="relative z-10 text-center max-w-4xl px-4">
-            
-            <h1 class="text-6xl md:text-8xl font-black tracking-tighter mb-6 leading-none">
-                ORDER FROM <br><span class="gradient-text">CHAOS.</span>
-            </h1>
-            
-            <p class="text-lg text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-                Choose your path: Create a new Identity or Verify an existing one.
-            </p>
+        <input type="text" id="callsignInput" class="input-line w-full mb-2" placeholder="CRIMSON-VELVET-THUNDER">
+        <p id="callsign-hint" class="text-xs text-gray-500 mb-4"></p>
 
-            <div class="flex flex-col md:flex-row gap-6 justify-center">
-                
-                <a href="/login" class="bg-blue-600 text-black font-bold px-10 py-5 rounded-lg hover:bg-blue-500 transition shadow-[0_0_25px_rgba(66,153,225,0.4)] flex items-center justify-center gap-3 text-lg transform hover:scale-105">
-                    <i class="fas fa-user-lock"></i> ENTER THE ABYSS (Login)
-                </a>
-                
-                <a href="/abyss.html" class="border border-green-700 text-green-300 font-bold px-10 py-5 rounded-lg hover:bg-green-700/20 transition flex items-center justify-center gap-3 text-lg transform hover:scale-105">
-                    <i class="fas fa-magic"></i> CHAOS FORGE (Create Callsign)
-                </a>
-            </div>
+        <button onclick="startVoice()" class="btn-action btn-secondary mb-4">
+            <i class="fas fa-microphone mr-2"></i> USE VOICE
+        </button>
+
+        <div id="canvas-container">
+            <canvas id="chaosCanvas" width="300" height="200"></canvas>
+            <p id="challenge-status" class="text-[10px] text-red-500 mb-4 font-bold">PERFORM BIOMETRIC TRACE</p>
+            <div id="jitter-meter" class="text-green-400 text-sm font-mono transition-colors duration-200">Jitter: 0%</div>
         </div>
+        
+        <button onclick="attemptLogin()" id="login-btn" class="bg-blue-600 hover:bg-blue-500 text-black px-8 py-3 rounded font-bold text-sm transition duration-300 w-full disabled:opacity-50 disabled:cursor-not-allowed">
+            VERIFY AND ACCESS
+        </button>
 
-    </section>
+        <div class="mt-6 border-t border-gray-800 pt-4">
+            <a href="/" class="text-gray-600 hover:text-white text-xs mr-4">← Back to Landing</a>
+            <a href="/forge" class="text-green-400 hover:text-white text-xs">Need a Callsign? Forge One.</a>
+        </div>
+    </div>
 
-    <footer class="py-4 text-center text-gray-700 text-xs fixed bottom-0 w-full bg-black/50">
-        &copy; 2025 A+ OVERHEAD GARAGE DOORS, LLC
-    </footer>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script>
+        const challengeStatus = document.getElementById('challenge-status');
+        const canvas = document.getElementById('chaosCanvas');
+        const ctx = canvas.getContext('2d');
+        const loginBtn = document.getElementById('login-btn');
+        const jitterMeter = document.getElementById('jitter-meter');
 
+        let isTracing = false;
+        let chaosMetric = 0; 
+        
+        // --- 0. AUTO-POPULATE & INIT (Crash-Proof Start) ---
+        window.addEventListener('load', () => {
+            try {
+                // Auto-populate from history
+                const callsignInput = document.getElementById('callsignInput');
+                const history = localStorage.getItem('callsign_history');
+                if (history) {
+                    callsignInput.value = history;
+                    document.getElementById('callsign-hint').textContent = 'Callsign Recognized. Ready to Trace.';
+                }
+            } catch (e) {
+                console.warn("Auto-fill failed, proceeding with blank input.");
+            }
+
+            // Loop breaker: If key exists, attempt silent login.
+            if (localStorage.getItem('chaos_key_vault')) {
+                async function autoLoginFromStorage() {
+                    const key = localStorage.getItem('chaos_key_vault');
+                    if (key) {
+                        const callsignInput = document.getElementById('callsignInput');
+                        // Fill input with key or Callsign for smooth run
+                        callsignInput.value = key.includes('sk_ghost') ? (localStorage.getItem('callsign_history') || '') : key;
+                        
+                        // Wait a moment for DOM to settle before running full check
+                        setTimeout(() => attemptLogin(true), 100); 
+                    }
+                }
+                autoLoginFromStorage();
+            }
+        });
+
+        // --- DRAWING LOGIC (Fixed Visibility, Live Jitter, Finger Sensing) ---
+        function startTrace(e) {
+            isTracing = true;
+            chaosMetric = 0;
+            ctx.clearRect(0, 0, canvas.width, canvas.height); 
+            e.preventDefault(); 
+            
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            const currentCallsign = document.getElementById('callsignInput').value.trim().toUpperCase();
+            const seed = CryptoJS.SHA256(currentCallsign).words[0] % 0xFFFFFF; 
+            ctx.strokeStyle = `#${seed.toString(16).padStart(6, '0')}`;
+        }
+
+        function moveTrace(e) {
+            if (!isTracing) return;
+            e.preventDefault(); 
+            
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches ? e.touches[0] : e;
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+            
+            // Draw the line segment
+            ctx.beginPath();
+            ctx.moveTo(x - (e.movementX || 0), y - (e.movementY || 0));
+            ctx.lineTo(x, y);
+            ctx.stroke();
+
+            // Accumulate movement jitter/pressure (using touch.force if available)
+            const pressure = touch.force || 0.5; // Use 0.5 as fallback pressure
+            chaosMetric += (Math.abs(e.movementX || 0) + Math.abs(e.movementY || 0)) * pressure; 
+            
+            // Live Jitter Feedback
+            if (chaosMetric > 10) {
+                let jitterPct = Math.min(100, (chaosMetric / 2000) * 100); 
+                jitterMeter.textContent = `Jitter: ${jitterPct.toFixed(0)}%`;
+                jitterMeter.style.color = jitterPct > 50 ? '#00ff41' : '#ffcc00'; 
+            }
+        }
+
+        function endTrace() {
+            if (!isTracing) return;
+            isTracing = false;
+            
+            if (chaosMetric > 500) { 
+                challengeStatus.innerText = `[BIOMETRIC PASS] Jitter Ready.`;
+                challengeStatus.classList.remove('text-red-500');
+                challengeStatus.classList.add('text-green-500');
+                loginBtn.disabled = false;
+            } else {
+                challengeStatus.innerText = "MOVEMENT INSUFFICIENT. DRAW WITH INTENT.";
+                challengeStatus.classList.add('text-red-500');
+                loginBtn.disabled = true;
+            }
+            jitterMeter.textContent = `Jitter: ${Math.min(100, (chaosMetric / 2000) * 100).toFixed(0)}%`;
+        }
+        
+        // --- VOICE LOGIC (Stub for Future Implementation) ---
+        function startVoice() {
+            document.getElementById('challenge-status').textContent = 'Voice recognition is offline. Use Sigil trace.';
+        }
+
+        // Event Listeners (Mouse + Touch)
+        canvas.addEventListener('mousedown', startTrace);
+        canvas.addEventListener('mousemove', moveTrace);
+        canvas.addEventListener('mouseup', endTrace);
+        canvas.addEventListener('touchstart', startTrace);
+        canvas.addEventListener('touchmove', moveTrace);
+        canvas.addEventListener('touchend', endDraw);
+        
+        loginBtn.disabled = true; 
+
+        // --- LOGIN & REDIRECT LOGIC ---
+        async function getVerifiedData(key) {
+            try {
+                const res = await fetch('/api/v1/sentinel/verify', { headers: { 'x-api-key': key } });
+                if (res.status === 200) {
+                    return await res.json();
+                }
+            } catch (e) { return null; }
+            return null;
+        }
+
+        async function attemptLogin(isAutoLogin = false) {
+            const input = document.getElementById('callsignInput').value.trim();
+            const msg = document.getElementById('challenge-status');
+
+            if (!input) {
+                msg.innerText = "ENTER CALLSIGN OR MASTER KEY FIRST.";
+                return;
+            }
+            
+            let key = input;
+            if (!input.toLowerCase().startsWith('sk_')) {
+                const cleanPhrase = input.toLowerCase().replace(/\s+/g, '-');
+                key = "sk_ghost_" + CryptoJS.SHA256(cleanPhrase + "INFINITE_ABYSS_2025").toString().substring(0,32);
+            }
+            
+            // Check trace unless it is a Master Key or an AutoLogin attempt
+            if (chaosMetric < 500 && !key.toLowerCase().includes('sk_chaos') && !isAutoLogin) {
+                 msg.innerText = "PERFORM BIOMETRIC TRACE TO VERIFY.";
+                 return;
+            }
+
+            loginBtn.disabled = true;
+            loginBtn.textContent = "VERIFYING IDENTITY...";
+
+            await registerWithServer(key, input, chaosMetric); 
+            const verifiedData = await getVerifiedData(key);
+
+            if (verifiedData) {
+                localStorage.setItem('chaos_key_vault', key);
+                if (!key.toLowerCase().includes('sk_chaos')) {
+                    localStorage.setItem('callsign_history', input.toUpperCase()); // Save Callsign for history
+                }
+                
+                sessionStorage.setItem('verified_user_data', JSON.stringify(verifiedData));
+                
+                loginBtn.textContent = "ACCESS GRANTED";
+                setTimeout(() => {
+                    // FINAL FAST ROUTE TO THE DASHBOARD
+                    window.location.href = '/sanctuary'; 
+                }, 500);
+                
+            } else {
+                loginBtn.disabled = false;
+                loginBtn.textContent = "VERIFY AND ACCESS";
+                msg.innerText = "VERIFICATION FAILED. KEY UNKNOWN OR TRACE LOW.";
+            }
+        }
+        
+        // Self-Healing Registration Function (Used to verify a key exists)
+        async function registerWithServer(key, alias, chaosMetric) {
+            try {
+                const res = await fetch('/api/auth/ghost-register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ alias: alias, chaos_metric: chaosMetric, provided_key: key })
+                });
+                const data = await res.json();
+                return data.success;
+            } catch (e) {
+                return false; 
+            }
+        }
+    </script>
 </body>
 </html>
