@@ -74,20 +74,18 @@
             if (countdown > 0) {
                 timerElement.textContent = `Redirecting in ${countdown}s...`;
             } else {
-                // Final Redirect to the stable dashboard
+                // FINAL REDIRECT TO THE STABLE DASHBOARD
                 window.location.href = '/check.html'; 
             }
         }
 
-        // Start text cycling immediately
         setInterval(scramble, 1000);
         scramble();
         
-        // Start countdown immediately
+        // Start countdown after 1 second of text display
         setTimeout(() => {
-             // Run once after 1s, then every second after
-             setInterval(updateTimer, 1000); 
              updateTimer(); 
+             setInterval(updateTimer, 1000); 
         }, 1000);
         
     </script>
