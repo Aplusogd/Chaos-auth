@@ -52,7 +52,6 @@
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script>
         const challengeStatus = document.getElementById('challenge-status');
         const canvas = document.getElementById('chaosCanvas');
@@ -62,12 +61,17 @@
         let isTracing = false;
         let chaosMetric = 0; 
         
-        // --- DRAWING LOGIC (Simplified Jitter Check) ---
+        // --- DRAWING LOGIC (FIXED) ---
         function startTrace(e) {
             isTracing = true;
             chaosMetric = 0;
             ctx.clearRect(0, 0, canvas.width, canvas.height); 
             e.preventDefault();
+            
+            // Set style for drawing the trail
+            ctx.strokeStyle = '#00ff41'; // Bright Green
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
         }
 
         function moveTrace(e) {
@@ -78,15 +82,13 @@
             const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
             const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
             
-            // Draw
-            ctx.strokeStyle = '#00ff41';
-            ctx.lineWidth = 3;
+            // Draw the line segment
             ctx.beginPath();
             ctx.moveTo(x - (e.movementX || 0), y - (e.movementY || 0));
             ctx.lineTo(x, y);
             ctx.stroke();
 
-            // Accumulate movement jitter as the chaos metric
+            // Accumulate movement jitter
             chaosMetric += (Math.abs(e.movementX || 0) + Math.abs(e.movementY || 0)); 
         }
 
@@ -125,7 +127,8 @@
                 msg.innerText = "ENTER CALLSIGN OR MASTER KEY FIRST.";
                 return;
             }
-            if (chaosMetric < 500 && !input.toLowerCase().includes('sk_chaos')) {
+            // Check trace unless it is the Master Key
+            if (chaosMetric < 500 && !input.toLowerCase().startsWith('sk_chaos')) {
                  msg.innerText = "PERFORM BIOMETRIC TRACE TO VERIFY.";
                  return;
             }
@@ -134,19 +137,20 @@
             let key = input;
             if (!input.toLowerCase().startsWith('sk_')) {
                 const cleanPhrase = input.toLowerCase().replace(/\s+/g, '-');
+                // NOTE: This requires CryptoJS library to be loaded
                 key = "sk_ghost_" + CryptoJS.SHA256(cleanPhrase + "INFINITE_ABYSS_2025").toString().substring(0,32);
             }
 
             loginBtn.disabled = true;
             loginBtn.textContent = "VERIFYING IDENTITY...";
 
-            // 2. Self-Heal and Verify (Ensures the key is known to the server)
+            // 2. Self-Heal and Verify
             const success = await registerWithServer(key, input, chaosMetric);
 
             if (success) {
                 localStorage.setItem('chaos_key_vault', key);
-                // Redirect through the search screen for a stable load
-                window.location.href = '/abyss-search.html';
+                // DIRECT REDIRECT TO STABLE DASHBOARD (No more search screen)
+                window.location.href = '/check.html';
             } else {
                 loginBtn.disabled = false;
                 loginBtn.textContent = "VERIFY AND ACCESS";
@@ -154,8 +158,9 @@
             }
         }
         
-        // Self-Healing Registration Function (Used to verify a key exists)
+        // Self-Healing Registration Function (Verifies key existence on server)
         async function registerWithServer(key, alias, chaosMetric) {
+            // Note: Crypto-JS is required for the key generation step
             try {
                 const res = await fetch('/api/auth/ghost-register', {
                     method: 'POST',
@@ -175,7 +180,7 @@
         
         // Auto-Check if already logged in
         if (localStorage.getItem('chaos_key_vault')) {
-            window.location.href = '/abyss-search.html'; 
+            window.location.href = '/check.html'; 
         }
     </script>
 </body>
