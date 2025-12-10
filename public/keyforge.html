@@ -2,143 +2,73 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>A+ KEY FORGE | MINT ACCESS</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A+ KEY FORGE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
-        body { background: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; }
-        .cyber-input { background: #111; border: 1px solid #333; color: white; padding: 10px; width: 100%; outline: none; transition: border 0.3s; }
-        .cyber-input:focus { border-color: #00ff41; }
-        .key-card { border-left: 2px solid #333; background: #0a0a0a; padding: 15px; margin-bottom: 10px; transition: all 0.3s; }
-        .key-card:hover { border-left-color: #00ff41; background: #111; }
+        body { background-color: #000; color: #ffeb3b; font-family: 'Courier New', monospace; padding: 40px; }
+        .forge-box { border: 2px solid #333; padding: 30px; max-width: 600px; margin: 0 auto; background: #111; }
+        input, select { background: #000; border: 1px solid #333; color: white; padding: 10px; width: 100%; margin-bottom: 15px; }
+        button { background: #ffeb3b; color: black; font-weight: bold; padding: 10px 20px; border: none; cursor: pointer; width: 100%; }
+        button:hover { background: #fff; }
+        .key-display { background: #050505; border: 1px dashed #444; padding: 15px; margin-top: 20px; word-break: break-all; display: none; }
     </style>
 </head>
-<body class="p-6 max-w-4xl mx-auto">
+<body>
+    <div class="text-center mb-8">
+        <h1 class="text-4xl font-bold mb-2"><i class="fas fa-hammer"></i> KEY FORGE</h1>
+        <p class="text-gray-500 text-sm">INTERNAL MINTING PRESS</p>
+    </div>
 
-    <header class="flex justify-between items-center border-b border-gray-800 pb-6 mb-8">
-        <div>
-            <h1 class="text-2xl font-bold tracking-widest text-white">KEY FORGE</h1>
-            <div class="text-xs text-yellow-500 mt-1">ACCESS MINTING PROTOCOL</div>
-        </div>
-        <div>
-            <a href="/dashboard" class="text-xs text-gray-500 hover:text-white mr-4">[ RETURN TO COMMAND ]</a>
-            <button onclick="logout()" class="text-xs text-red-500 hover:text-red-400">[ LOGOUT ]</button>
-        </div>
-    </header>
+    <div class="forge-box">
+        <label class="text-xs text-gray-500 uppercase">Master Authorization (Your Key)</label>
+        <input type="password" id="adminToken" placeholder="Paste your sk_chaos_... key here">
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-        <div class="md:col-span-1">
-            <h2 class="text-lg text-white mb-4">MINT NEW KEY</h2>
-            <div class="space-y-4">
-                <div>
-                    <label class="text-[10px] text-gray-500 uppercase">Client / App Name</label>
-                    <input type="text" id="clientName" class="cyber-input" placeholder="e.g. A+ Tech Hub">
-                </div>
-                <div>
-                    <label class="text-[10px] text-gray-500 uppercase">Access Scope</label>
-                    <select id="keyScope" class="cyber-input">
-                        <option value="sdk-access">SDK Access (Sentinel)</option>
-                        <option value="full-access">Full Access (Tech Hub)</option>
-                    </select>
-                </div>
-                <button onclick="mintKey()" class="w-full bg-green-900 hover:bg-green-700 text-white p-3 font-bold transition border border-green-800">
-                    <i class="fas fa-plus mr-2"></i> MINT KEY
-                </button>
-            </div>
-        </div>
+        <label class="text-xs text-gray-500 uppercase">Key Owner Name (e.g., "Tech: Miguel")</label>
+        <input type="text" id="clientName" placeholder="Name of user">
 
-        <div class="md:col-span-2">
-            <h2 class="text-lg text-white mb-4">ACTIVE LEDGER</h2>
-            <div id="key-list" class="space-y-2">
-                <div class="text-gray-600 text-sm italic">Loading keys...</div>
-            </div>
+        <label class="text-xs text-gray-500 uppercase">Access Level</label>
+        <select id="keyScope">
+            <option value="staff">🔧 STAFF (Restricted - Verify/Log Only)</option>
+            <option value="full-access">👑 ADMIN (Full Control)</option>
+            <option value="sandbox">🛡️ SANDBOX (Rate Limited)</option>
+        </select>
+
+        <button onclick="mintKey()">MINT NEW KEY</button>
+
+        <div id="result" class="key-display">
+            <div class="text-xs text-gray-500 mb-1">NEW KEY GENERATED:</div>
+            <div id="newKey" class="text-green-400 text-lg"></div>
         </div>
     </div>
 
-    <div id="toast" class="fixed bottom-4 right-4 bg-green-900 text-white px-6 py-3 rounded border border-green-500 hidden">
-        KEY CREATED SUCCESSFULLY
+    <div class="text-center mt-8">
+        <a href="/dashboard" class="text-xs text-gray-600 hover:text-white">[ RETURN TO DASHBOARD ]</a>
     </div>
 
     <script>
-        const sessionToken = sessionStorage.getItem('chaos_session');
-        if (!sessionToken) window.location.href = '/app';
-
-        function logout() {
-            sessionStorage.removeItem('chaos_session');
-            window.location.href = '/';
-        }
-
-        // 1. LOAD KEYS
-        async function loadKeys() {
-            try {
-                const res = await fetch('/api/admin/keys/list', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token: sessionToken })
-                });
-                const data = await res.json();
-                
-                const list = document.getElementById('key-list');
-                list.innerHTML = '';
-
-                if (data.keys.length === 0) {
-                    list.innerHTML = '<div class="text-gray-600 text-sm">No keys active. Mint one to begin.</div>';
-                    return;
-                }
-
-                data.keys.forEach(k => {
-                    const div = document.createElement('div');
-                    div.className = 'key-card flex justify-between items-center';
-                    div.innerHTML = `
-                        <div>
-                            <div class="text-white font-bold text-sm">${k.client}</div>
-                            <div class="text-[10px] text-gray-500 font-mono mt-1">${k.key}</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-[10px] text-blue-400 border border-blue-900 px-2 py-0.5 rounded">${k.scope}</div>
-                            <div class="text-[9px] text-gray-600 mt-1">${new Date(k.created).toLocaleDateString()}</div>
-                        </div>
-                    `;
-                    list.appendChild(div);
-                });
-            } catch(e) { console.error(e); }
-        }
-
-        // 2. MINT KEY
         async function mintKey() {
-            const name = document.getElementById('clientName').value;
+            const token = document.getElementById('adminToken').value;
+            const client = document.getElementById('clientName').value;
             const scope = document.getElementById('keyScope').value;
-            
-            if(!name) return alert("Enter a Client Name");
 
-            try {
-                const res = await fetch('/api/admin/keys/create', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token: sessionToken, clientName: name, scope: scope })
-                });
-                const data = await res.json();
-                
-                if(data.success) {
-                    document.getElementById('clientName').value = '';
-                    showToast();
-                    loadKeys(); // Refresh list
-                } else {
-                    alert("Minting Failed: " + (data.error || "Unknown Error"));
-                }
-            } catch(e) { alert("Server Error"); }
+            if(!token || !client) return alert("Fill in all fields.");
+
+            const res = await fetch('/api/admin/keys/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token, clientName: client, scope })
+            });
+
+            const data = await res.json();
+            if(data.success) {
+                document.getElementById('result').style.display = 'block';
+                document.getElementById('newKey').innerText = data.key;
+            } else {
+                alert("Minting Failed: " + (data.error || "Unknown Error"));
+            }
         }
-
-        function showToast() {
-            const t = document.getElementById('toast');
-            t.style.display = 'block';
-            setTimeout(() => t.style.display = 'none', 3000);
-        }
-
-        // INIT
-        loadKeys();
     </script>
 </body>
 </html>
