@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A+ CHAOS CORE | MICRO-MOVEMENT SENSITIVITY</title>
+    <title>A+ CHAOS CORE | BIOMIMICRY DJE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -60,7 +60,7 @@
         <section class="text-center space-y-8 mb-24">
             <div class="inline-flex items-center gap-2 border border-green-500/30 bg-green-900/10 px-4 py-1.5 rounded-full mb-4">
                 <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                <span class="text-[10px] text-green-400 tracking-[0.2em] font-bold mono">SYSTEM V171 SENSITIVITY TUNE</span>
+                <span class="text-[10px] text-green-400 tracking-[0.2em] font-bold mono">SYSTEM V172 BIOMIMICRY DJE</span>
             </div>
             
             <h1 class="text-5xl md:text-8xl font-black tracking-tighter leading-none text-white">
@@ -204,7 +204,10 @@
         const SCROLL_DATA = {
             times: [],   
             velocity: [], 
+            accels: [],  // NEW: Store acceleration for Jerk calc
+            directions: [], // NEW: Store direction for Entropy calc
             lastY: 0,
+            lastX: 0,
             lastT: Date.now()
         };
 
@@ -213,42 +216,94 @@
 
             const now = Date.now();
             const y = window.scrollY;
+            const x = window.scrollX;
             const dt = now - SCROLL_DATA.lastT;
             const dy = y - SCROLL_DATA.lastY;
+            const dx = x - SCROLL_DATA.lastX;
             
             if (Math.abs(dy) > 0 && dt > 0) {
                 const velocity = Math.abs(dy / dt);
                 
+                // Acceleration (current velocity - previous velocity) / dt
+                const lastVel = SCROLL_DATA.velocity[SCROLL_DATA.velocity.length - 1] || 0;
+                const accel = (velocity - lastVel) / dt;
+
                 SCROLL_DATA.times.push(dt);
                 SCROLL_DATA.velocity.push(velocity);
+                SCROLL_DATA.accels.push(accel);
+                SCROLL_DATA.directions.push(dy > 0 ? 'down' : 'up');
                 
                 if (SCROLL_DATA.times.length > 20) {
                     SCROLL_DATA.times.shift();
                     SCROLL_DATA.velocity.shift();
+                    SCROLL_DATA.accels.shift();
+                    SCROLL_DATA.directions.shift();
                 }
             }
             SCROLL_DATA.lastY = y;
+            SCROLL_DATA.lastX = x;
             SCROLL_DATA.lastT = now;
         }
 
         window.addEventListener('scroll', captureScrollData, { passive: true });
-        window.addEventListener('mousemove', captureScrollData, { passive: true });
+        window.addEventListener('mousemove', captureScrollData, { passive: true }); // Mouse entropy layer
 
-        // --- MICRO-AUDIT HEARTBEAT (Runs every 250ms) ---
-        const SENTINEL_CONFIG = {
-            // FORGIVENESS INCREASED: Allows extreme forgiveness for micro-movements
-            THRESHOLD_VARIANCE: 0.000001,  // Punish only 99.9999% perfection (was 0.000005)
-            THRESHOLD_PATTERN: 20,         // Forgives larger variances in timing (was 15)
-            
-            SPIKE_THRESHOLD_MS: 2,
-            SPIKE_DISTANCE: 100,
-        };
-        let trustScore = 100;
-        
+        // --- CORE MATH HELPERS (Standard Deviation Logic) ---
         function calculateVariance(arr) {
             if (arr.length < 2) return 999;
             const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
             return arr.reduce((sq, n) => sq + Math.pow(n - mean, 2), 0) / arr.length;
+        }
+
+        function calculateShannonEntropy(arr) {
+            const counts = arr.reduce((acc, val) => {
+                acc[val] = (acc[val] || 0) + 1;
+                return acc;
+            }, {});
+            const total = arr.length;
+            let entropy = 0;
+            for (const count of Object.values(counts)) {
+                const p = count / total;
+                if (p > 0) entropy -= p * Math.log2(p);
+            }
+            return entropy; // Normalized to max ~2 bits for 4 directions
+        }
+
+        // --- DJE FORMULA CONFIG ---
+        const SENTINEL_CONFIG = {
+            // FORGIVENESS INCREASED: Allows extreme forgiveness for micro-movements
+            // This threshold requires near-perfect 99.9999% robotic smoothness to fail
+            THRESHOLD_DJE_FLOOR: 0.000001, 
+            THRESHOLD_PATTERN: 20, 
+            SPIKE_THRESHOLD_MS: 2,
+            SPIKE_DISTANCE: 100,
+        };
+        let trustScore = 100;
+
+        function calculateDJE() {
+            const velocities = SCROLL_DATA.velocity;
+            const accels = SCROLL_DATA.accels;
+            const directions = SCROLL_DATA.directions;
+
+            if (velocities.length < 10) return 999; 
+
+            // 1. Velocity Variance (σ_v²) - Weighted 0.6
+            let varVel = calculateVariance(velocities);
+            const isTouch = navigator.maxTouchPoints > 0;
+            varVel *= isTouch ? 1.5 : 1.0; // Forgive mobile noise
+
+            // 2. Jerk Variance (σ_j²) - Weighted 0.3
+            const accelsForJerk = accels.slice(1); // Accel 0 is meaningless
+            const varJerk = accelsForJerk.length ? calculateVariance(accelsForJerk) : 999;
+            
+            // 3. Directional Entropy (H) - Weighted 0.1
+            const entropy = calculateShannonEntropy(directions);
+            const dirPenalty = 2 - entropy; // High entropy (1-2) = low penalty (0-1)
+
+            // Composite DJE Score (Low DJE = Robotic)
+            const dje = (varVel * 0.6) + (varJerk * 0.3) + (dirPenalty * 0.1);
+            
+            return dje;
         }
 
         function runMicroAudit() {
@@ -258,7 +313,7 @@
                 return;
             }
 
-            // Check 2: VELOCITY SPIKE TRAP (Teleport/Instant Jump)
+            // Check 2: VELOCITY SPIKE TRAP
             const lastDt = SCROLL_DATA.times[SCROLL_DATA.times.length - 1] || 999;
             const lastDy = Math.abs(window.scrollY - SCROLL_DATA.lastY) || 0;
             
@@ -267,18 +322,18 @@
                 return;
             }
 
-            // --- BOT DETECTION RULES (Active only if buffer is full enough) ---
+            // --- BOT DETECTION RULES ---
             if (SCROLL_DATA.velocity.length >= 10) {
-                const velocityVariance = calculateVariance(SCROLL_DATA.velocity);
+                const djeScore = calculateDJE();
                 const timeVariance = calculateVariance(SCROLL_DATA.times);
                 
                 let isBot = false;
                 let lastProbe = "ACTIVE";
 
-                // RULE 1: Too Smooth (Punish Extreme Perfection)
-                if (velocityVariance < SENTINEL_CONFIG.THRESHOLD_VARIANCE) {
+                // RULE 1: Biomimicry Failure (DJE Score Too Low)
+                if (djeScore < SENTINEL_CONFIG.THRESHOLD_DJE_FLOOR) {
                     isBot = true;
-                    lastProbe = "PERFECTION_VELOCITY";
+                    lastProbe = "BIOMIMICRY_FAILURE";
                 }
                 
                 // RULE 2: Too Regular (Punish Robot Timing)
@@ -290,56 +345,4 @@
                 if (isBot) {
                     trustScore = Math.max(0, trustScore - 10); // Penalty is 10 points
                 } else {
-                    trustScore = Math.min(100, trustScore + 1); // Small reward
-                }
-            }
-
-            if (trustScore <= 0) {
-                lockout("KINETIC_DECAY");
-                return;
-            }
-
-            updateHUD(trustScore, "ACTIVE");
-        }
-
-        function lockout(reason) {
-            clearInterval(window.auditInterval);
-            document.getElementById('bot-lockout').style.display = 'flex';
-            // Log failure to server
-            navigator.sendBeacon('/api/chaos-log', JSON.stringify({ reason: reason, score: trustScore }));
-            window.removeEventListener('scroll', captureScrollData);
-            window.removeEventListener('mousemove', captureScrollData);
-        }
-
-        function updateHUD(score, state) {
-            hudFill.style.width = score + '%';
-            hudPct.innerText = Math.floor(score) + '%';
-            hudState.innerText = state;
-
-            if (score > 40) {
-                hudStatus.innerText = "VERIFIED";
-                hudStatus.style.color = "#00ff41";
-                hudFill.style.background = "#00ff41";
-            } else {
-                hudStatus.innerText = "THREAT";
-                hudStatus.style.color = "#ff0000";
-                hudFill.style.background = "#ff0000";
-            }
-        }
-
-        // --- STARTUP SEQUENCE ---
-        window.auditInterval = setInterval(runMicroAudit, 250); // The 0.25 second heartbeat
-
-        window.onload = function() {
-            updateHUD(100, "READY");
-            console.log(">>> Sentinel Micro-Audit V171 Initialized.");
-        };
-        
-        // Placeholder for demo functions
-        function runBenchmark() {
-            console.log("Triad Audit Simulated: CHAOS TRIAD PASS.");
-            document.getElementById('benchmark-result').innerText = ">> CHAOS TRIAD PASS: (Simulated)";
-        }
-    </script>
-</body>
-</html>
+                    trustScore = Math.min
