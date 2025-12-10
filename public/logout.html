@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logout</title>
+    <style>
+        body { background: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; text-align: center; padding: 50px; }
+    </style>
+    <script>
+        // Secure Logout Sequence
+        function secureLogout() {
+            if (confirm('Seal the Abyss? This will end your session.')) {
+                // Step 1: Wipe sessionStorage (Clears fresh data instantly)
+                sessionStorage.clear();
+                localStorage.removeItem('session_start'); // Clear timer data
+                localStorage.removeItem('callsign_history'); // Clear auto-fill UX improvement
+
+                // Step 2: Wipe specific localStorage key (Crucial key)
+                localStorage.removeItem('chaos_key_vault');
+
+                // Step 3: Redirect to landing
+                window.location.href = '/';
+            } else {
+                window.history.back(); // Cancel - go back to previous page
+            }
+        }
+
+        // Auto-run on load
+        window.onload = secureLogout;
+    </script>
+</head>
+<body>
+    <p>Sealing the void...</p>
+</body>
+</html>
