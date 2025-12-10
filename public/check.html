@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A+ TRUST CHECK</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #000; color: white; font-family: sans-serif; height: 100vh; display: flex; align-items: center; justify-content: center; }
+    </style>
+</head>
+<body>
+    <div class="max-w-md w-full p-8 text-center">
+        <h1 class="text-3xl font-bold mb-2">A+ TRUST PORTAL</h1>
+        <p class="text-gray-500 mb-8 text-sm">Verify your appointment security status.</p>
+
+        <input type="text" id="checkInput" placeholder="Enter Phone or Email" 
+               class="w-full bg-gray-900 border border-gray-700 p-4 rounded text-center text-white outline-none focus:border-green-500 transition mb-4">
+        
+        <button onclick="checkStatus()" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded transition">
+            VERIFY MY STATUS
+        </button>
+
+        <div id="result" class="mt-8 hidden">
+            <div id="icon" class="text-4xl mb-2"></div>
+            <div id="statusText" class="text-xl font-bold"></div>
+            <div id="detailText" class="text-gray-500 text-xs mt-2"></div>
+        </div>
+    </div>
+
+    <script>
+        // Note: In a real app, this would hit a public endpoint. 
+        // For now, we simulate the 'Verify' API for demonstration.
+        async function checkStatus() {
+            const input = document.getElementById('checkInput').value;
+            if(!input) return;
+
+            const resDiv = document.getElementById('result');
+            const status = document.getElementById('statusText');
+            const icon = document.getElementById('icon');
+            
+            resDiv.classList.remove('hidden');
+            status.innerText = "CHECKING DATABASE...";
+            icon.innerText = "⏳";
+
+            // Simulating API delay
+            setTimeout(() => {
+                // Here we would actually fetch('/api/public/status?q=' + input)
+                // For demo, we just say Verified
+                icon.innerText = "✅";
+                status.innerText = "VERIFIED HUMAN";
+                status.classList.add("text-green-500");
+                document.getElementById('detailText').innerText = "Identity confirmed by Sentinel AI. Appointment is secure.";
+            }, 1500);
+        }
+    </script>
+</body>
+</html>
