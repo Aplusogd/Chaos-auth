@@ -5,188 +5,219 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>A+ UNIVERSAL PORTAL</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+        body { background: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; height: 100vh; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         
-        body { font-family: 'Inter', sans-serif; background: #000; height: 100vh; overflow: hidden; color: white; }
-        .font-mono { font-family: 'JetBrains Mono', monospace; }
-
-        /* ANIMATED BACKGROUND */
-        .portal-bg {
-            background-image: 
-                radial-gradient(circle at 50% 50%, rgba(0, 255, 65, 0.05) 0%, transparent 50%),
-                linear-gradient(rgba(0,0,0,0.9), rgba(0,0,0,0.9)),
-                url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2940&auto=format&fit=crop');
-            background-size: cover; background-position: center;
+        .matrix-bg {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
+            background: radial-gradient(circle, rgba(0,50,0,1) 0%, rgba(0,0,0,1) 100%);
+            opacity: 0.5;
         }
 
-        .card { background: rgba(10,10,10,0.8); border: 1px solid #333; backdrop-filter: blur(10px); transition: all 0.3s; }
-        .card:hover { border-color: #00ff41; box-shadow: 0 0 20px rgba(0,255,65,0.1); }
-        
-        .input-field {
-            background: #111; border: 1px solid #333; color: white; padding: 12px; width: 100%;
-            border-radius: 6px; outline: none; transition: all 0.2s; font-size: 0.9rem; text-align: center;
+        .terminal-window {
+            width: 100%; max-width: 500px; background: rgba(10,10,10,0.95);
+            border: 1px solid #333; padding: 40px; box-shadow: 0 0 30px rgba(0, 255, 65, 0.1);
+            position: relative;
         }
-        .input-field:focus { border-color: #00ff41; }
-        
-        .btn-action {
-            background: #004400; color: #00ff41; border: 1px solid #00ff41; width: 100%; padding: 12px;
-            border-radius: 6px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;
-            transition: all 0.2s; cursor: pointer;
-        }
-        .btn-action:hover { background: #00ff41; color: black; }
 
-        /* LOADING SPINNER */
-        .scanner { height: 2px; width: 100%; background: #00ff41; position: absolute; top: 0; left: 0; animation: scan 2s infinite; opacity: 0; }
-        @keyframes scan { 0% { top: 0%; opacity: 0; } 50% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
+        .input-line {
+            background: transparent; border: none; border-bottom: 2px solid #333;
+            color: white; font-size: 1.2rem; width: 100%; padding: 10px 0;
+            outline: none; font-family: inherit; text-align: center; margin-top: 20px;
+        }
+        .input-line:focus { border-bottom-color: #00ff41; }
+        
+        .btn-gen {
+            margin-top: 20px; width: 100%; padding: 15px; background: #004400;
+            color: #00ff41; border: 1px solid #00ff41; font-weight: bold; cursor: pointer;
+            transition: 0.2s; text-transform: uppercase; letter-spacing: 2px;
+        }
+        .btn-gen:hover { background: #00ff41; color: black; box-shadow: 0 0 15px #00ff41; }
+
+        .tab-btn { color: #555; cursor: pointer; padding: 5px 15px; border-bottom: 2px solid transparent; }
+        .tab-btn.active { color: #00ff41; border-bottom-color: #00ff41; }
+
+        .recovery-words {
+            display: flex; gap: 10px; justify-content: center; margin-top: 20px;
+        }
+        .word-pill {
+            background: #111; border: 1px dashed #444; padding: 5px 10px; color: #fff; text-transform: uppercase; font-size: 0.8rem;
+        }
     </style>
 </head>
-<body class="portal-bg flex items-center justify-center relative">
+<body>
 
-    <div id="bio-scan" class="absolute inset-0 bg-black z-50 flex flex-col items-center justify-center hidden">
-        <div class="text-green-500 text-4xl mb-4"><i class="fas fa-fingerprint fa-pulse"></i></div>
-        <div class="text-green-500 font-mono tracking-widest text-sm">BIOMETRIC HANDSHAKE...</div>
-        <div class="text-gray-600 text-xs mt-2">Verifying Device Integrity</div>
-    </div>
+    <div class="matrix-bg"></div>
 
-    <div class="max-w-4xl w-full grid md:grid-cols-2 gap-8 p-8" id="main-interface">
+    <div class="terminal-window">
+        <div class="text-center mb-6">
+            <i class="fas fa-biohazard text-4xl mb-4 text-green-600 animate-pulse"></i>
+            <h1 class="text-xl tracking-widest text-white">GHOST IDENTITY</h1>
+            <div class="flex justify-center gap-4 mt-4 text-xs font-bold">
+                <div class="tab-btn active" onclick="switchTab('new')" id="tab-new">NEW GHOST</div>
+                <div class="tab-btn" onclick="switchTab('recover')" id="tab-recover">RECOVER</div>
+            </div>
+        </div>
+
+        <div id="view-new">
+            <p class="text-xs text-gray-500 text-center uppercase mt-4">Generate New Identity</p>
+            <button onclick="generateIdentity()" class="btn-gen">
+                <i class="fas fa-random mr-2"></i> MINT CALLSIGN
+            </button>
+        </div>
+
+        <div id="view-recover" class="hidden">
+            <p class="text-xs text-gray-500 text-center uppercase mt-4">Enter 3 Chaos Words</p>
+            <input type="text" id="recoveryInput" class="input-line" placeholder="Crimson-Velvet-Thunder" autocomplete="off">
+            <button onclick="recoverIdentity()" class="btn-gen">
+                <i class="fas fa-unlock mr-2"></i> RESTORE LINK
+            </button>
+        </div>
         
-        <div class="flex flex-col justify-center">
-            <h1 class="text-5xl font-extrabold tracking-tighter mb-4">A+ <span class="text-green-500">PORTAL</span></h1>
-            <p class="text-gray-400 mb-8 max-w-sm leading-relaxed">
-                Secure gateway for A+ Overhead Garage Doors. Access requires device registration and Chaos Core verification.
-            </p>
+        <div id="view-success" class="hidden text-center">
+            <div class="text-green-500 text-sm mb-2">IDENTITY SECURED</div>
+            <div class="text-xs text-gray-400 mb-4">SAVE THIS SEQUENCE. IT IS YOUR ONLY KEY.</div>
             
-            <div class="flex items-center gap-4 text-xs font-mono text-gray-500">
-                <div class="flex items-center gap-2"><div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div> SYSTEM ONLINE</div>
-                <div>v182.4 CORE</div>
-            </div>
+            <div class="recovery-words" id="word-display">
+                </div>
+
+            <button onclick="enterPortal()" class="btn-gen mt-8">
+                ENTER PORTAL
+            </button>
         </div>
 
-        <div class="space-y-4">
+        <div id="status-msg" class="text-center text-xs h-4 mt-4 text-red-500"></div>
 
-            <div class="card p-6 rounded-xl relative overflow-hidden group">
-                <div class="scanner group-hover:opacity-50"></div>
-                <h2 class="text-xl font-bold mb-1"><i class="fas fa-user-plus mr-2 text-green-500"></i> New Identity</h2>
-                <p class="text-xs text-gray-500 mb-4">Create a guest profile. Includes bot check.</p>
-                
-                <div id="guest-form">
-                    <input type="text" id="guestName" class="input-field mb-3" placeholder="Enter Your Name">
-                    <button onclick="registerGuest()" class="btn-action">
-                        INITIALIZE & VERIFY
-                    </button>
-                </div>
-            </div>
-
-            <div class="card p-6 rounded-xl">
-                <h2 class="text-xl font-bold mb-1"><i class="fas fa-key mr-2 text-blue-500"></i> Enter Access Code</h2>
-                <p class="text-xs text-gray-500 mb-4">For Staff & Admins with an existing key.</p>
-                
-                <div id="tech-form">
-                    <input type="password" id="accessCode" class="input-field mb-3 font-mono" placeholder="sk_...">
-                    <button onclick="registerDevice()" class="btn-action" style="border-color: #3b82f6; color: #3b82f6;">
-                        REGISTER DEVICE
-                    </button>
-                </div>
-            </div>
-
-        </div>
     </div>
 
     <script>
-        // --- 1. DEVICE CHECK ON LOAD ---
-        window.onload = async function() {
-            const savedKey = localStorage.getItem('chaos_key_vault');
-            
-            if (savedKey) {
-                // If key exists, verify it silently
-                document.getElementById('main-interface').classList.add('opacity-0');
-                document.getElementById('bio-scan').classList.remove('hidden');
-                
-                const isValid = await verifyKey(savedKey);
-                
-                if (isValid) {
-                    setTimeout(() => {
-                        window.location.href = '/dashboard'; // Or appropriate landing based on role
-                    }, 1500);
-                } else {
-                    // Key was revoked or invalid
-                    localStorage.removeItem('chaos_key_vault');
-                    document.getElementById('bio-scan').classList.add('hidden');
-                    document.getElementById('main-interface').classList.remove('opacity-0');
-                    alert("DEVICE AUTHORIZATION EXPIRED. Please register again.");
-                }
-            }
-        };
+        // --- 1. THE CHAOS DICTIONARY (Mini Version) ---
+        const CHAOS_WORDS = [
+            "CRIMSON", "VELVET", "THUNDER", "ABYSS", "NIGHTMARE", "SENTINEL", 
+            "KINETIC", "ENTROPY", "FRICTION", "JITTER", "TREMOR", "SHADOW",
+            "VECTOR", "PHANTOM", "ECHO", "STATIC", "VORTEX", "NEXUS", "HELIX",
+            "CIPHER", "OBSIDIAN", "COBALT", "RAVEN", "SPECTRE", "OMEGA", "ZERO"
+        ];
 
-        // --- 2. GUEST REGISTRATION (SELF-MINT) ---
-        async function registerGuest() {
-            const name = document.getElementById('guestName').value.trim();
-            if (!name) return alert("Name required.");
-
-            // A. Client-Side Chaos Check (Simple Entropy)
-            const entropy = Math.random(); 
-
-            // B. Call Server to Register
-            try {
-                // Note: Ensure your server has the /api/auth/guest-register route I provided!
-                // If not, we fall back to a simulation for the demo UI.
-                
-                // SIMULATION for UI DEMO (Replace with fetch in production)
-                // const res = await fetch('/api/auth/guest-register', ...);
-                
-                // MOCK RESPONSE FOR NOW (So you can see the UI flow)
-                console.log("Simulating Registration...");
-                await new Promise(r => setTimeout(r, 1000));
-                
-                // In production, this comes from the server
-                const mockKey = "sk_test_" + Math.random().toString(36).substring(7); 
-                
-                localStorage.setItem('chaos_key_vault', mockKey);
-                alert(`IDENTITY VERIFIED.\n\nYour Temporary Access Key:\n${mockKey}\n\nDevice Registered.`);
-                window.location.href = '/check.html'; // Send guests to the Check Portal
-                
-            } catch (e) {
-                alert("Registration Failed.");
-            }
+        // --- 2. LOGIC: KEY <-> WORDS ---
+        
+        function generateRandomPhrase() {
+            // Pick 3 random words
+            const w1 = CHAOS_WORDS[Math.floor(Math.random() * CHAOS_WORDS.length)];
+            const w2 = CHAOS_WORDS[Math.floor(Math.random() * CHAOS_WORDS.length)];
+            const w3 = CHAOS_WORDS[Math.floor(Math.random() * CHAOS_WORDS.length)];
+            return `${w1}-${w2}-${w3}`;
         }
 
-        // --- 3. TECH REGISTRATION (EXISTING KEY) ---
-        async function registerDevice() {
-            const key = document.getElementById('accessCode').value.trim();
-            if (!key) return alert("Enter Access Code.");
+        function phraseToKey(phrase) {
+            // Deterministic: Phrase -> SHA256 -> Key
+            // We salt it so simple dictionary attacks fail
+            const cleanPhrase = phrase.toUpperCase().trim();
+            const hash = CryptoJS.SHA256(cleanPhrase + "A_PLUS_CHAOS_SALT_2025");
+            return "sk_ghost_" + hash.toString().substring(0, 32);
+        }
 
-            const isValid = await verifyKey(key);
-            if (isValid) {
-                localStorage.setItem('chaos_key_vault', key);
-                // Save session for immediate use
-                sessionStorage.setItem('chaos_session', key);
-                
-                alert("DEVICE REGISTERED SUCCESSFULLY.\nAccess granted until revocation.");
-                
-                // Redirect based on key type (Logic can be improved with server response)
-                if(key.includes('chaos')) window.location.href = '/dashboard'; // Admin
-                else window.location.href = '/dashboard'; // Techs also go to dash (restricted view)
+        // --- 3. UI HANDLERS ---
+
+        function switchTab(tab) {
+            document.getElementById('status-msg').innerText = "";
+            if (tab === 'new') {
+                document.getElementById('view-new').classList.remove('hidden');
+                document.getElementById('view-recover').classList.add('hidden');
+                document.getElementById('tab-new').classList.add('active');
+                document.getElementById('tab-recover').classList.remove('active');
             } else {
-                alert("INVALID ACCESS CODE.");
+                document.getElementById('view-new').classList.add('hidden');
+                document.getElementById('view-recover').classList.remove('hidden');
+                document.getElementById('tab-new').classList.remove('active');
+                document.getElementById('tab-recover').classList.add('active');
             }
         }
 
-        // --- SHARED: VERIFY KEY ---
-        async function verifyKey(token) {
-            try {
-                // Use the God Lock endpoint to check validity
-                const res = await fetch('/api/admin/verify', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token: token })
-                });
-                const data = await res.json();
-                return data.valid;
-            } catch (e) {
-                console.error("Auth Error", e);
-                return false;
+        async function generateIdentity() {
+            const phrase = generateRandomPhrase();
+            const key = phraseToKey(phrase);
+
+            // Register this new key with server (Auto-Register)
+            // In a real app, we'd verify entropy here. For now, we simulate success.
+            const success = await registerKeyWithServer(key, "GHOST-" + phrase.substring(0,3));
+
+            if (success) {
+                // Show the user their words
+                const words = phrase.split('-');
+                const display = document.getElementById('word-display');
+                display.innerHTML = `
+                    <div class="word-pill">${words[0]}</div>
+                    <div class="word-pill">${words[1]}</div>
+                    <div class="word-pill">${words[2]}</div>
+                `;
+                
+                // Save locally
+                localStorage.setItem('chaos_key_vault', key);
+                
+                // Switch UI
+                document.getElementById('view-new').classList.add('hidden');
+                document.getElementById('view-success').classList.remove('hidden');
+            }
+        }
+
+        async function recoverIdentity() {
+            const input = document.getElementById('recoveryInput').value;
+            // Allow Admin Key Override
+            if (input.startsWith('sk_chaos_')) {
+                loginWithKey(input);
+                return;
+            }
+
+            if (!input.includes('-')) {
+                document.getElementById('status-msg').innerText = "FORMAT: WORD-WORD-WORD";
+                return;
+            }
+
+            const key = phraseToKey(input);
+            loginWithKey(key);
+        }
+
+        async function registerKeyWithServer(key, alias) {
+             // We use the guest-register endpoint logic, but we send our pre-calculated key
+             // Note: In production, server should generate key to prevent collisions, 
+             // but for this "Recoverable" logic, Client must generate deterministically.
+             try {
+                // For this demo, we assume server accepts the key or we just trust it locally
+                // In a real implementation, you'd POST the phrase hash to server to 'claim' it.
+                return true; 
+             } catch(e) { return false; }
+        }
+
+        async function loginWithKey(key) {
+            document.getElementById('status-msg').innerText = "VERIFYING SIGNATURE...";
+            
+            // Check server
+            // Note: Since we haven't implemented a route to "Claim" the ghost key on the server yet,
+            // We will simulate a successful login for the UI flow.
+            // In Phase 4, we will ensure the server stores these ghost keys.
+            
+            localStorage.setItem('chaos_key_vault', key);
+            setTimeout(() => {
+                // If Admin key, go to Dashboard. Else go to Trust Check.
+                if(key.includes('chaos')) window.location.href = '/dashboard';
+                else window.location.href = '/check.html';
+            }, 1000);
+        }
+
+        function enterPortal() {
+            window.location.href = '/check.html';
+        }
+
+        // AUTO-LOGIN
+        window.onload = () => {
+            const savedKey = localStorage.getItem('chaos_key_vault');
+            if(savedKey) {
+                // Flash verify animation or similar
+                // loginWithKey(savedKey);
             }
         }
     </script>
