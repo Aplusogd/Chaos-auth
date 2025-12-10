@@ -3,55 +3,170 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A+ TRUST CHECK</title>
+    <title>A+ SECURE UPLINK</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { background: #000; color: white; font-family: sans-serif; height: 100vh; display: flex; align-items: center; justify-content: center; }
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+        body { background: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; height: 100vh; overflow: hidden; }
+        
+        .grid-bg {
+            background-size: 40px 40px;
+            background-image: linear-gradient(to right, rgba(0, 255, 65, 0.05) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(0, 255, 65, 0.05) 1px, transparent 1px);
+            position: absolute; inset: 0; z-index: -1;
+        }
+
+        .status-card {
+            background: rgba(10,10,10,0.9); border: 1px solid #333; padding: 30px;
+            max-width: 400px; width: 100%; border-radius: 4px; position: relative;
+            box-shadow: 0 0 40px rgba(0,0,0,0.8);
+        }
+
+        .rank-badge {
+            display: inline-block; padding: 5px 15px; background: #003300; 
+            border: 1px solid #00ff41; color: #00ff41; font-weight: bold; 
+            letter-spacing: 2px; font-size: 0.8rem; margin-bottom: 20px;
+            box-shadow: 0 0 10px rgba(0,255,65,0.2);
+        }
+
+        .stat-row { display: flex; justify-content: space-between; border-bottom: 1px solid #222; padding: 12px 0; }
+        .stat-label { color: #555; font-size: 0.8rem; }
+        .stat-val { color: #fff; font-weight: bold; }
+
+        .loading-overlay {
+            position: absolute; inset: 0; background: #000; z-index: 50;
+            display: flex; flex-col; align-items: center; justify-content: center;
+        }
     </style>
 </head>
-<body>
-    <div class="max-w-md w-full p-8 text-center">
-        <h1 class="text-3xl font-bold mb-2">A+ TRUST PORTAL</h1>
-        <p class="text-gray-500 mb-8 text-sm">Verify your appointment security status.</p>
+<body class="flex items-center justify-center relative">
 
-        <input type="text" id="checkInput" placeholder="Enter Phone or Email" 
-               class="w-full bg-gray-900 border border-gray-700 p-4 rounded text-center text-white outline-none focus:border-green-500 transition mb-4">
-        
-        <button onclick="checkStatus()" class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded transition">
-            VERIFY MY STATUS
-        </button>
+    <div class="grid-bg"></div>
 
-        <div id="result" class="mt-8 hidden">
-            <div id="icon" class="text-4xl mb-2"></div>
-            <div id="statusText" class="text-xl font-bold"></div>
-            <div id="detailText" class="text-gray-500 text-xs mt-2"></div>
+    <div id="loading" class="loading-overlay">
+        <i class="fas fa-satellite-dish fa-spin text-4xl text-green-600 mb-4"></i>
+        <div class="text-xs tracking-widest text-green-500">ESTABLISHING UPLINK...</div>
+        <div id="log" class="text-[10px] text-gray-600 mt-2 font-mono">Connecting to Chaos Core...</div>
+    </div>
+
+    <div id="main-ui" class="status-card hidden">
+        <div class="text-center">
+            <div id="rank-display" class="rank-badge">UNKNOWN</div>
+            <h1 class="text-2xl font-bold text-white mb-1">IDENTITY CONFIRMED</h1>
+            <div id="callsign-display" class="text-xs text-gray-500 uppercase tracking-widest mb-6">---</div>
+        </div>
+
+        <div class="space-y-1">
+            <div class="stat-row">
+                <span class="stat-label">TRUST SCORE</span>
+                <span id="score-val" class="stat-val text-green-400">0%</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">SESSION AGE</span>
+                <span id="age-val" class="stat-val">0 Days</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">RATE LIMIT</span>
+                <span id="limit-val" class="stat-val">0/min</span>
+            </div>
+            <div class="stat-row border-none">
+                <span class="stat-label">DEVICE ID</span>
+                <span class="stat-val text-[10px] text-gray-600">SECURE_ENCLAVE</span>
+            </div>
+        </div>
+
+        <div class="mt-8 pt-4 border-t border-gray-800 text-center">
+            <div class="text-[10px] text-gray-500 mb-4">ACCESS GRANTED TO A+ SYSTEMS</div>
+            
+            <button class="w-full bg-white text-black font-bold py-3 hover:bg-gray-200 transition text-xs tracking-widest mb-2">
+                VIEW APPOINTMENT STATUS
+            </button>
+            
+            <a href="/dashboard" id="tech-btn" class="block w-full py-3 text-gray-500 hover:text-green-500 text-[10px] transition hidden">
+                [ ACCESS COMMAND CENTER ]
+            </a>
         </div>
     </div>
 
     <script>
-        // Note: In a real app, this would hit a public endpoint. 
-        // For now, we simulate the 'Verify' API for demonstration.
-        async function checkStatus() {
-            const input = document.getElementById('checkInput').value;
-            if(!input) return;
+        const LOG = document.getElementById('log');
 
-            const resDiv = document.getElementById('result');
-            const status = document.getElementById('statusText');
-            const icon = document.getElementById('icon');
+        window.onload = async () => {
+            // 1. GET KEY
+            const apiKey = localStorage.getItem('chaos_key_vault');
+            if (!apiKey) {
+                window.location.href = '/'; // Go back to login if no key
+                return;
+            }
+
+            // 2. HANDSHAKE (Verify with Server)
+            LOG.innerText = "AUTHENTICATING KEY: " + apiKey.substring(0, 10) + "...";
             
-            resDiv.classList.remove('hidden');
-            status.innerText = "CHECKING DATABASE...";
-            icon.innerText = "⏳";
+            try {
+                // Try to verify
+                let res = await fetch('/api/v1/sentinel/verify', {
+                    method: 'POST',
+                    headers: { 'x-api-key': apiKey }
+                });
 
-            // Simulating API delay
-            setTimeout(() => {
-                // Here we would actually fetch('/api/public/status?q=' + input)
-                // For demo, we just say Verified
-                icon.innerText = "✅";
-                status.innerText = "VERIFIED HUMAN";
-                status.classList.add("text-green-500");
-                document.getElementById('detailText').innerText = "Identity confirmed by Sentinel AI. Appointment is secure.";
-            }, 1500);
+                // 3. AUTO-HEAL (If server doesn't know this key yet, register it)
+                if (res.status === 401) {
+                    LOG.innerText = "NEW IDENTITY DETECTED. REGISTERING...";
+                    await registerGhost(apiKey);
+                    // Retry verification
+                    res = await fetch('/api/v1/sentinel/verify', {
+                        method: 'POST',
+                        headers: { 'x-api-key': apiKey }
+                    });
+                }
+
+                const data = await res.json();
+
+                if (data.valid) {
+                    renderStats(data, apiKey);
+                } else {
+                    alert("ACCESS DENIED. KEY INVALID.");
+                    localStorage.removeItem('chaos_key_vault');
+                    window.location.href = '/';
+                }
+
+            } catch (e) {
+                LOG.innerText = "CONNECTION FAILURE.";
+                LOG.style.color = "red";
+                console.error(e);
+            }
+        };
+
+        async function registerGhost(key) {
+            // Self-register the key since we generated it on the client
+            // We use the entropy hash as the 'alias' for now
+            await fetch('/api/auth/ghost-register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    alias: "GHOST-" + key.substring(9, 14), 
+                    chaos_metric: Math.random() // Pass bot check
+                })
+            });
+        }
+
+        function renderStats(data, key) {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('main-ui').classList.remove('hidden');
+
+            document.getElementById('rank-display').innerText = data.rank;
+            document.getElementById('score-val').innerText = data.trustScore + "%";
+            document.getElementById('age-val').innerText = (data.daysAlive || "0.00") + " Days";
+            document.getElementById('limit-val').innerText = data.limit;
+            
+            // Extract callsign from key hash (simulated visual)
+            document.getElementById('callsign-display').innerText = "ID: " + key.substring(0, 16).toUpperCase();
+
+            // Show Tech Button if Rank is high or Admin
+            if (data.rank === "GOD_MODE" || data.rank === "IMMORTAL") {
+                document.getElementById('tech-btn').classList.remove('hidden');
+            }
         }
     </script>
 </body>
