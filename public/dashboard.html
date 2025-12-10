@@ -8,11 +8,20 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
-        body { background-color: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; height: 100vh; overflow: hidden; display: none; /* Hidden until verified */ }
+        body { background-color: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; height: 100vh; overflow: hidden; display: none; }
         
         /* LAYOUT */
-        .grid-layout { display: grid; grid-template-rows: auto 1fr; height: 100%; }
+        .grid-layout { display: grid; grid-template-rows: auto auto 1fr; height: 100%; } /* Added row for Tabs */
         .main-view { display: grid; grid-template-columns: 2fr 1fr; gap: 2px; height: 100%; background: #111; }
+        
+        /* TABS */
+        .nav-tabs { display: flex; border-bottom: 1px solid #1a1a1a; background: #050505; }
+        .nav-tab { 
+            padding: 12px 24px; cursor: pointer; border-right: 1px solid #1a1a1a; color: #555; font-size: 0.75rem; font-weight: bold; letter-spacing: 1px; transition: all 0.2s; text-decoration: none; display: flex; align-items: center; gap: 8px;
+        }
+        .nav-tab:hover { background: #111; color: #fff; }
+        .nav-tab.active { background: #00ff41; color: #000; }
+        .nav-tab.active:hover { background: #00cc33; }
         
         /* PANELS */
         .panel { background: #000; border: 1px solid #1a1a1a; padding: 20px; overflow: hidden; display: flex; flex-direction: column; }
@@ -37,11 +46,9 @@
         
         @keyframes fadeIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
         
-        /* SCROLLBAR */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #000; }
         ::-webkit-scrollbar-thumb { background: #333; }
-        ::-webkit-scrollbar-thumb:hover { background: #00ff41; }
     </style>
 </head>
 <body class="grid-layout">
@@ -54,14 +61,28 @@
                 <span class="text-[10px] text-green-500 font-bold">LIVE FEED ACTIVE</span>
             </div>
         </div>
-        <div class="flex gap-4">
-            <div id="clock" class="text-gray-500 text-xs mt-1 font-bold">00:00:00</div>
+        <div class="flex gap-4 items-center">
+            <div id="clock" class="text-gray-500 text-xs font-bold font-mono mr-4">00:00:00</div>
             <button onclick="logout()" class="text-xs text-red-500 hover:text-red-400 border border-red-900/50 px-3 py-1 rounded hover:bg-red-900/20 transition">[ TERMINATE SESSION ]</button>
         </div>
     </header>
 
+    <nav class="nav-tabs">
+        <div class="nav-tab active">
+            <i class="fas fa-terminal"></i> COMMAND CENTER
+        </div>
+        <a href="/keyforge" class="nav-tab">
+            <i class="fas fa-key"></i> KEY FORGE
+        </a>
+        <a href="/sdk" class="nav-tab">
+            <i class="fas fa-book"></i> DEV PORTAL
+        </a>
+        <a href="/test-console" class="nav-tab">
+            <i class="fas fa-flask"></i> TEST BENCH
+        </a>
+    </nav>
+
     <div class="main-view">
-        
         <div class="panel">
             <div class="panel-header">
                 <span class="panel-title">EVENT STREAM</span>
@@ -117,7 +138,7 @@
     </div>
 
     <script>
-        // --- GOD LOCK PROTOCOL (Verify Token with Server) ---
+        // --- GOD LOCK PROTOCOL ---
         const sessionToken = sessionStorage.getItem('chaos_session');
 
         async function verifyAccess() {
@@ -127,7 +148,6 @@
             }
 
             try {
-                // Check token against server secret
                 const res = await fetch('/api/admin/verify', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -139,8 +159,7 @@
                 if (!data.valid) {
                     terminateSession("INVALID SESSION TOKEN");
                 } else {
-                    // ACCESS GRANTED
-                    document.body.style.display = "grid"; // Reveal UI
+                    document.body.style.display = "grid"; 
                     startClock();
                     connectLiveWire(); 
                     console.log(">>> [ADMIN] GOD LOCK OPEN.");
@@ -205,7 +224,6 @@
             const time = new Date().toLocaleTimeString();
             let msg = typeof payload.data === 'string' ? payload.data : JSON.stringify(payload.data);
             
-            // Format JSON data for readability
             if (typeof payload.data === 'object') {
                 if (payload.data.reason) msg = `REASON: ${payload.data.reason} | SCORE: ${payload.data.score || 0}`;
                 if (payload.data.status) msg = `STATUS: ${payload.data.status}`;
@@ -213,9 +231,8 @@
             }
 
             row.innerHTML = `<span class="log-time">${time}</span><span class="log-type type-${payload.type}">${payload.type}</span> ${msg}`;
-            
             term.appendChild(row);
-            term.scrollTop = term.scrollHeight; // Auto-scroll to newest
+            term.scrollTop = term.scrollHeight;
         }
 
         function updateMetrics(payload) {
@@ -226,13 +243,11 @@
             if (payload.type === 'THREAT' || payload.type === 'BLOCK') {
                 threatCount++;
                 document.getElementById('cnt-threats').innerText = threatCount;
-                // Red Flash Effect
                 document.body.style.boxShadow = "inset 0 0 50px rgba(255,0,0,0.3)";
                 setTimeout(() => document.body.style.boxShadow = "none", 200);
             }
         }
 
-        // STARTUP
         verifyAccess();
     </script>
 </body>
