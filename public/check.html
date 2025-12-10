@@ -3,287 +3,176 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A+ SANCTUARY | NEXUS</title>
+    <title>A+ NEXUS</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap');
+        /* CRITICAL: Force Black Background immediately */
+        html, body { background-color: #000000; color: #fff; font-family: monospace; }
         
-        /* FORCE DARKNESS IMMEDIATELY */
-        html, body { background-color: #000000 !important; color: #e5e5e5; font-family: 'Inter', sans-serif; }
-        .font-mono { font-family: 'JetBrains Mono', monospace; }
-
-        /* ABYSS BACKGROUND */
-        .sanctuary-bg {
+        .bg-abyss {
             position: fixed; inset: 0; z-index: -1;
-            background: 
-                radial-gradient(circle at 15% 50%, rgba(0, 255, 65, 0.03) 0%, transparent 25%),
-                radial-gradient(circle at 85% 30%, rgba(0, 255, 65, 0.03) 0%, transparent 25%);
-        }
-        .grid-lines {
-            position: fixed; inset: 0; z-index: -1;
-            background-image: linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-            background-size: 50px 50px;
-            mask-image: radial-gradient(circle at center, black 60%, transparent 100%);
+            background: radial-gradient(circle at center, #111 0%, #000 100%);
         }
 
-        /* CARDS */
-        .dash-card {
-            background: rgba(20, 20, 20, 0.6); border: 1px solid #222; 
-            backdrop-filter: blur(10px); border-radius: 12px; padding: 1.5rem;
-            transition: all 0.3s ease; height: 100%; display: flex; flex-direction: column;
-        }
-        .dash-card:hover { border-color: #333; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
-        .active-border { border-color: #00ff41; box-shadow: 0 0 15px rgba(0,255,65,0.1); }
-
-        /* STATUS PILLS */
-        .rank-pill {
-            background: #002200; color: #00ff41; border: 1px solid #005500;
-            padding: 4px 12px; border-radius: 4px; font-size: 0.75rem; 
-            font-weight: bold; letter-spacing: 1px; text-transform: uppercase;
+        /* Loading Overlay */
+        #loader {
+            position: fixed; inset: 0; background: #000; z-index: 999;
+            display: flex; flex-col; align-items: center; justify-content: center;
+            transition: opacity 0.5s;
         }
 
-        /* TOOLTIP */
-        .tooltip-trigger:hover .tooltip-content { display: block; }
-        .tooltip-content {
-            display: none; position: absolute; bottom: 100%; right: 0; 
-            background: #111; border: 1px solid #333; padding: 10px; 
-            width: 250px; border-radius: 8px; z-index: 50; font-size: 0.75rem;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        .card {
+            background: #111; border: 1px solid #333; padding: 20px; border-radius: 8px; margin-bottom: 20px;
         }
     </style>
 </head>
-<body class="min-h-screen p-6 md:p-12" style="background-color: #000;">
+<body>
 
-    <div class="sanctuary-bg"></div>
-    <div class="grid-lines"></div>
+    <div class="bg-abyss"></div>
 
-    <div id="loading" class="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center">
-        <i class="fas fa-fingerprint fa-spin text-4xl text-green-600 mb-4"></i>
-        <div class="text-xs tracking-widest text-green-500 font-mono">AUTHENTICATING...</div>
-        <div id="debug-msg" class="text-[10px] text-gray-700 mt-4 font-mono">Initializing...</div>
-    </div>
-
-    <div id="dashboard-ui" class="max-w-6xl mx-auto hidden">
-        
-        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
-            <div>
-                <div class="text-xs text-gray-500 font-mono mb-1 flex items-center gap-2">
-                    <i class="fas fa-shield-alt text-green-500"></i> SECURE NEXUS
-                </div>
-                <h1 class="text-3xl md:text-4xl font-bold text-white tracking-tight" id="callsign-header">...</h1>
-            </div>
-            
-            <div class="flex items-center gap-6 bg-black/40 p-3 rounded-lg border border-gray-800">
-                <div class="text-right">
-                    <div class="text-[10px] text-gray-500 uppercase">RANK</div>
-                    <div id="rank-badge" class="rank-pill">NEWBORN</div>
-                </div>
-                
-                <div class="text-right relative tooltip-trigger cursor-help">
-                    <div class="text-[10px] text-gray-500 uppercase flex items-center justify-end gap-1">
-                        TRUST SCORE <i class="fas fa-info-circle text-gray-600"></i>
-                    </div>
-                    <div id="trust-score" class="text-2xl font-bold text-white font-mono">0%</div>
-                </div>
-            </div>
-        </header>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-            <div class="md:col-span-1">
-                <div class="dash-card active-border">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-sm font-bold text-white tracking-widest uppercase">
-                            <i class="fas fa-link mr-2 text-green-500"></i> Chaos Attached
-                        </h3>
-                        <div class="animate-pulse h-2 w-2 bg-green-500 rounded-full"></div>
-                    </div>
-                    
-                    <p class="text-xs text-gray-500 mb-4">
-                        Your Callsign is active on these nodes.
-                    </p>
-
-                    <div class="space-y-3 flex-1">
-                        <div class="bg-green-900/10 p-3 rounded border border-green-500/30 flex justify-between items-center">
-                            <div class="flex items-center gap-3">
-                                <i class="fas fa-mobile-alt text-green-500 text-lg"></i>
-                                <div>
-                                    <div class="text-xs text-white font-bold">THIS DEVICE</div>
-                                    <div class="text-[10px] text-green-400">Session Active</div>
-                                </div>
-                            </div>
-                            <i class="fas fa-check-circle text-green-500"></i>
-                        </div>
-
-                        <div class="bg-black/40 p-3 rounded border border-gray-800 flex justify-between items-center opacity-70">
-                            <div class="flex items-center gap-3">
-                                <i class="fas fa-warehouse text-gray-500 text-lg"></i>
-                                <div>
-                                    <div class="text-xs text-gray-300">A+ GARAGE HUB</div>
-                                    <div class="text-[10px] text-gray-600">Standby</div>
-                                </div>
-                            </div>
-                            <div class="h-1.5 w-1.5 bg-yellow-500 rounded-full"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="space-y-6">
-                <div class="dash-card">
-                    <div class="flex justify-between items-center mb-4">
-                        <h3 class="text-sm font-bold text-gray-300"><i class="fas fa-fingerprint mr-2 text-blue-500"></i> BIOMETRIC LOCK</h3>
-                        <div id="sigil-status" class="text-[10px] text-red-500 font-bold bg-red-900/10 px-2 py-1 rounded">NOT SET</div>
-                    </div>
-                    <p class="text-xs text-gray-500 mb-4">
-                        Draw your shape to login instantly.
-                    </p>
-                    <button onclick="window.location.href='/abyss-forge.html'" class="w-full border border-blue-900 text-blue-400 hover:bg-blue-900/20 py-3 rounded text-xs font-bold transition flex items-center justify-center gap-2">
-                        <i class="fas fa-pen-nib"></i> FORGE SIGIL
-                    </button>
-                </div>
-
-                <div class="dash-card">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="text-xs font-bold text-gray-400 uppercase">Master Key</h3>
-                        <button onclick="copyKey()" class="text-green-500 hover:text-white text-xs"><i class="fas fa-copy"></i></button>
-                    </div>
-                    <div class="bg-black p-3 rounded font-mono text-xs text-gray-500 truncate" id="api-key-display">
-                        •••••••••••••••••••••
-                    </div>
-                    <div class="mt-2 text-[10px] text-gray-600 flex justify-between">
-                        <span>API Access Token</span>
-                        <span class="cursor-pointer hover:text-white transition" onclick="revealKey()">REVEAL</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="md:col-span-1">
-                <div class="dash-card">
-                    <h3 class="text-sm font-bold text-white mb-4"><i class="fas fa-expand-arrows-alt mr-2 text-purple-500"></i> EXPAND CHAOS</h3>
-                    
-                    <p class="text-xs text-gray-400 mb-6">
-                        Use callsign <span class="text-white font-bold" id="callsign-inline">...</span> to verify identity across the A+ Ecosystem.
-                    </p>
-                    
-                    <div class="mt-auto pt-6">
-                        <a href="/sdk" class="block w-full bg-purple-900/20 border border-purple-900 text-purple-400 text-center py-2 rounded text-xs font-bold hover:bg-purple-900/40 transition">
-                            VIEW INTEGRATION DOCS
-                        </a>
-                    </div>
-                </div>
-            </div>
-
+    <div id="loader">
+        <i class="fas fa-circle-notch fa-spin text-4xl text-green-500 mb-4"></i>
+        <div class="text-green-500 tracking-widest">CONNECTING...</div>
+        <div id="debug-log" class="text-xs text-gray-600 mt-4 font-mono max-w-md text-center p-2 border border-gray-900 rounded">
+            Initializing...
         </div>
     </div>
 
-    <script>
-        // --- SAFE MODE LOADER ---
-        // If data fetching fails, we still show the UI in "Offline Mode"
+    <div id="main-app" class="p-6 max-w-4xl mx-auto opacity-0 transition-opacity duration-1000">
         
-        window.onload = async () => {
-            const debug = document.getElementById('debug-msg');
-            const apiKey = localStorage.getItem('chaos_key_vault');
+        <div class="flex justify-between items-end mb-8 border-b border-gray-800 pb-4">
+            <div>
+                <h1 class="text-3xl font-bold text-white mb-1" id="ui-callsign">UNKNOWN</h1>
+                <div class="text-xs text-gray-500">SECURE UPLINK ESTABLISHED</div>
+            </div>
+            <div class="text-right">
+                <div class="text-xs text-gray-500">TRUST SCORE</div>
+                <div class="text-2xl font-bold text-green-500" id="ui-score">0%</div>
+            </div>
+        </div>
+
+        <div class="grid md:grid-cols-2 gap-6">
             
-            if (!apiKey) {
-                debug.innerText = "No Key Found. Redirecting...";
-                setTimeout(() => window.location.href = '/', 1000);
+            <div class="card border-l-4 border-l-green-500">
+                <h3 class="text-gray-400 text-xs font-bold uppercase mb-4">Chaos Attached</h3>
+                <div class="flex justify-between items-center bg-black p-3 rounded border border-gray-800 mb-2">
+                    <span class="text-sm">Current Session</span>
+                    <span class="text-green-500 text-xs">● ACTIVE</span>
+                </div>
+                <div class="flex justify-between items-center bg-black p-3 rounded border border-gray-800 opacity-50">
+                    <span class="text-sm">A+ Garage Hub</span>
+                    <span class="text-gray-500 text-xs">○ STANDBY</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="text-gray-400 text-xs font-bold uppercase mb-4">Identity Key</h3>
+                <div class="bg-black p-3 rounded border border-gray-800 text-xs font-mono text-gray-400 break-all" id="ui-key">
+                    LOADING KEY...
+                </div>
+                <button onclick="copyKey()" class="mt-4 w-full border border-gray-700 hover:border-white text-xs py-2 rounded transition">
+                    COPY MASTER KEY
+                </button>
+            </div>
+
+        </div>
+
+        <div class="mt-8 text-center">
+            <a href="/sdk" class="text-xs text-green-700 hover:text-green-500 border-b border-green-900 pb-1">
+                VIEW INTEGRATION DOCUMENTATION
+            </a>
+        </div>
+
+    </div>
+
+    <script>
+        // ERROR TRAPPING
+        window.onerror = function(msg, url, line) {
+            document.getElementById('debug-log').innerText = `ERROR: ${msg} (Line ${line})`;
+            document.getElementById('debug-log').style.color = 'red';
+            return false;
+        };
+
+        const LOG = document.getElementById('debug-log');
+
+        window.onload = async () => {
+            LOG.innerText = "Checking Local Storage...";
+            
+            const key = localStorage.getItem('chaos_key_vault');
+            
+            if (!key) {
+                LOG.innerText = "No Key Found. Redirecting to Login...";
+                setTimeout(() => window.location.href = '/', 1500);
                 return;
             }
 
-            debug.innerText = "Verifying with Chaos Core...";
-
-            // Check Sigil Status (Local Check)
-            if(localStorage.getItem('abyss_sigil_v2')) {
-                const status = document.getElementById('sigil-status');
-                status.innerText = "ACTIVE";
-                status.classList.remove('text-red-500', 'bg-red-900/10');
-                status.classList.add('text-green-500', 'bg-green-900/10');
-            }
-
-            // SAFETY TIMEOUT: If server is slow/dead, force load UI after 2s
-            const safetyTimer = setTimeout(() => {
-                console.warn("Server slow. Loading Offline Mode.");
-                renderDashboard({ rank: "OFFLINE", trustScore: 0, project: "GHOST_MODE" }, apiKey);
-            }, 3000);
+            // Populate UI immediately (Optimistic UI)
+            document.getElementById('ui-key').innerText = key;
+            
+            LOG.innerText = "Contacting Chaos Core...";
 
             try {
+                // Safety Timer: Force load if server is slow
+                const safety = setTimeout(() => showDashboard({ project: "OFFLINE_MODE", trustScore: 0 }), 3000);
+
                 const res = await fetch('/api/v1/sentinel/verify', {
                     method: 'POST',
-                    headers: { 'x-api-key': apiKey }
+                    headers: { 'x-api-key': key }
                 });
-                
-                clearTimeout(safetyTimer); // Server replied, cancel safety timer
+
+                clearTimeout(safety);
 
                 if (res.status === 200) {
                     const data = await res.json();
-                    renderDashboard(data, apiKey);
+                    LOG.innerText = "Verified.";
+                    showDashboard(data);
                 } else {
-                    // Key not found on server? Try auto-registering once.
-                    debug.innerText = "Syncing Identity...";
-                    await registerGhost(apiKey);
-                    
-                    // Retry verify
-                    const retry = await fetch('/api/v1/sentinel/verify', { method: 'POST', headers: { 'x-api-key': apiKey } });
+                    LOG.innerText = "Key not recognized. Attempting Heal...";
+                    await healIdentity(key);
+                    // Retry
+                    const retry = await fetch('/api/v1/sentinel/verify', { method: 'POST', headers: { 'x-api-key': key } });
                     const retryData = await retry.json();
-                    renderDashboard(retryData, apiKey);
+                    showDashboard(retryData);
                 }
+
             } catch (e) {
-                console.error("Fetch Error:", e);
-                // The safety timer will handle this, but just in case:
-                // renderDashboard({ rank: "OFFLINE", trustScore: 0, project: "GHOST_MODE" }, apiKey);
+                LOG.innerText = "Offline / Connection Error. Loading Cache.";
+                showDashboard({ project: "GHOST_USER", trustScore: 0 });
             }
         };
 
-        function renderDashboard(data, key) {
-            document.getElementById('loading').classList.add('hidden');
-            document.getElementById('dashboard-ui').classList.remove('hidden');
-
-            const callsign = data.project || "UNKNOWN";
-            document.getElementById('callsign-header').innerText = callsign;
-            document.getElementById('callsign-inline').innerText = callsign;
+        function showDashboard(data) {
+            // Fill Data
+            document.getElementById('ui-callsign').innerText = data.project || "UNKNOWN";
+            document.getElementById('ui-score').innerText = (data.trustScore || 0) + "%";
             
-            document.getElementById('rank-badge').innerText = data.rank || "NEWBORN";
-            document.getElementById('trust-score').innerText = (data.trustScore || 0) + "%";
-            
-            // Key Display
-            document.getElementById('api-key-display').innerText = key.substring(0, 16) + "••••••••";
-
-            // Colors based on Rank
-            if (data.rank === 'GOD_MODE' || data.rank === 'IMMORTAL') {
-                const badge = document.getElementById('rank-badge');
-                badge.classList.remove('bg-002200', 'text-00ff41', 'border-005500');
-                badge.classList.add('bg-purple-900', 'text-purple-300', 'border-purple-600');
-            }
+            // Fade Out Loader
+            document.getElementById('loader').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('main-app').style.opacity = '1';
+            }, 500);
         }
 
-        async function registerGhost(key) {
+        async function healIdentity(key) {
             try {
                 await fetch('/api/auth/ghost-register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         alias: "GHOST-" + key.substring(9, 14), 
-                        chaos_metric: 0.8, 
+                        chaos_metric: 0.9, 
                         provided_key: key 
                     })
                 });
-            } catch(e) { console.log("Register failed (likely offline)"); }
-        }
-
-        function revealKey() {
-            const apiKey = localStorage.getItem('chaos_key_vault');
-            const el = document.getElementById('api-key-display');
-            if(el.innerText.includes('•')) el.innerText = apiKey;
-            else el.innerText = apiKey.substring(0, 16) + "••••••••";
+            } catch(e) { console.log("Heal failed"); }
         }
 
         function copyKey() {
-            const apiKey = localStorage.getItem('chaos_key_vault');
-            navigator.clipboard.writeText(apiKey);
-            alert("Identity Key Copied");
+            const k = document.getElementById('ui-key').innerText;
+            navigator.clipboard.writeText(k);
+            alert("Copied");
         }
     </script>
 </body>
