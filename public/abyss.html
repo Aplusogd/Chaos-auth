@@ -9,94 +9,92 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
-        body { background: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; height: 100vh; display: flex; align-items: center; justify-content: center; }
+        body { background: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         
         .portal-card {
-            background: rgba(5,5,5,0.9); border: 1px solid #222; padding: 40px; 
-            max-width: 500px; width: 100%; box-shadow: 0 0 80px rgba(0, 255, 65, 0.05);
+            background: rgba(5,5,5,0.9); border: 1px solid #222; padding: 30px; 
+            max-width: 400px; width: 90%; box-shadow: 0 0 80px rgba(0, 255, 65, 0.05);
             backdrop-filter: blur(5px);
         }
 
-        /* CANVAS STYLING */
         #chaosCanvas {
             border: 1px solid #005500; background: #000; margin-bottom: 20px;
             cursor: crosshair;
-            box-shadow: inset 0 0 10px rgba(0, 255, 65, 0.1);
-            touch-action: none; /* Prevents scrolling while drawing */
+            box-shadow: inset 0 0 20px rgba(0, 255, 65, 0.1);
+            touch-action: none; /* Critical for mobile dragging */
+            border-radius: 50%; /* Visual hint */
         }
 
         .input-line {
-            background: #111; border: 1px solid #333; color: white; padding: 10px; text-align: center;
-            border-radius: 4px;
+            background: #111; border: 1px solid #333; color: white; padding: 12px; text-align: center;
+            border-radius: 4px; font-size: 1rem;
         }
     </style>
 </head>
 <body>
 
     <div id="loading" class="absolute inset-0 bg-black z-50 flex items-center justify-center hidden">
-        <i class="fas fa-cog fa-spin text-4xl text-green-500 mb-4"></i>
+        <i class="fas fa-circle-notch fa-spin text-4xl text-green-500 mb-4"></i>
     </div>
 
     <div class="portal-card text-center">
-        <h1 class="text-2xl font-bold tracking-widest mb-2 text-white">BIOMETRIC HANDSHAKE</h1>
-        <p class="text-gray-500 text-xs mb-8">Trace the shape below to verify human inertia.</p>
+        <i class="fas fa-fingerprint text-3xl text-green-600 mb-2"></i>
+        <h1 class="text-xl font-bold tracking-widest mb-1 text-white">BIOMETRIC TRACE</h1>
+        <p class="text-gray-500 text-xs mb-6">Draw a circle to verify humanity.</p>
 
         <div id="challenge-area" class="flex flex-col items-center">
-            <canvas id="chaosCanvas" width="300" height="300"></canvas>
-            <p class="text-[10px] text-red-500 mb-4 font-bold" id="challenge-status">TRACE THE SHAPE TO BEGIN</p>
+            <canvas id="chaosCanvas" width="280" height="280"></canvas>
+            <p class="text-[10px] text-gray-500 mb-4 font-bold uppercase tracking-widest" id="challenge-status">TRACE THE GREEN CIRCLE</p>
         </div>
 
-        <input type="text" id="aliasInput" class="input-line w-full mb-4" placeholder="Enter Your Callsign (Codename)">
+        <input type="text" id="aliasInput" class="input-line w-full mb-4" placeholder="Enter Codename">
         
-        <button onclick="attemptManifest()" id="manifest-btn" class="bg-green-600 hover:bg-green-500 text-black px-8 py-3 rounded font-bold text-sm transition duration-300 w-full disabled:opacity-50 disabled:cursor-not-allowed">
-            MINT TEMPORARY KEY
+        <button onclick="attemptManifest()" id="manifest-btn" class="bg-green-800 text-green-400 border border-green-600 px-8 py-3 rounded font-bold text-sm transition duration-300 w-full disabled:opacity-50 disabled:cursor-not-allowed hover:bg-green-600 hover:text-black">
+            INITIATE
         </button>
 
-        <div class="mt-6 border-t border-gray-800 pt-4">
-            <a href="/" class="text-gray-600 hover:text-white text-xs mr-4">← Back to Landing</a>
-            <a href="/login" class="text-blue-400 hover:text-white text-xs">Admin/Staff Login</a>
+        <div class="mt-6 pt-4 border-t border-gray-800 flex justify-between">
+            <a href="/" class="text-gray-600 hover:text-white text-xs">← Back</a>
+            <a href="/login" class="text-gray-600 hover:text-white text-xs">Admin Login</a>
         </div>
     </div>
 
     <script>
-        // --- 1. BIOMETRIC CHALLENGE LOGIC ---
         const challengeStatus = document.getElementById('challenge-status');
         const canvas = document.getElementById('chaosCanvas');
         const ctx = canvas.getContext('2d');
         const manifestBtn = document.getElementById('manifest-btn');
 
         let isTracing = false;
-        let tracePoints = [];
-        let chaosMetric = 0; // The metric sent to the server
+        let chaosMetric = 0; 
         
-        // Define the shape (Hexagon points)
-        const center = { x: 150, y: 150 };
-        const size = 80;
+        // Settings for the Circle
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const radius = 80;
 
-        // Draw the target shape (A simple star or geometric shape)
         function drawTarget() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // Draw Guide Shape (Dim Green)
-            ctx.strokeStyle = 'rgba(0, 255, 65, 0.2)';
-            ctx.lineWidth = 4;
+            // Draw Guide Circle (Dim Green)
+            ctx.strokeStyle = 'rgba(0, 255, 65, 0.15)';
+            ctx.lineWidth = 10;
             ctx.beginPath();
-            for (let i = 0; i < 7; i++) {
-                const angle = (Math.PI / 3) * i;
-                const x = center.x + size * Math.cos(angle);
-                const y = center.y + size * Math.sin(angle);
-                if (i === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
-            }
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
             ctx.stroke();
+
+            // Draw "Start Here" Dot
+            ctx.fillStyle = 'rgba(0, 255, 65, 0.5)';
+            ctx.beginPath();
+            ctx.arc(centerX + radius, centerY, 5, 0, 2 * Math.PI);
+            ctx.fill();
         }
         drawTarget();
 
         function startTrace(e) {
             isTracing = true;
-            tracePoints = [];
             chaosMetric = 0;
-            drawTarget(); // Redraw background
+            drawTarget(); // Clean slate
             e.preventDefault();
         }
 
@@ -104,28 +102,25 @@
             if (!isTracing) return;
             e.preventDefault();
             
-            // Handle both mouse and touch
+            // Get coordinates
             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            
             const rect = canvas.getBoundingClientRect();
             const x = clientX - rect.left;
             const y = clientY - rect.top;
             
-            tracePoints.push({ x, y });
-            
-            // Accumulate movement jitter as the chaos metric
-            if (tracePoints.length > 1) {
-                const prev = tracePoints[tracePoints.length - 2];
-                chaosMetric += Math.abs(x - prev.x) + Math.abs(y - prev.y);
+            // Draw User Trace (Bright Green)
+            ctx.fillStyle = '#00ff41';
+            ctx.beginPath();
+            ctx.arc(x, y, 2, 0, 2 * Math.PI); // Draw dots for smoother performance
+            ctx.fill();
 
-                // Draw the user's trace line (Bright Green)
-                ctx.strokeStyle = '#00ff41';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.moveTo(prev.x, prev.y);
-                ctx.lineTo(x, y);
-                ctx.stroke();
+            // Calculate Distance from Center (Are they roughly tracing the circle?)
+            const dist = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+            
+            // Logic: If they are tracing NEAR the circle (radius +/- 40px), count it as valid entropy
+            if (Math.abs(dist - radius) < 40) {
+                chaosMetric += 5; // Accumulate score faster
             }
         }
 
@@ -133,25 +128,25 @@
             if (!isTracing) return;
             isTracing = false;
             
-            // Check if the trace was substantial enough
-            // 800 is a good threshold for a full hexagon trace
-            if (chaosMetric > 800) { 
-                challengeStatus.innerText = `[BIOMETRIC SUCCESS] ENTROPY: ${chaosMetric.toFixed(0)}`;
-                challengeStatus.classList.remove('text-red-500');
-                challengeStatus.classList.add('text-green-500');
+            // Threshold: 300 is roughly one full quick circle
+            if (chaosMetric > 300) { 
+                challengeStatus.innerText = `BIOMETRIC VERIFIED (SCORE: ${chaosMetric})`;
+                challengeStatus.style.color = "#00ff41";
                 manifestBtn.disabled = false;
+                manifestBtn.classList.remove('bg-green-800', 'text-green-400');
+                manifestBtn.classList.add('bg-green-500', 'text-black');
             } else {
-                challengeStatus.innerText = "TRACE INCOMPLETE OR ROBOTIC. TRY AGAIN.";
-                challengeStatus.classList.add('text-red-500');
+                challengeStatus.innerText = "TRACE INCOMPLETE. TRY AGAIN.";
+                challengeStatus.style.color = "#ef4444";
                 manifestBtn.disabled = true;
-                setTimeout(drawTarget, 1000); // Reset
+                setTimeout(drawTarget, 1000); // Reset visual
             }
         }
 
-        // Event Listeners (Mouse + Touch)
         canvas.addEventListener('mousedown', startTrace);
         canvas.addEventListener('mousemove', moveTrace);
         canvas.addEventListener('mouseup', endTrace);
+        canvas.addEventListener('mouseleave', endTrace); // Stop if they leave canvas
         
         canvas.addEventListener('touchstart', startTrace);
         canvas.addEventListener('touchmove', moveTrace);
@@ -159,66 +154,37 @@
         
         manifestBtn.disabled = true;
 
-        // --- 2. IDENTITY MANIFEST LOGIC ---
-        
+        // --- MANIFEST LOGIC ---
         async function attemptManifest() {
             const alias = document.getElementById('aliasInput').value.trim() || "Ghost_User";
-            const msg = document.getElementById('challenge-status');
-
-            if (chaosMetric < 800) {
-                msg.innerText = "Biometric check failed. Please trace the shape again.";
-                return;
-            }
             
-            // Generate the 3-Word Callsign based on the Jitter Hash
-            const phrase = generateChaosCallsign(alias); 
-            const key = phraseToKey(phrase);
-
-            document.getElementById('loading').classList.remove('hidden');
-            
-            // Register with Server
-            const success = await registerWithServer(key, alias, chaosMetric);
-
-            if (success) {
-                localStorage.setItem('chaos_key_vault', key);
-                // Redirect to status page
-                window.location.href = '/check.html'; 
-            } else {
-                document.getElementById('loading').classList.add('hidden');
-                msg.innerText = "SERVER COMMUNICATION FAILED.";
-            }
-        }
-        
-        // --- 3. HELPER FUNCTIONS ---
-        
-        // Dictionary for generation
-        const DIMS = ["Crimson","Void","Obsidian","Plasma","Neon","Thunder","Abyss","Vortex","Ragnarok","Storm","Velvet","Razor","Leather","Mercury","Shatter"];
-
-        function phraseToKey(phrase) {
-            return "sk_ghost_" + CryptoJS.SHA256(phrase + "INFINITE_ABYSS_2025").toString().substring(0, 32);
-        }
-
-        function generateChaosCallsign(alias) {
+            // Generate Random Words
+            const DIMS = ["Crimson","Void","Obsidian","Plasma","Neon","Thunder","Abyss","Vortex","Ragnarok","Storm","Velvet","Razor","Leather","Mercury","Shatter"];
             const w1 = DIMS[Math.floor(Math.random() * DIMS.length)];
             const w2 = DIMS[Math.floor(Math.random() * DIMS.length)];
             const w3 = DIMS[Math.floor(Math.random() * DIMS.length)];
-            return `${w1}-${w2}-${w3}`;
-        }
+            const phrase = `${w1}-${w2}-${w3}`;
+            const key = "sk_ghost_" + CryptoJS.SHA256(phrase + "INFINITE_ABYSS_2025").toString().substring(0, 32);
 
-        async function registerWithServer(key, alias, chaosMetric) {
+            document.getElementById('loading').classList.remove('hidden');
+
             try {
+                // Register
                 const res = await fetch('/api/auth/ghost-register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        alias: alias, 
-                        chaos_metric: chaosMetric,
-                        provided_key: key
-                    })
+                    body: JSON.stringify({ alias, chaos_metric: chaosMetric, provided_key: key })
                 });
                 const data = await res.json();
-                return data.success;
-            } catch(e) { return false; }
+                
+                if (data.success) {
+                    localStorage.setItem('chaos_key_vault', key);
+                    window.location.href = '/check.html';
+                }
+            } catch(e) {
+                alert("Server Connection Failed");
+                document.getElementById('loading').classList.add('hidden');
+            }
         }
     </script>
 </body>
