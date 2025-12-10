@@ -1,50 +1,43 @@
-// router.js - CENTRAL ROUTING SCRIPT (V228)
+// router.js - CENTRAL ROUTING SCRIPT (V231)
 // This file enforces flow, guards protected routes, and handles initial load stability.
 
 function router() {
-    // Current Path
     const path = window.location.pathname;
 
     // Data Status Checks (CRASH-PROOF)
     const hasCallsign = localStorage.getItem('chaos_key_vault') !== null;
     const isVerified = sessionStorage.getItem('verified_user_data') !== null;
+    
+    // NOTE: We only implement the auto-fill UX here for minimal code footprint.
+    // The main routing flow is handled by the server (index.js).
 
-    // --- MAIN ROUTING LOGIC ---
+    // --- MAIN ROUTING LOGIC (Guarding Protected Destinations) ---
     switch (path) {
         case '/':
-            // Landing: If verified, go straight to Sanctuary.
+            // Landing: If already verified, go to sanctuary.
             if (isVerified) {
                 window.location.href = '/sanctuary';
                 return;
             }
-            // If user has a key but hasn't verified this session, go to login.
-            if (hasCallsign) {
-                window.location.href = '/verify';
-                return;
-            }
-            // Otherwise, stay on landing page (index.html).
             break;
 
-        case '/forge':
-            // Creation: Skip creation if a key already exists.
-            if (hasCallsign) {
-                window.location.href = '/verify';
-                return;
-            }
-            break;
-
-        case '/verify':
-            // Login: If no key exists, force creation first.
-            if (!hasCallsign) {
+        case '/sanctuary':
+        case '/profile/calibrate':
+            // Guarded Destinations: Requires fresh session verification.
+            if (!isVerified) {
+                // If key exists but session data is gone, force re-verification.
+                if (hasCallsign) {
+                    window.location.href = '/login';
+                    return;
+                }
+                // If no key at all, force creation.
                 window.location.href = '/forge';
                 return;
             }
-            // If already verified this session, skip verification.
-            if (isVerified) {
-                window.location.href = '/sanctuary';
-                return;
-            }
-            // Add Anti-White Screen Delay for Input Auto-Fill (Grok's Fix)
+            break;
+
+        case '/login':
+             // Anti-White Screen Delay for Input Auto-Fill UX
             setTimeout(() => {
                 try {
                     const history = localStorage.getItem('callsign_history');
@@ -54,27 +47,19 @@ function router() {
                 }
             }, 100);
             break;
-
-        case '/sanctuary':
-        case '/profile/calibrate':
-            // Guarded Destinations: Requires fresh session verification.
-            if (!isVerified) {
-                // If key exists but session data is gone, re-verify.
-                window.location.href = '/verify';
-                return;
+            
+        case '/forge':
+             // Creation Guard: If already logged in, skip creation.
+            if (hasCallsign) {
+                 window.location.href = '/login';
+                 return;
             }
             break;
 
-        case '/logout':
-            // Logout is handled by logout.html directly.
-            break;
-            
-        default:
-            // 404 handler
-            window.location.href = '/error.html?code=404';
+        // Default: Server handles 404
     }
 }
 
-// Attach the router to run immediately after the DOM content is loaded
+// Hook to onload with a micro-delay to prevent storage race condition
 window.addEventListener('DOMContentLoaded', router);
 window.addEventListener('popstate', router);
