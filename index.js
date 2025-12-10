@@ -92,23 +92,27 @@ app.post('/api/v1/sentinel/verify', (req, res) => {
 });
 
 // ==================================================================
-// ROUTING (Final Sorted Map)
+// ROUTING (Deep Think: Mapping the 3 Final Files)
 // ==================================================================
 
-// --- CORE USER FLOW ---
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public/index.html'))); // Landing Page (Selector)
-app.get('/abyss.html', (req, res) => res.sendFile(path.join(__dirname, 'public/abyss.html'))); // Callsign CREATION (3-Word Generator)
-app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public/app.html'))); // Login Page (Biometric Trace)
+// 1. LANDING PAGE
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public/index.html')));
 
-// --- POST-LOGIN PAGES ---
+// 2. CREATION PAGE (CHAOS FORGE: 3-Word Generator)
+app.get('/abyss.html', (req, res) => res.sendFile(path.join(__dirname, 'public/abyss.html')));
+
+// 3. LOGIN PAGE (ENTER THE ABYSS: Biometric Trace Login)
+app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public/app.html')));
+
+
+// --- POST-LOGIN PAGES (The Destinations) ---
 app.get('/check.html', (req, res) => res.sendFile(path.join(__dirname, 'public/check.html'))); // Sanctuary Dashboard
-app.get('/abyss-forge.html', (req, res) => res.sendFile(path.join(__dirname, 'public/abyss-forge.html'))); // Biometric Calibration/Training (Optional Link)
-app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public/dashboard.html'))); // Admin Dashboard (Original name)
+app.get('/abyss-forge.html', (req, res) => res.sendFile(path.join(__dirname, 'public/abyss-forge.html'))); // Biometric Calibration/Training
 
 
 // --- START SERVER ---
 // Binding to 0.0.0.0 is crucial for external cloud access
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`⚡ A+ CHAOS CORE V219 ONLINE`);
+    console.log(`⚡ A+ CHAOS CORE V225 ONLINE`);
     console.log(`📡 LISTENING ON PORT ${PORT} (Admin Key Secure)`);
 });
