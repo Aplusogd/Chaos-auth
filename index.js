@@ -8,19 +8,28 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
+
+// CRITICAL: Render sets this env variable. We MUST use it.
+// If it's undefined, we fallback to 3000 for local testing.
 const PORT = process.env.PORT || 3000;
 
 // --- MIDDLEWARE ---
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public')); // Serves static assets
+app.use(express.static('public')); // Serves your HTML files
 
-// --- IN-MEMORY DATABASES (The Vault) ---
+// --- HEALTH CHECK (For Render) ---
+// This tells Render "I am alive" immediately.
+app.get('/health', (req, res) => {
+    res.status(200).send('OK');
+});
+
+// --- IN-MEMORY DATABASES ---
 const KeyVault = new Map();
 const RateLimit = new Map();
 const Clients = new Set(); 
 
-// --- SEED ADMIN KEY (God Mode) ---
+// --- SEED ADMIN KEY ---
 const ADMIN_KEY = "sk_chaos_ee3aeaaaa3d193cee40bf7b2bc2e2432";
 KeyVault.set(ADMIN_KEY, { 
     key: ADMIN_KEY, 
@@ -41,7 +50,6 @@ const LiveWire = {
 // API ROUTES
 // ==================================================================
 
-// 1. LIVE WIRE
 app.get('/api/live-wire', (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
@@ -52,14 +60,12 @@ app.get('/api/live-wire', (req, res) => {
     res.write(`data: ${JSON.stringify({ type: 'SYSTEM', data: 'CONNECTED' })}\n\n`);
 });
 
-// 2. ADMIN VERIFY
 app.post('/api/admin/verify', (req, res) => {
     const { token } = req.body;
     if (KeyVault.has(token)) res.json({ valid: true });
     else res.status(401).json({ valid: false });
 });
 
-// 3. KEY MINTING
 app.post('/api/admin/keys/create', (req, res) => {
     const { token, clientName, scope } = req.body;
     if (token !== ADMIN_KEY) return res.status(403).json({ error: "FORBIDDEN" });
@@ -69,7 +75,6 @@ app.post('/api/admin/keys/create', (req, res) => {
     res.json({ success: true, key: newKey });
 });
 
-// 4. GHOST REGISTER (Self-Healing)
 app.post('/api/auth/ghost-register', (req, res) => {
     const { alias, chaos_metric, provided_key } = req.body;
     if (!chaos_metric || chaos_metric === 0) {
@@ -82,7 +87,6 @@ app.post('/api/auth/ghost-register', (req, res) => {
     res.json({ success: true, key: ghostKey });
 });
 
-// 5. SENTINEL VERIFY
 app.post('/api/v1/sentinel/verify', (req, res) => {
     const apiKey = req.headers['x-api-key'];
     if (!apiKey || !KeyVault.has(apiKey)) return res.status(401).json({ error: "INVALID_KEY", status: "DENIED" });
@@ -112,10 +116,9 @@ app.post('/api/v1/sentinel/verify', (req, res) => {
     const trustScore = Math.min(100, 50 + (ageDays * 2));
     LiveWire.broadcast('TRAFFIC', { status: 'VERIFIED', project: keyData.client, rank: rank, score: trustScore.toFixed(0) });
     
-    res.json({ valid: true, status: "VERIFIED", trustScore: trustScore.toFixed(0), rank: rank, limit: limit + "/min", daysAlive: ageDays.toFixed(2) });
+    res.json({ valid: true, status: "VERIFIED", trustScore: trustScore.toFixed(0), rank: rank, limit: limit + "/min", daysAlive: ageDays.toFixed(2), project: keyData.client });
 });
 
-// 6. CHAOS LOG
 app.post('/api/chaos-log', (req, res) => {
     const apiKey = req.headers['x-api-key'];
     if (!KeyVault.has(apiKey)) return res.status(401).json({ error: "UNAUTHORIZED" });
@@ -123,37 +126,25 @@ app.post('/api/chaos-log', (req, res) => {
     res.json({ success: true });
 });
 
-// ==================================================================
-// PAGE ROUTING (The Map to Your Files)
-// ==================================================================
-
-// MAIN GATES
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public/index.html')));           // Landing Page
-app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public/app.html')));        // Login Screen (Maps to app.html!)
-app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public/admin.html')));      // Old Admin (Backup)
-
-// SECURITY GATES
-app.get('/abyss.html', (req, res) => res.sendFile(path.join(__dirname, 'public/abyss.html'))); // Biometric Entry
-app.get('/check.html', (req, res) => res.sendFile(path.join(__dirname, 'public/check.html'))); // Status Portal
-
-// COMMAND CENTERS
-app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public/dashboard.html'))); // God Mode
-app.get('/tech-hub', (req, res) => res.sendFile(path.join(__dirname, 'public/tech-hub.html')));   // Tech Portal
-app.get('/keyforge', (req, res) => res.sendFile(path.join(__dirname, 'public/keyforge.html')));   // Key Minting
-app.get('/overwatch', (req, res) => res.sendFile(path.join(__dirname, 'public/overwatch.html'))); // Overwatch Monitor
-
-// TOOLS & SDKs
-app.get('/sdk', (req, res) => res.sendFile(path.join(__dirname, 'public/sdk.html')));             // Developer Docs
-app.get('/chaos-sdk.js', (req, res) => res.sendFile(path.join(__dirname, 'public/chaos-sdk.js'))); // The JS Library
-app.get('/test-console', (req, res) => res.sendFile(path.join(__dirname, 'public/test-console.html'))); // Sandbox
-
-// SPECIAL PROJECTS
-app.get('/hydra', (req, res) => res.sendFile(path.join(__dirname, 'public/hydra.html')));         // Hydra Module
-app.get('/dreams', (req, res) => res.sendFile(path.join(__dirname, 'public/dreams.html')));       // DREAMS Audio
-app.get('/portal', (req, res) => res.sendFile(path.join(__dirname, 'public/portal.html')));       // Alternative Portal
+// --- ROUTING ---
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public/index.html')));
+app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public/app.html')));
+app.get('/abyss.html', (req, res) => res.sendFile(path.join(__dirname, 'public/abyss.html')));
+app.get('/abyss-forge.html', (req, res) => res.sendFile(path.join(__dirname, 'public/abyss-forge.html')));
+app.get('/check.html', (req, res) => res.sendFile(path.join(__dirname, 'public/check.html')));
+app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public/dashboard.html')));
+app.get('/keyforge', (req, res) => res.sendFile(path.join(__dirname, 'public/keyforge.html')));
+app.get('/tech-hub', (req, res) => res.sendFile(path.join(__dirname, 'public/tech-hub.html')));
+app.get('/overwatch', (req, res) => res.sendFile(path.join(__dirname, 'public/overwatch.html')));
+app.get('/sdk', (req, res) => res.sendFile(path.join(__dirname, 'public/sdk.html')));
+app.get('/hydra', (req, res) => res.sendFile(path.join(__dirname, 'public/hydra.html')));
+app.get('/dreams', (req, res) => res.sendFile(path.join(__dirname, 'public/dreams.html')));
+app.get('/test-console', (req, res) => res.sendFile(path.join(__dirname, 'public/test-console.html')));
 
 // --- START SERVER ---
-app.listen(PORT, () => {
-    console.log(`⚡ A+ CHAOS CORE V189 ONLINE: PORT ${PORT}`);
-    console.log(`📂 SERVING FULL ECOSYSTEM (${KeyVault.size} KEYS LOADED)`);
+// 0.0.0.0 is crucial for Render to route external traffic to your app
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`⚡ A+ CHAOS CORE V200 ONLINE`);
+    console.log(`📡 LISTENING ON PORT ${PORT} (0.0.0.0)`);
+    console.log(`🔒 ADMIN KEY LOADED`);
 });
