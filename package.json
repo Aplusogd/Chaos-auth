@@ -1,25 +1,18 @@
 {
-  "name": "aplus-chaos-core",
-  "version": "2.4.0",
-  "description": "A+ Chaos Security Core - Final V240",
-  "main": "index.js",
-  "type": "module",
-  "engines": {
-    "node": ">=20.12.0"
-  },
-  "scripts": {
-    "start": "node index.js"
-  },
-  "dependencies": {
-    "express": "^4.19.2",
-    "compression": "^1.7.4",
-    "helmet": "^7.1.0",
-    "crypto": "1.0.1",
-    "cors": "^2.8.5"
-    // Add any other core dependencies you use (e.g., uuid, pg, etc.)
-  },
-  "devDependencies": {
-    "esbuild": "^0.21.5"
-  },
-  "private": true
+  "name": "aplus-chaos-core",
+  "version": "2.4.1",
+  "description": "A+ Chaos Security Core - Final V241",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.21.1",
+    "compression": "^1.7.4",
+    "helmet": "^7.1.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
 }
