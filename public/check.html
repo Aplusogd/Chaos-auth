@@ -3,353 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A+ SANCTUARY | AUDITOR</title>
+    <title>A+ MINIMAL CHECK</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        html, body { background-color: #000000; color: #e5e5e5; font-family: 'Inter', sans-serif; overflow-x: hidden; }
-        .font-mono { font-family: 'JetBrains Mono', monospace; }
-
-        .sanctuary-bg {
-            position: fixed; inset: 0; z-index: -1;
-            background: radial-gradient(circle at 50% 50%, #0a1a0a 0%, #000 100%);
-        }
-        
-        .dash-card {
-            background: rgba(15, 15, 15, 0.8); border: 1px solid #222; 
-            backdrop-filter: blur(10px); border-radius: 8px; padding: 1.2rem;
-            transition: all 0.2s;
-        }
-        
-        #verifyCanvas, #testCanvas {
-            background: #000; border: 1px solid #333; border-radius: 8px;
-            cursor: crosshair; touch-action: none;
-            box-shadow: inset 0 0 20px rgba(0, 255, 65, 0.05);
-        }
-
-        .redacted { background: #000; color: #000; user-select: none; }
+        /* FORCE DARK MODE */
+        html, body { background-color: #000000; color: #fff; font-family: monospace; }
     </style>
 </head>
-<body class="min-h-screen p-4 md:p-8">
+<body class="p-6">
 
-    <div class="sanctuary-bg"></div>
+    <div class="text-center mt-12">
+        <i class="fas fa-satellite-dish fa-spin text-4xl text-green-500 mb-4"></i>
+        <h1 class="text-white text-xl">UPLINK STATUS</h1>
+        <p class="text-gray-500 text-xs mb-6">Checking core systems...</p>
 
-    <div id="dashboard" class="max-w-7xl mx-auto">
-        
-        <header class="flex justify-between items-end mb-8 pb-4 border-b border-gray-900">
-            <div>
-                <h1 class="text-3xl font-bold text-white mb-1" id="callsign-header">...</h1>
-                <div class="text-[10px] text-green-500 font-mono tracking-widest uppercase">
-                    Secure Nexus • Active
-                </div>
-            </div>
-            <div class="text-right">
-                <div class="text-[10px] text-gray-600 uppercase">Trust Score</div>
-                <div id="trust-score" class="text-2xl font-bold text-white font-mono">0%</div>
-            </div>
-        </header>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-            <div class="dash-card border-l-4 border-l-blue-600">
-                <div class="flex justify-between items-center mb-4">
-                    <span class="text-xs font-bold text-blue-500"><i class="fas fa-dna mr-2"></i> BIO-AUDIT</span>
-                    <button onclick="startTraining()" class="text-[10px] bg-blue-900/20 text-blue-400 px-2 py-1 rounded hover:bg-blue-500 hover:text-black">NEW PROFILE</button>
-                </div>
-                
-                <div class="mb-4">
-                    <canvas id="testCanvas" width="280" height="200" class="w-full"></canvas>
-                    <div class="mt-2 flex justify-between text-[10px] text-gray-500 font-mono">
-                        <span id="draw-timer">0.0s</span>
-                        <span id="draw-status">READY</span>
-                    </div>
-                </div>
-
-                <div id="analysis-result" class="hidden bg-black/50 p-3 rounded border border-gray-800">
-                    <div class="flex justify-between items-start mb-3">
-                        <div>
-                            <div class="text-[10px] text-gray-500 uppercase">Potential Match</div>
-                            <div class="text-sm text-white font-bold" id="guess-name">---</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-[10px] text-gray-500 uppercase">Deviation</div>
-                            <div class="text-sm font-mono text-yellow-500 font-bold" id="guess-deviation">0%</div>
-                        </div>
-                    </div>
-                    
-                    <div class="flex gap-2">
-                        <button onclick="confirmGuess(true)" class="flex-1 bg-green-900/20 text-green-500 text-[10px] py-2 rounded hover:bg-green-500 hover:text-black transition border border-green-900">
-                            CONFIRM
-                        </button>
-                        <button onclick="confirmGuess(false)" class="flex-1 bg-red-900/20 text-red-500 text-[10px] py-2 rounded hover:bg-red-500 hover:text-black transition border border-red-900">
-                            DENY
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="dash-card md:col-span-2">
-                <div class="flex justify-between items-center mb-4">
-                    <span class="text-xs font-bold text-red-500"><i class="fas fa-box-open mr-2"></i> BLACK BOX</span>
-                    <button id="lock-btn" onclick="unlockBox()" class="text-xs text-gray-500 hover:text-white transition"><i class="fas fa-lock"></i> LOCKED</button>
-                </div>
-                <div class="relative">
-                    <textarea id="secret-notes" class="w-full h-32 bg-black border border-gray-800 rounded p-3 text-sm text-green-500 font-mono resize-none redacted" readonly></textarea>
-                    <div id="lock-overlay" class="absolute inset-0 bg-black/90 flex items-center justify-center flex-col">
-                        <div class="text-red-500 font-mono text-xs tracking-widest mb-2">[ SECURE CONTENT ]</div>
-                        <div class="text-[10px] text-gray-600">Bio-Audit Required</div>
-                    </div>
-                </div>
-                <button onclick="saveNotes()" class="mt-2 text-xs w-full bg-red-900/20 text-red-500 py-2 rounded hover:bg-red-500 hover:text-black transition">
-                    ENCRYPT & SAVE
-                </button>
-            </div>
-
+        <div id="status-box" class="bg-gray-900 p-4 rounded inline-block text-left">
+            <p class="text-sm font-bold text-green-400 mb-2">IDENTITY CHECK</p>
+            <p class="text-xs text-white" id="key-status">Key: Loading...</p>
+            <p class="text-xs text-white" id="name-status">Name: ---</p>
+            <p class="text-xs text-white" id="rank-status">Rank: ---</p>
         </div>
+
+        <p id="error-message" class="text-red-500 mt-6 hidden">A critical error occurred. See console.</p>
     </div>
 
     <script>
-        let currentKey = localStorage.getItem('chaos_key_vault');
-        
-        // --- 1. INIT ---
-        window.onload = () => {
-            if(!currentKey) { window.location.href='/'; return; }
-            document.getElementById('callsign-header').innerText = "GHOST-" + currentKey.substring(9,14).toUpperCase();
-            document.getElementById('trust-score').innerText = "88%";
-            
-            if(!localStorage.getItem('chaos_profiles')) {
-                localStorage.setItem('chaos_profiles', JSON.stringify({}));
-            }
+        // CRITICAL ERROR CATCH: Display the error on screen if it happens.
+        window.onerror = function(msg, url, line) {
+            document.getElementById('error-message').innerText = `ERROR: ${msg} (Line ${line})`;
+            document.getElementById('error-message').classList.remove('hidden');
+            return true; 
         };
 
-        // --- 2. CANVAS & TRACKING ---
-        const canvas = document.getElementById('testCanvas');
-        const ctx = canvas.getContext('2d');
-        let isDrawing = false;
-        let rawPath = [];
-        let startTime = 0;
-        let lastGuess = null; 
-
-        canvas.addEventListener('mousedown', startDraw);
-        canvas.addEventListener('mousemove', moveDraw);
-        canvas.addEventListener('mouseup', endDraw);
-        canvas.addEventListener('touchstart', startDraw);
-        canvas.addEventListener('touchmove', moveDraw);
-        canvas.addEventListener('touchend', endDraw);
-
-        function startDraw(e) {
-            isDrawing = true;
-            rawPath = [];
-            startTime = Date.now();
-            ctx.clearRect(0,0,280,200);
-            
-            document.getElementById('analysis-result').classList.add('hidden');
-            document.getElementById('draw-status').innerText = "INPUT ACTIVE";
-            document.getElementById('draw-status').style.color = "#00ff41";
-            
-            const pt = getPt(e);
-            rawPath.push(pt);
-        }
-
-        function moveDraw(e) {
-            if(!isDrawing) return;
-            const pt = getPt(e);
-            rawPath.push(pt);
-            
-            ctx.fillStyle = '#00ff41';
-            ctx.beginPath();
-            ctx.arc(pt.x, pt.y, 2, 0, Math.PI*2);
-            ctx.fill();
-            
-            const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-            document.getElementById('draw-timer').innerText = `${elapsed}s`;
-        }
-
-        function endDraw() {
-            isDrawing = false;
-            const duration = Date.now() - startTime;
-            document.getElementById('draw-status').innerText = "PROCESSING...";
-            
-            if(rawPath.length < 20) {
-                document.getElementById('draw-status').innerText = "INSUFFICIENT DATA";
-                return;
-            }
-
-            analyzeSigil(normalizePath(rawPath), duration);
-        }
-
-        // --- 3. THE AUDITOR ENGINE ---
-        function analyzeSigil(inputShape, duration) {
-            const profiles = JSON.parse(localStorage.getItem('chaos_profiles') || '{}');
-            const keys = Object.keys(profiles);
-
-            if (keys.length === 0) {
-                document.getElementById('draw-status').innerText = "NO PROFILES";
-                if(confirm("Create 'Right Thumb' profile?")) createNewProfile("Right Thumb", inputShape, duration);
-                return;
-            }
-
-            // FIND BEST MATCH (Shape Only First)
-            let bestMatch = null;
-            let lowestDiff = Infinity;
-
-            keys.forEach(name => {
-                const profile = profiles[name];
-                if (!profile.shape || profile.shape.length === 0) return;
-                
-                // Compare Geometry (Normalized)
-                let diff = 0;
-                for(let i=0; i<inputShape.length; i++) {
-                    const p1 = inputShape[i];
-                    const p2 = profile.shape[i];
-                    diff += Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
-                }
-                const shapeScore = diff / inputShape.length;
-                
-                if (shapeScore < lowestDiff) {
-                    lowestDiff = shapeScore;
-                    bestMatch = name;
-                }
-            });
-
-            // Threshold: 0.3 is strict, 0.4 is forgiving
-            if (lowestDiff > 0.4) {
-                document.getElementById('draw-status').innerText = "NO MATCH";
-                document.getElementById('draw-status').style.color = "red";
-                return;
-            }
-
-            // WE HAVE A GEOMETRY MATCH. NOW CHECK TIME.
-            const profile = profiles[bestMatch];
-            
-            // 1. Shape Deviation (0.0 to 1.0) -> Convert to %
-            const shapeDev = Math.round(lowestDiff * 100); 
-            
-            // 2. Time Deviation
-            const timeDiff = Math.abs(duration - profile.avgTime);
-            const timeDev = Math.round((timeDiff / profile.avgTime) * 100);
-            
-            // 3. Composite Deviation (70% Shape importance, 30% Speed importance)
-            // We weigh shape higher because speed varies if you are tired.
-            const totalDeviation = Math.round((shapeDev * 0.7) + (timeDev * 0.3));
-
-            // DISPLAY RESULTS
-            document.getElementById('analysis-result').classList.remove('hidden');
-            document.getElementById('guess-name').innerText = bestMatch;
-            
-            const devEl = document.getElementById('guess-deviation');
-            devEl.innerText = totalDeviation + "%";
-            
-            // Color code the risk
-            if(totalDeviation < 20) devEl.className = "text-sm font-mono text-green-500 font-bold";
-            else if(totalDeviation < 40) devEl.className = "text-sm font-mono text-yellow-500 font-bold";
-            else devEl.className = "text-sm font-mono text-red-500 font-bold";
-            
-            // Store for update
-            lastGuess = { 
-                name: bestMatch, 
-                shape: inputShape, 
-                time: duration, 
-                profiles: profiles 
-            };
-        }
-
-        // --- 4. REINFORCEMENT (Learning) ---
-        function confirmGuess(isCorrect) {
-            document.getElementById('analysis-result').classList.add('hidden');
-            
-            if (isCorrect && lastGuess) {
-                // UPDATE (Learn)
-                const p = lastGuess.profiles[lastGuess.name];
-                
-                // Learn Shape (90% Memory, 10% New)
-                const newShape = p.shape.map((pt, i) => ({
-                    x: (pt.x * 0.9) + (lastGuess.shape[i].x * 0.1),
-                    y: (pt.y * 0.9) + (lastGuess.shape[i].y * 0.1)
-                }));
-                
-                // Learn Speed (80% Memory, 20% New - Speed changes faster than shape)
-                const newTime = (p.avgTime * 0.8) + (lastGuess.time * 0.2);
-                
-                lastGuess.profiles[lastGuess.name] = {
-                    shape: newShape,
-                    avgTime: newTime,
-                    samples: (p.samples || 1) + 1
-                };
-                
-                localStorage.setItem('chaos_profiles', JSON.stringify(lastGuess.profiles));
-                
-                document.getElementById('draw-status').innerText = "ACCEPTED";
-                document.getElementById('draw-status').style.color = "#00ff41";
-                
-                // Unlock Black Box automatically
-                unlockBox(true); 
-
-            } else {
-                document.getElementById('draw-status').innerText = "REJECTED";
-                document.getElementById('draw-status').style.color = "orange";
-            }
-        }
-
-        function createNewProfile(name, shape, time) {
-            const profiles = JSON.parse(localStorage.getItem('chaos_profiles') || '{}');
-            profiles[name] = { shape, avgTime: time, samples: 1 };
-            localStorage.setItem('chaos_profiles', JSON.stringify(profiles));
-            alert(`Profile '${name}' Saved.`);
-            ctx.clearRect(0,0,280,200);
-        }
-
-        function startTraining() {
-            const name = prompt("Name this profile (e.g. Left Thumb):");
-            if(name) {
-                document.getElementById('draw-status').innerText = "DRAW NOW";
-                ctx.clearRect(0,0,280,200);
-            }
-        }
-
-        // --- UTILS (Math - The Normalizer) ---
-        function getPt(e) { 
-            const r = canvas.getBoundingClientRect(); 
-            return { x: (e.touches?e.touches[0].clientX:e.clientX)-r.left, y: (e.touches?e.touches[0].clientY:e.clientY)-r.top };
-        }
+        const KEY = localStorage.getItem('chaos_key_vault');
         
-        function normalizePath(points) {
-            // A. Resample to 50 points
-            const stride = Math.ceil(points.length/50);
-            const r = [];
-            for(let i=0; i<points.length; i+=stride) r.push(points[i]);
-            
-            // B. Scale to 0.0 - 1.0 (Fixes size issues)
-            let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
-            r.forEach(p=>{if(p.x<minX)minX=p.x; if(p.x>maxX)maxX=p.x; if(p.y<minY)minY=p.y; if(p.y>maxY)maxY=p.y;});
-            const w = Math.max(maxX-minX, maxY-minY) || 1;
-            
-            // C. Center
-            return r.map(p => ({ x: (p.x-minX)/w, y: (p.y-minY)/w }));
-        }
+        document.getElementById('key-status').innerText = `Key: ${KEY ? KEY.substring(0, 10) + '...' : 'NONE'}`;
 
-        function unlockBox(bypass = false) {
-            const area = document.getElementById('secret-notes');
-            if (!bypass && document.getElementById('draw-status').innerText !== "ACCEPTED") {
-                alert("Perform Bio-Audit first.");
+        window.onload = async () => {
+            if (!KEY) {
+                document.getElementById('rank-status').innerText = 'Rank: UNAUTHORIZED';
+                setTimeout(() => window.location.href = '/', 2000);
                 return;
             }
-            const saved = localStorage.getItem('black_box_notes');
-            if(saved) decryptData(saved, currentKey).then(t => area.value = t);
-            
-            area.classList.remove('redacted');
-            area.readOnly = false;
-            document.getElementById('lock-overlay').classList.add('hidden');
-            document.getElementById('lock-btn').innerText = "UNLOCKED";
-            document.getElementById('lock-btn').classList.add('text-green-500');
-        }
 
-        async function encryptData(d,k){return btoa(d);} 
-        async function decryptData(d,k){return atob(d);} 
-        function saveNotes(){ 
-            const t=document.getElementById('secret-notes').value;
-            encryptData(t).then(e=>{ localStorage.setItem('black_box_notes',e); location.reload(); });
-        }
+            try {
+                const res = await fetch('/api/v1/sentinel/verify', {
+                    method: 'POST',
+                    headers: { 'x-api-key': KEY }
+                });
+
+                if (res.status === 200) {
+                    const data = await res.json();
+                    document.getElementById('rank-status').innerText = `Rank: ${data.rank}`;
+                    document.getElementById('name-status').innerText = `Name: ${data.project || 'GHOST'}`;
+                } else {
+                    document.getElementById('rank-status').innerText = 'Rank: FORGOTTEN (Heal Needed)';
+                }
+            } catch (e) {
+                document.getElementById('rank-status').innerText = 'Rank: OFFLINE (Server Down)';
+                document.getElementById('error-message').innerText = 'Error: Cannot connect to API.';
+                document.getElementById('error-message').classList.remove('hidden');
+            }
+        };
     </script>
 </body>
 </html>
