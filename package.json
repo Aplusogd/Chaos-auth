@@ -1,11 +1,11 @@
 {
   "name": "aplus-chaos-core",
-  "version": "2.4.1",
-  "description": "A+ Chaos Security Core - Final V241",
-  "main": "index.js",
+  "version": "2.4.3",
   "type": "module",
+  "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "build": "echo 'Build complete'" 
   },
   "dependencies": {
     "express": "^4.21.1",
