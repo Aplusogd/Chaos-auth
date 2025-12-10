@@ -1,41 +1,25 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Abyss Alert</title>
-    <style>
+    <script src="chaos-sdk.js"></script> <style>
         body { background: #000; color: #ff4141; font-family: 'JetBrains Mono', monospace; text-align: center; padding: 50px; }
         h1 { font-size: 2em; }
         p { font-size: 1.2em; }
         a { color: #00ff41; text-decoration: underline; margin-top: 20px; display: inline-block; }
     </style>
-    <script>
-        // Centralized Error Messages
-        const errorMap = {
-            '401': 'ACCESS DENIED: Session Key Invalid. Please verify identity.',
-            'loop': 'INFINITE LOOP DETECTED: Clear cache and re-verify.',
-            '404': 'VOID ENCOUNTERED: Path not found.',
-            'default': 'UNKNOWN SHADOW: System error. Try verifying again.'
-        };
-
-        // Parse Query & Render
-        window.onload = () => {
-            const params = new URLSearchParams(window.location.search);
-            const code = params.get('code') || 'default';
-            const message = errorMap[code] || errorMap['default'];
-
-            document.getElementById('error-message').textContent = message;
-            
-            // Determine Recovery Link
-            const recovery = code === '401' || code === 'loop' ? '/verify' : '/';
-            document.getElementById('recovery-link').href = recovery;
-        };
-    </script>
 </head>
 <body>
-    <h1>Abyss Alert</h1>
-    <p id="error-message">Loading error...</p>
-    <a id="recovery-link" href="/">Return to the Light</a>
+<h1>THE ORACLE SPEAKS</h1>
+<div id="prophecy" style="font-size:3em;margin:50px;color:#00ff41;"></div>
+<script>
+    // Note: The logic in router.js adds the code parameter. This simply reads it.
+    if (typeof generateInfiniteChaosCode !== 'undefined') {
+        document.getElementById('prophecy').textContent = generateInfiniteChaosCode("error"+Date.now(),3).join('-');
+    } else {
+         document.getElementById('prophecy').textContent = 'VOID-FATAL-ERROR';
+    }
+</script>
+<p>Return to the light → <a href="/">/</a></p>
 </body>
 </html>
