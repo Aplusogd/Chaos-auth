@@ -1,198 +1,50 @@
-import express from 'express';
-import cors from 'cors';
-import crypto from 'crypto';
-import path from 'path';
-import { fileURLToPath } from 'url';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A+ OVERHEAD | CHAOS CORE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        body { background: #000; color: white; font-family: 'Inter', sans-serif; }
+        .hero-bg {
+            background-image: linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.85)), url('https://images.unsplash.com/photo-1595846519845-68e298c2edd8?q=80&w=2940&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+        }
+    </style>
+</head>
+<body class="hero-bg h-screen flex flex-col justify-between p-8">
 
-// --- CONFIGURATION ---
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const app = express();
-const PORT = process.env.PORT || 3000;
+    <header class="flex justify-between items-center mb-16">
+        <div class="text-2xl font-black tracking-widest text-green-500">A+ CHAOS CORE</div>
+    </header>
 
-// --- MIDDLEWARE ---
-app.use(cors());
-app.use(express.json());
-app.use(express.static('public')); // Serves your HTML files
+    <main class="max-w-4xl mx-auto text-center">
+        <h1 class="text-5xl md:text-7xl font-extrabold mb-8 leading-tight">
+            MILITARY-GRADE SECURITY <br class="hidden md:inline">FOR YOUR <span class="text-green-500">SANCTUARY.</span>
+        </h1>
+        <p class="text-gray-400 text-lg mb-12 max-w-2xl mx-auto">
+            Our systems use cryptographic identity and behavioral biometrics to protect your data, reputation, and assets from automated threats and competitor sabotage.
+        </p>
 
-// --- IN-MEMORY DATABASES (The Vault) ---
-// Note: In a real production app with millions of users, you'd swap this Map for a Redis or SQL DB.
-// For now, this runs in RAM.
-const KeyVault = new Map();
-const RateLimit = new Map();
-const Clients = new Set(); // For LiveWire dashboard connections
+        <div class="flex flex-col md:flex-row justify-center gap-6">
+            
+            <a href="/abyss.html" class="bg-green-600 hover:bg-green-500 text-black px-12 py-4 rounded-lg font-bold text-lg transition duration-300 shadow-xl shadow-green-900/40 transform hover:scale-105">
+                <i class="fas fa-biohazard mr-3"></i> ENTER THE ABYSS
+            </a>
 
-// --- SEED ADMIN KEY (God Mode) ---
-// This key always exists when server starts.
-const ADMIN_KEY = "sk_chaos_ee3aeaaaa3d193cee40bf7b2bc2e2432";
-KeyVault.set(ADMIN_KEY, { 
-    key: ADMIN_KEY, 
-    client: "ADMIN_OVERRIDE", 
-    scope: "full-access", 
-    created: Date.now() 
-});
+            <a href="/login" class="bg-transparent border border-gray-600 text-gray-400 px-12 py-4 rounded-lg font-bold text-lg transition duration-300 hover:text-white hover:border-white transform hover:scale-105">
+                <i class="fas fa-lock mr-3"></i> ADMIN LOGIN
+            </a>
+        </div>
+    </main>
 
-// --- LIVE WIRE (Real-Time Dashboard Stream) ---
-const LiveWire = {
-    broadcast: (type, data) => {
-        // Send data to all connected dashboard clients
-        const payload = `data: ${JSON.stringify({ type, data, time: Date.now() })}\n\n`;
-        Clients.forEach(res => res.write(payload));
-    }
-};
+    <footer class="text-center text-xs text-gray-700">
+        &copy; 2025 A+ Overhead Garage Doors, LLC
+    </footer>
 
-// ==================================================================
-// API ROUTES
-// ==================================================================
-
-// 1. LIVE WIRE ENDPOINT (Dashboard listens here)
-app.get('/api/live-wire', (req, res) => {
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.flushHeaders();
-
-    Clients.add(res);
-    req.on('close', () => Clients.delete(res));
-    
-    // Heartbeat to confirm connection
-    res.write(`data: ${JSON.stringify({ type: 'SYSTEM', data: 'CONNECTED' })}\n\n`);
-});
-
-// 2. ADMIN VERIFICATION (Login Screen Logic)
-app.post('/api/admin/verify', (req, res) => {
-    const { token } = req.body;
-    if (KeyVault.has(token)) {
-        res.json({ valid: true });
-    } else {
-        res.status(401).json({ valid: false });
-    }
-});
-
-// 3. KEY MINTING (Key Forge Logic)
-app.post('/api/admin/keys/create', (req, res) => {
-    const { token, clientName, scope } = req.body;
-    
-    // Only Admin Key can mint new permanent keys
-    if (token !== ADMIN_KEY) return res.status(403).json({ error: "FORBIDDEN" });
-
-    const newKey = "sk_" + scope.split('-')[0] + "_" + crypto.randomBytes(8).toString('hex');
-    
-    KeyVault.set(newKey, {
-        key: newKey,
-        client: clientName,
-        scope: scope,
-        created: Date.now()
-    });
-
-    res.json({ success: true, key: newKey });
-});
-
-// 4. GHOST REGISTER (Anonymous Identity - SELF-HEALING)
-app.post('/api/auth/ghost-register', (req, res) => {
-    const { alias, chaos_metric, provided_key } = req.body;
-
-    // A. Silent Bot Check
-    if (!chaos_metric || chaos_metric === 0) {
-        LiveWire.broadcast('THREAT', { status: 'BOT_BLOCKED', target: alias });
-        return res.status(403).json({ error: "BIOMETRIC_FAIL" });
-    }
-
-    // B. Key Logic (The Fix)
-    // If the client sends a key (from Recovery), we accept it. 
-    // Otherwise, we mint a new random one.
-    const ghostKey = provided_key || ("sk_guest_" + crypto.randomBytes(12).toString('hex'));
-
-    // C. Store in Vault
-    KeyVault.set(ghostKey, { 
-        key: ghostKey, 
-        client: alias || "Anonymous", 
-        scope: "guest", 
-        created: Date.now(),
-        trustScore: 50
-    });
-    
-    LiveWire.broadcast('SYSTEM', `GHOST IDENTITY ESTABLISHED: ${alias}`);
-    
-    // D. Return Success
-    res.json({ success: true, key: ghostKey });
-});
-
-// 5. SENTINEL VERIFY (Trust Engine & Reputation Ramp)
-app.post('/api/v1/sentinel/verify', (req, res) => {
-    // A. Get Key
-    const apiKey = req.headers['x-api-key'];
-    
-    // B. Check Validity
-    if (!apiKey || !KeyVault.has(apiKey)) {
-        return res.status(401).json({ error: "INVALID_KEY", status: "DENIED" });
-    }
-
-    const keyData = KeyVault.get(apiKey);
-    
-    // C. REPUTATION RAMP (Calculate Trust based on Age)
-    const now = Date.now();
-    const ageDays = (now - keyData.created) / (1000 * 60 * 60 * 24);
-    
-    let rank = "NEWBORN";
-    let limit = 10; // Requests per minute
-
-    if (keyData.scope === 'full-access') {
-        rank = "GOD_MODE";
-        limit = 999999;
-    } else {
-        if (ageDays >= 30) { rank = "IMMORTAL"; limit = 9999; }
-        else if (ageDays >= 14) { rank = "VETERAN"; limit = 300; }
-        else if (ageDays >= 3) { rank = "SURVIVOR"; limit = 60; }
-    }
-
-    // D. RATE LIMITING
-    if (!RateLimit.has(apiKey)) RateLimit.set(apiKey, []);
-    let usage = RateLimit.get(apiKey).filter(t => t > now - 60000); // Last minute window
-
-    if (usage.length >= limit) {
-        LiveWire.broadcast('BLOCK', { reason: 'RATE_LIMIT', rank: rank, client: keyData.client });
-        return res.status(429).json({ error: "RATE_LIMIT_EXCEEDED", rank, retryAfter: "60s" });
-    }
-
-    usage.push(now);
-    RateLimit.set(apiKey, usage);
-    
-    // E. SUCCESS RESPONSE
-    const trustScore = Math.min(100, 50 + (ageDays * 2)); // Score grows with age
-    
-    LiveWire.broadcast('TRAFFIC', { status: 'VERIFIED', project: keyData.client, rank: rank, score: trustScore.toFixed(0) });
-    
-    res.json({ 
-        valid: true, 
-        status: "VERIFIED",
-        trustScore: trustScore.toFixed(0), 
-        rank: rank, 
-        daysAlive: ageDays.toFixed(2),
-        limit: limit + "/min"
-    });
-});
-
-// 6. CHAOS LOG (Secure Archive)
-app.post('/api/chaos-log', (req, res) => {
-    const apiKey = req.headers['x-api-key'];
-    if (!KeyVault.has(apiKey)) return res.status(401).json({ error: "UNAUTHORIZED" });
-
-    const payload = req.body;
-    LiveWire.broadcast('SYSTEM', `ARCHIVE: ${payload.type || "DATA"} SAVED`);
-    // In production, you would save this to a persistent DB.
-    res.json({ success: true, timestamp: Date.now() });
-});
-
-// --- CLIENT ROUTING (SPA Fallback) ---
-// Directs clean URLs to the correct HTML files
-app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public/dashboard.html')));
-app.get('/app', (req, res) => res.sendFile(path.join(__dirname, 'public/index.html'))); 
-app.get('/keyforge', (req, res) => res.sendFile(path.join(__dirname, 'public/keyforge.html')));
-app.get('/check.html', (req, res) => res.sendFile(path.join(__dirname, 'public/check.html')));
-
-// --- START SERVER ---
-app.listen(PORT, () => {
-    console.log(`⚡ A+ CHAOS CORE V187 ONLINE: PORT ${PORT}`);
-    console.log(`🔒 GOD KEY ACTIVE: ${ADMIN_KEY.substring(0, 10)}...`);
-});
+</body>
+</html>
