@@ -26,7 +26,6 @@
             mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
         }
         
-        /* CARDS */
         .feature-card {
             background: rgba(10,10,10,0.6); border: 1px solid #222; padding: 2rem;
             transition: all 0.3s ease; backdrop-filter: blur(10px);
@@ -36,23 +35,20 @@
             box-shadow: 0 10px 30px rgba(0, 255, 65, 0.05);
         }
 
-        /* TYPOGRAPHY */
         .gradient-text {
             background: linear-gradient(to right, #fff, #4ade80);
             -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         }
 
-        /* ANIMATIONS */
         @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-20px); } 100% { transform: translateY(0px); } }
-        .floating { animation: float 6s ease-in-out infinite; }
     </style>
 </head>
 <body>
 
     <nav class="absolute top-0 w-full flex justify-between items-center p-6 z-50">
         <div class="flex items-center gap-3">
-            <i class="fas fa-biohazard text-green-500 text-xl"></i>
-            <span class="font-mono font-bold tracking-widest text-sm">A+ CHAOS CORE <span class="text-xs text-gray-600 ml-2">V189</span></span>
+            <i class="fas fa-cube text-green-500 text-xl"></i>
+            <span class="font-mono font-bold tracking-widest text-sm">A+ CHAOS CORE <span class="text-xs text-gray-600 ml-2">V212</span></span>
         </div>
         
         <a href="/login" class="text-xs font-mono text-gray-500 hover:text-green-500 transition border border-gray-800 hover:border-green-800 px-4 py-2 rounded">
@@ -73,16 +69,18 @@
             </h1>
             
             <p class="text-lg text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-                The world's first <strong>Entropy-Based Identity Ecosystem</strong>. 
-                We replace passwords with physics, using biometric inertia and 20-dimension chaos theory to secure your digital sanctuary.
+                The world's first **Entropy-Based Identity Ecosystem**. 
+                We replace passwords with physics, using biometric inertia and cryptographic calls.
             </p>
 
-            <div class="flex flex-col md:flex-row gap-4 justify-center">
-                <a href="/abyss.html" class="bg-green-600 text-black font-bold px-8 py-4 rounded hover:bg-green-500 transition shadow-[0_0_20px_rgba(0,255,65,0.3)] flex items-center justify-center gap-2">
-                    <i class="fas fa-fingerprint"></i> ENTER THE ABYSS
+            <div class="flex flex-col md:flex-row gap-6 justify-center">
+                
+                <a href="/abyss.html" class="bg-green-600 text-black font-bold px-10 py-5 rounded-lg hover:bg-green-500 transition shadow-[0_0_25px_rgba(0,255,65,0.4)] flex items-center justify-center gap-3 text-lg transform hover:scale-105">
+                    <i class="fas fa-magic"></i> GET YOUR CALLSIGN NOW
                 </a>
-                <a href="#learn-more" class="border border-gray-700 text-gray-300 font-bold px-8 py-4 rounded hover:bg-white/5 transition flex items-center justify-center gap-2">
-                    <i class="fas fa-book-open"></i> READ THE DOCS
+                
+                <a href="#learn-more" class="border border-gray-700 text-gray-300 font-bold px-10 py-5 rounded-lg hover:bg-white/5 transition flex items-center justify-center gap-3 text-lg transform hover:scale-105">
+                    <i class="fas fa-book-open"></i> WHAT IS THE CORE?
                 </a>
             </div>
         </div>
@@ -103,7 +101,7 @@
                     <i class="fas fa-ghost text-4xl text-green-600 mb-6 group-hover:scale-110 transition"></i>
                     <h3 class="text-xl font-bold mb-2">Ghost Protocol</h3>
                     <p class="text-sm text-gray-400 leading-relaxed mb-4">
-                        Zero-Knowledge Authentication. Users log in by "tracing" a shape. No emails to leak. No passwords to crack. Just pure biometric math.
+                        Zero-Knowledge Authentication. Users log in by "tracing" a shape. No emails to leak. No passwords to crack.
                     </p>
                     <div class="text-xs font-mono text-green-500">STATUS: ACTIVE</div>
                 </div>
@@ -112,16 +110,16 @@
                     <i class="fas fa-shield-alt text-4xl text-blue-500 mb-6 group-hover:scale-110 transition"></i>
                     <h3 class="text-xl font-bold mb-2">Sentinel AI</h3>
                     <p class="text-sm text-gray-400 leading-relaxed mb-4">
-                        A neural network that watches traffic in real-time. It detects bots by their "silence" and competitors by their patterns.
+                        A neural network that watches traffic in real-time. It detects bots by their 'silence' and competitors by their behavioral patterns.
                     </p>
-                    <div class="text-xs font-mono text-blue-500">VERSION: V189</div>
+                    <div class="text-xs font-mono text-blue-500">VERSION: V212</div>
                 </div>
 
                 <div class="feature-card group">
                     <i class="fas fa-infinity text-4xl text-purple-500 mb-6 group-hover:scale-110 transition"></i>
                     <h3 class="text-xl font-bold mb-2">Infinite Abyss</h3>
                     <p class="text-sm text-gray-400 leading-relaxed mb-4">
-                        Our 20-Dimension Dictionary generates over 68 billion unique "Callsigns" (e.g., Obsidian-Razor-Thunder) for human-readable identity.
+                        A 20-Dimension Dictionary generates unique "Callsigns" (e.g., Obsidian-Razor-Thunder) for human-readable, secure identity recovery.
                     </p>
                     <div class="text-xs font-mono text-purple-500">CAPACITY: ∞</div>
                 </div>
@@ -129,69 +127,9 @@
         </div>
     </section>
 
-    <section class="py-24 bg-[#050505] border-t border-gray-900">
-        <div class="max-w-4xl mx-auto px-6 flex flex-col md:flex-row items-center gap-12">
-            
-            <div class="flex-1">
-                <div class="font-mono text-green-500 text-xs mb-2 tracking-widest">ONBOARDING</div>
-                <h2 class="text-4xl font-bold mb-6">NAVIGATING THE ABYSS</h2>
-                <div class="space-y-6">
-                    <div class="flex gap-4">
-                        <div class="w-8 h-8 rounded bg-gray-800 flex items-center justify-center font-bold text-sm">1</div>
-                        <div>
-                            <h4 class="font-bold text-white">Manifest Identity</h4>
-                            <p class="text-sm text-gray-400">Click "Enter the Abyss" and trace the biometric shape. This generates your unique cryptographic key.</p>
-                        </div>
-                    </div>
-                    <div class="flex gap-4">
-                        <div class="w-8 h-8 rounded bg-gray-800 flex items-center justify-center font-bold text-sm">2</div>
-                        <div>
-                            <h4 class="font-bold text-white">Save Your Callsign</h4>
-                            <p class="text-sm text-gray-400">You will receive a 3-word code (e.g. Void-Star-Echo). This is your permanent key across all devices.</p>
-                        </div>
-                    </div>
-                    <div class="flex gap-4">
-                        <div class="w-8 h-8 rounded bg-gray-800 flex items-center justify-center font-bold text-sm">3</div>
-                        <div>
-                            <h4 class="font-bold text-white">Access the Hub</h4>
-                            <p class="text-sm text-gray-400">Once verified, you gain access to the secure Tech Hub to view appointments or manage systems.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex-1">
-                <div class="bg-black border border-gray-800 p-6 rounded-xl font-mono text-xs text-gray-400 shadow-2xl">
-                    <div class="flex gap-2 mb-4">
-                        <div class="w-3 h-3 rounded-full bg-red-500"></div>
-                        <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
-                        <div class="w-3 h-3 rounded-full bg-green-500"></div>
-                    </div>
-                    <p class="text-green-500 mb-2">$ initializing_protocol...</p>
-                    <p class="mb-2">> CONNECTING TO NODE [ALPHA]</p>
-                    <p class="mb-2">> VERIFYING BIOMETRICS...</p>
-                    <p class="mb-2 text-white">> IDENTITY CONFIRMED</p>
-                    <p class="mb-2">> CALLSIGN: <span class="text-purple-400">CRIMSON-VELVET-THUNDER</span></p>
-                    <p class="animate-pulse">> ACCESS GRANTED_</p>
-                </div>
-            </div>
-
-        </div>
-    </section>
-
-    <section class="py-20 border-t border-gray-900 text-center">
-        <h2 class="text-2xl font-bold mb-4">BUILD ON CHAOS</h2>
-        <p class="text-gray-400 mb-8 max-w-xl mx-auto">
-            Are you a developer? Our SDK allows you to integrate Chaos Auth into your own applications with just 3 lines of code.
-        </p>
-        <a href="/sdk" class="text-green-500 hover:text-white font-mono text-sm border-b border-green-500 pb-1">
-            VIEW SDK DOCUMENTATION <i class="fas fa-arrow-right ml-2"></i>
-        </a>
-    </section>
-
     <footer class="py-8 text-center border-t border-gray-900 text-gray-600 text-xs">
         <div class="mb-2">&copy; 2025 A+ OVERHEAD GARAGE DOORS, LLC</div>
-        <div class="font-mono">SYSTEM ID: C6FA:117D:54</div>
+        <div class="font-mono">SECURE SYSTEM ID: C6FA:117D:54</div>
     </footer>
 
 </body>
