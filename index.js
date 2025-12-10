@@ -140,6 +140,7 @@ app.get('/sdk', (req, res) => res.sendFile(path.join(__dirname, 'public/sdk.html
 app.get('/hydra', (req, res) => res.sendFile(path.join(__dirname, 'public/hydra.html')));
 app.get('/dreams', (req, res) => res.sendFile(path.join(__dirname, 'public/dreams.html')));
 app.get('/test-console', (req, res) => res.sendFile(path.join(__dirname, 'public/test-console.html')));
+app.get('/abyss-search.html', (req, res) => res.sendFile(path.join(__dirname, 'public/abyss-search.html'))); 
 
 // --- START SERVER ---
 // 0.0.0.0 is crucial for Render to route external traffic to your app
