@@ -32,7 +32,7 @@
         .redacted { background: #000; color: #000; user-select: none; }
     </style>
 </head>
-<body class="min-h-screen p-4 md:p-8">
+<body>
 
     <div class="sanctuary-bg"></div>
     <div class="grid-lines"></div>
@@ -135,14 +135,21 @@
         // --- CORE VARIABLES ---
         let currentKey = localStorage.getItem('chaos_key_vault');
         
-        // --- 1. INITIALIZE (SIMPLE RENDER) ---
+        // --- 1. INITIALIZE (RESILIENT LOAD) ---
         window.onload = () => {
             // Get pre-verified data from session storage (placed there by app.html)
             const dataString = sessionStorage.getItem('verified_user_data');
             
             if (!dataString) { 
-                // Fallback: If no session data, force login again (safest option)
-                window.location.href = '/login'; 
+                // CRITICAL FIX: If no fresh session data, we check if a key even exists.
+                currentKey = localStorage.getItem('chaos_key_vault');
+                if (!currentKey) {
+                    // No key at all, go to login
+                    window.location.href = '/login'; 
+                    return;
+                }
+                // Key exists but session data is gone; load in offline mode
+                renderDashboard({ project: "OFFLINE_SESSION", rank: "LOCAL", trustScore: 0 });
                 return; 
             }
             
@@ -150,17 +157,18 @@
                 const data = JSON.parse(dataString);
                 renderDashboard(data);
             } catch (e) {
-                // If data is corrupt
+                // If data is corrupt, force re-login
                 window.location.href = '/login'; 
             }
         };
 
         function renderDashboard(data) {
-            // This function is now FAST: It just draws based on pre-fetched data.
-            document.getElementById('callsign-header').innerText = data.project || currentKey.substring(9, 14).toUpperCase();
+            currentKey = localStorage.getItem('chaos_key_vault');
+            
+            document.getElementById('callsign-header').innerText = data.project || (currentKey ? currentKey.substring(9, 14).toUpperCase() : 'GUEST');
             document.getElementById('trust-score').innerText = (data.trustScore || 0) + "%";
             document.getElementById('rank-badge').innerText = data.rank || "LOCAL";
-            document.getElementById('api-key-display').innerText = currentKey.substring(0, 16) + "••••••••";
+            document.getElementById('api-key-display').innerText = currentKey ? currentKey.substring(0, 16) + "••••••••" : 'N/A';
             
             if(localStorage.getItem('black_box_notes')) {
                 document.getElementById('secret-notes').value = "Encrypted data loaded...";
@@ -168,28 +176,75 @@
         }
 
         // --- BLACK BOX LOGIC (Manual Override) ---
-        // (Crypto functions and logic remain here, as they are part of this page's features)
         function unlockBox() {
             const access = prompt("Enter 'chaos' to manually unlock the Black Box:");
             if (access === 'chaos') { performUnlock(); } else { alert("Incorrect override code."); }
         }
 
         async function performUnlock() {
-            // ... (Crypto and UI logic remains)
+            const area = document.getElementById('secret-notes');
+            const overlay = document.getElementById('lock-overlay');
+            const btn = document.getElementById('lock-btn');
+            
+            const saved = localStorage.getItem('black_box_notes');
+            if (saved) {
+                try {
+                    const decrypted = await decryptData(saved, currentKey);
+                    area.value = decrypted;
+                } catch(e) { area.value = "Decryption Failed. Key or data corrupt."; }
+            } else { area.value = ""; }
+
+            area.readOnly = false;
+            area.classList.remove('redacted');
+            overlay.classList.add('hidden');
+            btn.innerHTML = '<i class="fas fa-unlock"></i> UNLOCKED';
+            btn.classList.add('text-green-500');
         }
-        async function saveNotes() {
-            // ... (Crypto and UI logic remains)
+
+        function saveNotes() {
+            if(document.getElementById('secret-notes').readOnly) return alert("Unlock Black Box first.");
+            
+            const text = document.getElementById('secret-notes').value;
+            encryptData(text, currentKey).then(enc => {
+                localStorage.setItem('black_box_notes', enc);
+                alert("Notes saved and sealed.");
+                window.location.reload(); 
+            });
         }
+        
+        // --- CRYPTO ENGINE (V202) ---
         async function encryptData(data, keyString) {
-            // ... (Full crypto logic remains)
+            const enc = new TextEncoder();
+            const keyMaterial = await window.crypto.subtle.importKey("raw", enc.encode(keyString.substring(0,32)), "AES-GCM", false, ["encrypt"]);
+            const iv = window.crypto.getRandomValues(new Uint8Array(12));
+            const encrypted = await window.crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, keyMaterial, enc.encode(data));
+            const ivArr = Array.from(iv);
+            const encArr = Array.from(new Uint8Array(encrypted));
+            return JSON.stringify({ iv: ivArr, data: encArr });
         }
+
         async function decryptData(jsonStr, keyString) {
-            // ... (Full crypto logic remains)
+            try {
+                const bundle = JSON.parse(jsonStr);
+                const enc = new TextEncoder();
+                const keyMaterial = await window.crypto.subtle.importKey("raw", enc.encode(keyString.substring(0,32)), "AES-GCM", false, ["decrypt"]);
+                const decrypted = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv: new Uint8Array(bundle.iv) }, keyMaterial, new Uint8Array(bundle.data));
+                return new TextDecoder().decode(decrypted);
+            } catch(e) { throw new Error("Decryption Error"); }
         }
 
         // --- UTILS ---
-        function revealKey() { /* ... */ }
-        function copyKey() { /* ... */ }
+        function revealKey() {
+            const el = document.getElementById('api-key-display');
+            if(el.innerText.includes('•')) el.innerText = currentKey;
+            else el.innerText = currentKey.substring(0, 16) + "••••••••";
+        }
+
+        function copyKey() {
+            navigator.clipboard.writeText(currentKey);
+            alert("Key Copied");
+        }
+
         function startTraining() {
             window.location.href = '/abyss-forge.html';
         }
