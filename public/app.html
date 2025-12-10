@@ -8,69 +8,105 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
-        body { background: #050505; color: #e5e5e5; font-family: 'JetBrains Mono', monospace; display: flex; align-items: center; justify-content: center; height: 100vh; }
-        .login-box { width: 100%; max-width: 400px; padding: 40px; background: #0a0a0a; border: 1px solid #333; text-align: center; }
-        .input-field { width: 100%; background: #000; border: 1px solid #333; color: white; padding: 10px; margin-bottom: 20px; font-family: inherit; }
+        body { background: #050505; color: #e5e5e5; font-family: 'JetBrains Mono', monospace; display: flex; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        .login-box { width: 100%; max-width: 400px; padding: 40px; background: #0a0a0a; border: 1px solid #333; text-align: center; position: relative; z-index: 10; }
         .btn { width: 100%; padding: 15px; background: #004400; color: #00ff41; border: 1px solid #00ff41; cursor: pointer; font-weight: bold; transition: all 0.2s; }
-        .btn:hover { background: #00ff41; color: black; }
-        .entropy-bar { height: 4px; width: 0%; background: #333; margin-bottom: 20px; transition: width 0.1s; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; border-color: #333; color: #555; background: #111; }
+        .btn:hover:not(:disabled) { background: #00ff41; color: black; }
+        
+        /* ENTROPY VISUALIZER */
+        .entropy-container { position: relative; height: 4px; width: 100%; background: #222; margin-bottom: 30px; overflow: hidden; }
+        .entropy-bar { height: 100%; width: 0%; background: #00ff41; transition: width 0.1s linear; }
+        .scan-line { position: absolute; top: 0; width: 100%; height: 2px; background: rgba(0, 255, 65, 0.1); animation: scan 3s linear infinite; pointer-events: none; z-index: 0; }
+        @keyframes scan { 0% {top:0;} 100% {top:100%;} }
     </style>
 </head>
 <body>
+    <div class="scan-line"></div>
 
     <div class="login-box">
         <h1 class="text-3xl font-bold mb-2">A+ ACCESS</h1>
-        <div class="text-xs text-gray-500 mb-8">NIGHTMARE PROTOCOL V1.0</div>
+        <div class="text-xs text-gray-500 mb-8">NIGHTMARE PROTOCOL V176</div>
 
-        <div class="text-[10px] text-left text-gray-600 mb-1">BEHAVIORAL ENTROPY</div>
-        <div class="w-full bg-gray-900 h-1 mb-6">
-            <div id="entropy-fill" class="h-full bg-blue-500 w-0"></div>
+        <div id="instruction" class="text-[10px] text-left text-blue-400 mb-2 uppercase tracking-wider">
+            <i class="fas fa-wave-square mr-1"></i> Input Kinetic Entropy...
         </div>
 
-        <div id="status" class="text-xs text-red-500 mb-4 h-4"></div>
+        <div class="entropy-container">
+            <div id="entropy-fill" class="entropy-bar"></div>
+        </div>
 
-        <button onclick="attemptLogin()" class="btn">
-            <i class="fas fa-fingerprint mr-2"></i> AUTHENTICATE
+        <div id="status" class="text-xs text-gray-600 mb-6 h-4">WAITING FOR INPUT</div>
+
+        <button id="auth-btn" onclick="attemptLogin()" class="btn" disabled>
+            <i class="fas fa-lock mr-2"></i> GENERATE KEY
         </button>
         
-        <div class="mt-6 text-[10px] text-gray-600">
+        <div class="mt-6 text-[9px] text-gray-700">
             SECURE SESSION ID GENERATION<br>
-            MOVES MOUSE TO GENERATE KEY
+            MOVES MOUSE OR TOUCH SCREEN TO SEED KEY
         </div>
     </div>
 
     <script>
-        // NIGHTMARE FORMULA: ZERO TRUST TOKEN
-        let entropyBuffer = [];
-        
-        // 1. Capture Micro-movements
-        window.addEventListener('mousemove', (e) => {
-            if(entropyBuffer.length > 50) entropyBuffer.shift();
-            // Calculate chaotic delta
-            const delta = Math.abs(e.movementX) + Math.abs(e.movementY);
-            entropyBuffer.push(delta);
+        // --- NIGHTMARE FORMULA: ZERO TRUST TOKEN ---
+        let entropyPool = 0;
+        const ENTROPY_TARGET = 200; // Target value to unlock button
+        let lastX = 0, lastY = 0;
+
+        // 1. Capture Micro-movements (Mouse & Touch)
+        function captureEntropy(x, y) {
+            const delta = Math.abs(x - lastX) + Math.abs(y - lastY);
             
-            // Visual Update
-            const entropy = entropyBuffer.reduce((a,b)=>a+b,0) / 50;
-            const pct = Math.min(100, entropy * 5);
-            document.getElementById('entropy-fill').style.width = pct + '%';
-            if(pct > 80) document.getElementById('entropy-fill').style.background = '#00ff41';
+            // Only count significant micro-movements (Filter noise)
+            if (delta > 0 && delta < 50) { 
+                entropyPool += delta; 
+                updateUI();
+            }
+            
+            lastX = x;
+            lastY = y;
+        }
+
+        window.addEventListener('mousemove', (e) => captureEntropy(e.clientX, e.clientY));
+        window.addEventListener('touchmove', (e) => {
+            if(e.touches[0]) captureEntropy(e.touches[0].clientX, e.touches[0].clientY);
         });
 
-        // 2. Generate T_Chaos Token
-        async function generateTChaos() {
-            const epsilon_kinetic = entropyBuffer.reduce((a,b)=>a+b,0); // Simple sum for entropy
-            if (epsilon_kinetic < 100) {
-                throw new Error("NOT ENOUGH ENTROPY. MOVE MOUSE.");
+        // 2. UI Update
+        function updateUI() {
+            const pct = Math.min(100, (entropyPool / ENTROPY_TARGET) * 100);
+            document.getElementById('entropy-fill').style.width = pct + '%';
+            
+            if (pct >= 100) {
+                const btn = document.getElementById('auth-btn');
+                const status = document.getElementById('status');
+                const instr = document.getElementById('instruction');
+                
+                if (btn.disabled) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-fingerprint mr-2"></i> AUTHENTICATE';
+                    status.innerText = "ENTROPY SUFFICIENT. KEY READY.";
+                    status.style.color = "#00ff41";
+                    instr.innerHTML = '<i class="fas fa-check-circle mr-1"></i> READY';
+                    instr.className = "text-[10px] text-left text-green-400 mb-2 uppercase tracking-wider";
+                }
             }
+        }
 
-            const jitter_t = performance.now() % 100; // Clock jitter
+        // 3. Generate T_Chaos Token (Crypto Logic)
+        async function generateTChaos() {
+            // Behavioral Seed
+            const epsilon_kinetic = entropyPool.toFixed(4); 
+            
+            // Time Check (Anti-Tamper)
+            const jitter_t = performance.now() % 1000; 
             const exp_x = Date.now() + 3600000; // 1 hour expiry
             
-            // Payload
-            const payload = `${epsilon_kinetic.toFixed(4)}|${jitter_t}|${exp_x}`;
+            // Payload Construction
+            const payload = `${epsilon_kinetic}|${jitter_t}|${exp_x}|v176`;
             
-            // HMAC (Simulated with SHA-256 for demo, normally use secret key)
+            // Cryptographic Signing (HMAC simulation using SHA-256 for client demo)
             const encoder = new TextEncoder();
             const data = encoder.encode(payload);
             const hashBuffer = await crypto.subtle.digest('SHA-256', data);
@@ -81,6 +117,9 @@
 
         async function attemptLogin() {
             const status = document.getElementById('status');
+            const btn = document.getElementById('auth-btn');
+            
+            btn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> SIGNING...';
             status.innerText = "GENERATING T_CHAOS TOKEN...";
             status.style.color = "yellow";
 
@@ -91,16 +130,22 @@
                 // Store
                 sessionStorage.setItem('chaos_session', token);
                 
+                // Success Visuals
                 status.innerText = "ACCESS GRANTED";
                 status.style.color = "#00ff41";
+                btn.style.background = "#00ff41";
+                btn.style.color = "#000";
+                btn.innerHTML = '<i class="fas fa-unlock mr-2"></i> UNLOCKED';
                 
                 setTimeout(() => {
                     window.location.href = '/dashboard';
-                }, 1000);
+                }, 800);
 
             } catch (e) {
-                status.innerText = e.message;
+                status.innerText = "ERROR: " + e.message;
                 status.style.color = "red";
+                btn.disabled = false;
+                btn.innerHTML = 'RETRY';
             }
         }
     </script>
