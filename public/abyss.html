@@ -83,7 +83,7 @@
                 </div>
 
             <button onclick="enterPortal()" class="btn-action btn-mint text-white hover:bg-white hover:text-black">
-                <i class="fas fa-door-open mr-2"></i> ENTER SANCTUARY
+                <i class="fas fa-door-open mr-2"></i> ENTER PORTAL
             </button>
         </div>
         
@@ -129,7 +129,7 @@
 
                 // 4. Save Key & Callsign
                 localStorage.setItem('chaos_key_vault', key);
-                localStorage.setItem('chaos_callsign_words', phrase);
+                localStorage.setItem('callsign_history', phrase); // Save for login auto-fill
                 
                 // 5. Transition
                 document.getElementById('view-options').classList.add('hidden');
@@ -155,7 +155,6 @@
             const msg = document.getElementById('recall-msg');
             msg.innerText = "Processing...";
 
-            // Assume Callsign unless it looks like a full sk_ key
             let key;
             if (input.toLowerCase().startsWith('sk_')) {
                 key = input;
@@ -167,16 +166,22 @@
                 return;
             }
 
-            // Attempt to verify the key through a safe channel
             const isValid = await verifyWithServer(key);
 
             if (isValid) {
                 localStorage.setItem('chaos_key_vault', key);
+                localStorage.setItem('callsign_history', input.toUpperCase().replace(/\s+/, '-')); // Save for history
                 msg.innerText = "Key validated. Entering portal...";
                 enterPortal();
             } else {
                 msg.innerText = "Validation FAILED. Key or Callsign unknown.";
             }
+        }
+
+        // --- FINAL REDIRECT (The Fix) ---
+        function enterPortal() {
+            // New users MUST verify their new key via the Biometric Login page first.
+            window.location.href = '/login';
         }
 
         // --- SHARED UTILS ---
@@ -185,16 +190,11 @@
         }
 
         async function verifyWithServer(key) {
-             // Use the ghost-register endpoint to both verify and heal the identity
             try {
                 const res = await fetch('/api/auth/ghost-register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        alias: 'RECALL_ATTEMPT', 
-                        chaos_metric: 1.0,
-                        provided_key: key
-                    })
+                    body: JSON.stringify({ alias: 'RECALL_ATTEMPT', chaos_metric: 1.0, provided_key: key })
                 });
                 const data = await res.json();
                 return data.success;
@@ -215,11 +215,6 @@
             } catch (e) {
                 return false;
             }
-        }
-
-        function enterPortal() {
-            // New users go through the login page for verification, which then redirects to check.html
-            window.location.href = '/login';
         }
         
         // Auto-Check if already logged in (Always redirects to the Login Page for verification)
