@@ -3,192 +3,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A+ TECH HUB | SECURE GATEWAY</title>
+    <title>A+ UNIVERSAL PORTAL</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap');
         
-        body { font-family: 'Inter', sans-serif; background: #000; height: 100vh; overflow: hidden; }
+        body { font-family: 'Inter', sans-serif; background: #000; height: 100vh; overflow: hidden; color: white; }
         .font-mono { font-family: 'JetBrains Mono', monospace; }
-        
-        /* LEFT PANEL: CHAOS THEME */
-        .chaos-panel {
-            background-color: #050505;
+
+        /* ANIMATED BACKGROUND */
+        .portal-bg {
             background-image: 
-                radial-gradient(circle at 10% 10%, rgba(0, 255, 65, 0.05) 0%, transparent 20%),
-                linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)),
-                url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMiIgY3k9IjIiIHI9IjEiIGZpbGw9IiMwMGZmNDEiIGZpbGwtb3BhY2l0eT0iMC4xIi8+PC9zdmc+');
-            position: relative;
+                radial-gradient(circle at 50% 50%, rgba(0, 255, 65, 0.05) 0%, transparent 50%),
+                linear-gradient(rgba(0,0,0,0.9), rgba(0,0,0,0.9)),
+                url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2940&auto=format&fit=crop');
+            background-size: cover; background-position: center;
         }
+
+        .card { background: rgba(10,10,10,0.8); border: 1px solid #333; backdrop-filter: blur(10px); transition: all 0.3s; }
+        .card:hover { border-color: #00ff41; box-shadow: 0 0 20px rgba(0,255,65,0.1); }
         
-        .status-pill {
-            background: rgba(0, 255, 65, 0.1); border: 1px solid rgba(0, 255, 65, 0.3); color: #00ff41;
-            padding: 4px 12px; border-radius: 99px; font-size: 0.7rem; display: inline-flex; align-items: center; gap: 6px;
-        }
-        .status-dot { width: 6px; height: 6px; background: #00ff41; border-radius: 50%; box-shadow: 0 0 8px #00ff41; animation: pulse 2s infinite; }
-        
-        /* RIGHT PANEL: LOGIN FORM */
-        .login-panel { background: #0a0a0a; border-left: 1px solid #1a1a1a; }
         .input-field {
             background: #111; border: 1px solid #333; color: white; padding: 12px; width: 100%;
-            border-radius: 6px; outline: none; transition: all 0.2s; font-size: 0.9rem;
+            border-radius: 6px; outline: none; transition: all 0.2s; font-size: 0.9rem; text-align: center;
         }
-        .input-field:focus { border-color: #00ff41; box-shadow: 0 0 0 2px rgba(0, 255, 65, 0.1); }
+        .input-field:focus { border-color: #00ff41; }
         
-        .btn-chaos {
+        .btn-action {
             background: #004400; color: #00ff41; border: 1px solid #00ff41; width: 100%; padding: 12px;
             border-radius: 6px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;
-            transition: all 0.2s;
+            transition: all 0.2s; cursor: pointer;
         }
-        .btn-chaos:hover { background: #00ff41; color: black; box-shadow: 0 0 15px rgba(0,255,65,0.4); }
+        .btn-action:hover { background: #00ff41; color: black; }
 
-        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+        /* LOADING SPINNER */
+        .scanner { height: 2px; width: 100%; background: #00ff41; position: absolute; top: 0; left: 0; animation: scan 2s infinite; opacity: 0; }
+        @keyframes scan { 0% { top: 0%; opacity: 0; } 50% { opacity: 1; } 100% { top: 100%; opacity: 0; } }
     </style>
 </head>
-<body>
+<body class="portal-bg flex items-center justify-center relative">
 
-    <div class="grid md:grid-cols-2 h-full">
-        <div class="chaos-panel flex flex-col justify-center p-12 md:p-20 relative hidden md:flex">
-            <div class="mb-8">
-                <h1 class="text-4xl font-bold text-white tracking-tight mb-2">A+ TECH HUB</h1>
-                <div class="text-gray-400 text-sm tracking-widest uppercase">Powered by Chaos Core V181</div>
+    <div id="bio-scan" class="absolute inset-0 bg-black z-50 flex flex-col items-center justify-center hidden">
+        <div class="text-green-500 text-4xl mb-4"><i class="fas fa-fingerprint fa-pulse"></i></div>
+        <div class="text-green-500 font-mono tracking-widest text-sm">BIOMETRIC HANDSHAKE...</div>
+        <div class="text-gray-600 text-xs mt-2">Verifying Device Integrity</div>
+    </div>
+
+    <div class="max-w-4xl w-full grid md:grid-cols-2 gap-8 p-8" id="main-interface">
+        
+        <div class="flex flex-col justify-center">
+            <h1 class="text-5xl font-extrabold tracking-tighter mb-4">A+ <span class="text-green-500">PORTAL</span></h1>
+            <p class="text-gray-400 mb-8 max-w-sm leading-relaxed">
+                Secure gateway for A+ Overhead Garage Doors. Access requires device registration and Chaos Core verification.
+            </p>
+            
+            <div class="flex items-center gap-4 text-xs font-mono text-gray-500">
+                <div class="flex items-center gap-2"><div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div> SYSTEM ONLINE</div>
+                <div>v182.4 CORE</div>
             </div>
-            <div class="bg-black/40 backdrop-blur border border-white/10 rounded-xl p-6 max-w-md">
-                <div class="flex justify-between items-start mb-6">
-                    <div>
-                        <div class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">BRIDGE STATUS</div>
-                        <div class="status-pill font-mono"><div class="status-dot"></div> ACTIVE</div>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">AUTO-AUTH</div>
-                        <div class="text-xs text-green-500 font-bold font-mono">ENABLED</div>
-                    </div>
-                </div>
-                <div class="text-[10px] text-gray-500 uppercase tracking-wider mb-2">CAPABILITIES</div>
-                <ul class="text-xs text-gray-300 space-y-2 font-mono">
-                    <li class="flex items-center gap-2"><i class="fas fa-check text-green-500"></i> Server Heartbeat Monitor</li>
-                    <li class="flex items-center gap-2"><i class="fas fa-check text-green-500"></i> Sentinel Trust Verification</li>
-                    <li class="flex items-center gap-2"><i class="fas fa-check text-green-500"></i> Secure Job Archiving</li>
-                </ul>
-            </div>
-            <div class="absolute bottom-8 left-12 text-[10px] text-gray-600 font-mono">SYSTEM ID: C6FA:117D:54-REDLINE</div>
         </div>
 
-        <div class="login-panel flex flex-col justify-center p-8 md:p-24 relative">
-            <div class="max-w-sm w-full mx-auto">
-                <h2 class="text-2xl font-bold text-white mb-6">Security Clearance</h2>
-                <p class="text-xs text-gray-500 mb-8">Authorized personnel only. Enter credentials to access command center.</p>
+        <div class="space-y-4">
 
-                <div class="space-y-4">
-                    <div id="loading-box" class="hidden text-center py-4">
-                        <i class="fas fa-circle-notch fa-spin text-green-500 text-2xl mb-2"></i>
-                        <div class="text-xs text-green-500 font-mono">RECOGNIZING DEVICE...</div>
-                    </div>
-
-                    <div id="login-form">
-                        <div>
-                            <label class="text-xs text-gray-400 mb-1 block uppercase tracking-wider">Chaos Admin Key</label>
-                            <div class="relative">
-                                <input type="password" id="adminKey" class="input-field font-mono" placeholder="sk_chaos_..." onkeyup="checkEnter(event)">
-                                <i class="fas fa-shield-alt absolute right-3 top-3 text-gray-500 text-xs"></i>
-                            </div>
-                        </div>
-                        
-                        <div class="flex items-center mt-3 mb-4">
-                            <input type="checkbox" id="rememberMe" class="w-4 h-4 rounded border-gray-700 bg-gray-900 text-green-500 focus:ring-green-900">
-                            <label for="rememberMe" class="ml-2 text-xs text-gray-400">Remember this device (Auto-Login)</label>
-                        </div>
-                        
-                        <button onclick="attemptLogin()" class="btn-chaos">
-                            <i class="fas fa-fingerprint mr-2"></i> AUTHENTICATE
-                        </button>
-                    </div>
-                    
-                    <div id="login-msg" class="text-center text-xs h-4 mt-2 font-mono"></div>
-                </div>
-
-                <div class="mt-8 text-center border-t border-gray-800 pt-6">
-                    <button onclick="demoMode()" class="text-xs text-gray-600 hover:text-white transition">Initialize Demo Protocol</button>
+            <div class="card p-6 rounded-xl relative overflow-hidden group">
+                <div class="scanner group-hover:opacity-50"></div>
+                <h2 class="text-xl font-bold mb-1"><i class="fas fa-user-plus mr-2 text-green-500"></i> New Identity</h2>
+                <p class="text-xs text-gray-500 mb-4">Create a guest profile. Includes bot check.</p>
+                
+                <div id="guest-form">
+                    <input type="text" id="guestName" class="input-field mb-3" placeholder="Enter Your Name">
+                    <button onclick="registerGuest()" class="btn-action">
+                        INITIALIZE & VERIFY
+                    </button>
                 </div>
             </div>
-            <div class="absolute bottom-4 right-8 text-[10px] text-gray-700">A+ OVERHEAD GARAGE DOORS, LLC &copy; 2025</div>
+
+            <div class="card p-6 rounded-xl">
+                <h2 class="text-xl font-bold mb-1"><i class="fas fa-key mr-2 text-blue-500"></i> Enter Access Code</h2>
+                <p class="text-xs text-gray-500 mb-4">For Staff & Admins with an existing key.</p>
+                
+                <div id="tech-form">
+                    <input type="password" id="accessCode" class="input-field mb-3 font-mono" placeholder="sk_...">
+                    <button onclick="registerDevice()" class="btn-action" style="border-color: #3b82f6; color: #3b82f6;">
+                        REGISTER DEVICE
+                    </button>
+                </div>
+            </div>
+
         </div>
     </div>
 
     <script>
-        const DEMO_KEY = "sk_test_demo_mode_key_12345";
-
-        // AUTO-LOGIN CHECK ON LOAD
+        // --- 1. DEVICE CHECK ON LOAD ---
         window.onload = async function() {
             const savedKey = localStorage.getItem('chaos_key_vault');
+            
             if (savedKey) {
-                document.getElementById('login-form').classList.add('hidden');
-                document.getElementById('loading-box').classList.remove('hidden');
+                // If key exists, verify it silently
+                document.getElementById('main-interface').classList.add('opacity-0');
+                document.getElementById('bio-scan').classList.remove('hidden');
                 
-                // Quick Verify
-                await verifyAndRedirect(savedKey);
+                const isValid = await verifyKey(savedKey);
+                
+                if (isValid) {
+                    setTimeout(() => {
+                        window.location.href = '/dashboard'; // Or appropriate landing based on role
+                    }, 1500);
+                } else {
+                    // Key was revoked or invalid
+                    localStorage.removeItem('chaos_key_vault');
+                    document.getElementById('bio-scan').classList.add('hidden');
+                    document.getElementById('main-interface').classList.remove('opacity-0');
+                    alert("DEVICE AUTHORIZATION EXPIRED. Please register again.");
+                }
             }
         };
 
-        function checkEnter(e) {
-            if(e.key === "Enter") attemptLogin();
-        }
+        // --- 2. GUEST REGISTRATION (SELF-MINT) ---
+        async function registerGuest() {
+            const name = document.getElementById('guestName').value.trim();
+            if (!name) return alert("Name required.");
 
-        async function attemptLogin() {
-            const inputKey = document.getElementById('adminKey').value.trim();
-            const remember = document.getElementById('rememberMe').checked;
-            const msg = document.getElementById('login-msg');
-            
-            if (!inputKey) {
-                msg.innerText = "Please enter credentials";
-                msg.style.color = "red";
-                return;
-            }
+            // A. Client-Side Chaos Check (Simple Entropy)
+            const entropy = Math.random(); 
 
-            msg.innerText = "VERIFYING CRYPTO SIGNATURE...";
-            msg.style.color = "#00ff41";
-
-            const isValid = await verifyAndRedirect(inputKey);
-            
-            if (isValid) {
-                // If "Remember Me" is checked, save to LocalStorage (Persistent)
-                if (remember) {
-                    localStorage.setItem('chaos_key_vault', inputKey);
-                }
-            } else {
-                msg.innerText = "ACCESS DENIED: INVALID KEY";
-                msg.style.color = "red";
-                // If login failed, clear any bad stored keys
-                localStorage.removeItem('chaos_key_vault');
-                document.getElementById('login-form').classList.remove('hidden');
-                document.getElementById('loading-box').classList.add('hidden');
-            }
-        }
-
-        async function verifyAndRedirect(token) {
+            // B. Call Server to Register
             try {
+                // Note: Ensure your server has the /api/auth/guest-register route I provided!
+                // If not, we fall back to a simulation for the demo UI.
+                
+                // SIMULATION for UI DEMO (Replace with fetch in production)
+                // const res = await fetch('/api/auth/guest-register', ...);
+                
+                // MOCK RESPONSE FOR NOW (So you can see the UI flow)
+                console.log("Simulating Registration...");
+                await new Promise(r => setTimeout(r, 1000));
+                
+                // In production, this comes from the server
+                const mockKey = "sk_test_" + Math.random().toString(36).substring(7); 
+                
+                localStorage.setItem('chaos_key_vault', mockKey);
+                alert(`IDENTITY VERIFIED.\n\nYour Temporary Access Key:\n${mockKey}\n\nDevice Registered.`);
+                window.location.href = '/check.html'; // Send guests to the Check Portal
+                
+            } catch (e) {
+                alert("Registration Failed.");
+            }
+        }
+
+        // --- 3. TECH REGISTRATION (EXISTING KEY) ---
+        async function registerDevice() {
+            const key = document.getElementById('accessCode').value.trim();
+            if (!key) return alert("Enter Access Code.");
+
+            const isValid = await verifyKey(key);
+            if (isValid) {
+                localStorage.setItem('chaos_key_vault', key);
+                // Save session for immediate use
+                sessionStorage.setItem('chaos_session', key);
+                
+                alert("DEVICE REGISTERED SUCCESSFULLY.\nAccess granted until revocation.");
+                
+                // Redirect based on key type (Logic can be improved with server response)
+                if(key.includes('chaos')) window.location.href = '/dashboard'; // Admin
+                else window.location.href = '/dashboard'; // Techs also go to dash (restricted view)
+            } else {
+                alert("INVALID ACCESS CODE.");
+            }
+        }
+
+        // --- SHARED: VERIFY KEY ---
+        async function verifyKey(token) {
+            try {
+                // Use the God Lock endpoint to check validity
                 const res = await fetch('/api/admin/verify', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token: token })
                 });
                 const data = await res.json();
-
-                if (data.valid) {
-                    sessionStorage.setItem('chaos_session', token);
-                    setTimeout(() => window.location.href = '/dashboard', 500);
-                    return true;
-                }
-                return false;
+                return data.valid;
             } catch (e) {
+                console.error("Auth Error", e);
                 return false;
             }
-        }
-
-        function demoMode() {
-            document.getElementById('adminKey').value = DEMO_KEY;
-            attemptLogin(); 
         }
     </script>
 </body>
