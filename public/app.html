@@ -32,10 +32,10 @@
 <body>
 
     <div class="portal-card text-center">
-        <h1 class="text-2xl font-bold tracking-widest mb-2 text-white">ENTER THE ABYSS</h1>
-        <p class="text-gray-500 text-xs mb-8">Type Callsign and trace Sigil to verify identity.</p>
+        <h1 class="text-2xl font-bold tracking-widest mb-2 text-white">VERIFY IDENTITY</h1>
+        <p class="text-gray-500 text-xs mb-8">Enter Callsign and trace Sigil to log in.</p>
 
-        <input type="text" id="callsignInput" class="input-line w-full mb-4" placeholder="CRIMSON-VELVET-THUNDER">
+        <input type="text" id="callsignInput" class="input-line w-full mb-4" placeholder="CRIMSON-VELVET-THUNDER OR MASTER_KEY">
 
         <div id="challenge-area">
             <canvas id="chaosCanvas" width="300" height="200"></canvas>
@@ -52,6 +52,7 @@
         </div>
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script>
         const challengeStatus = document.getElementById('challenge-status');
         const canvas = document.getElementById('chaosCanvas');
@@ -113,31 +114,34 @@
         canvas.addEventListener('touchmove', moveTrace);
         canvas.addEventListener('touchend', endTrace);
         
-        loginBtn.disabled = true; // Disabled until trace is complete
+        loginBtn.disabled = true; 
 
         // --- LOGIN & REDIRECT LOGIC ---
         async function attemptLogin() {
-            const callsign = document.getElementById('callsignInput').value.trim();
+            const input = document.getElementById('callsignInput').value.trim();
             const msg = document.getElementById('challenge-status');
 
-            if (!callsign || callsign.split(/\s+|-/).length < 3) {
-                msg.innerText = "ENTER VALID CALLSIGN FIRST.";
+            if (!input) {
+                msg.innerText = "ENTER CALLSIGN OR MASTER KEY FIRST.";
                 return;
             }
-            if (chaosMetric < 500) {
+            if (chaosMetric < 500 && !input.toLowerCase().includes('sk_chaos')) {
                  msg.innerText = "PERFORM BIOMETRIC TRACE TO VERIFY.";
                  return;
             }
 
-            // 1. Convert Callsign -> Key
-            const cleanPhrase = callsign.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-            const key = "sk_ghost_" + CryptoJS.SHA256(cleanPhrase + "INFINITE_ABYSS_2025").toString().substring(0,32);
+            // 1. Determine Key (Master Key vs. Callsign)
+            let key = input;
+            if (!input.toLowerCase().startsWith('sk_')) {
+                const cleanPhrase = input.toLowerCase().replace(/\s+/g, '-');
+                key = "sk_ghost_" + CryptoJS.SHA256(cleanPhrase + "INFINITE_ABYSS_2025").toString().substring(0,32);
+            }
 
             loginBtn.disabled = true;
             loginBtn.textContent = "VERIFYING IDENTITY...";
 
             // 2. Self-Heal and Verify (Ensures the key is known to the server)
-            const success = await registerWithServer(key, callsign, chaosMetric);
+            const success = await registerWithServer(key, input, chaosMetric);
 
             if (success) {
                 localStorage.setItem('chaos_key_vault', key);
@@ -146,7 +150,7 @@
             } else {
                 loginBtn.disabled = false;
                 loginBtn.textContent = "VERIFY AND ACCESS";
-                msg.innerText = "VERIFICATION FAILED. CALLSIGN UNKNOWN OR TRACE LOW.";
+                msg.innerText = "VERIFICATION FAILED. KEY UNKNOWN OR TRACE LOW.";
             }
         }
         
@@ -165,14 +169,12 @@
                 const data = await res.json();
                 return data.success;
             } catch (e) {
-                // If API is down, we fail verification
                 return false; 
             }
         }
         
-        // Auto-Check if already logged in (Always redirects to the Login Page for verification)
+        // Auto-Check if already logged in
         if (localStorage.getItem('chaos_key_vault')) {
-            // If key exists, send them to the Sanctuary (Dashboard) immediately
             window.location.href = '/abyss-search.html'; 
         }
     </script>
