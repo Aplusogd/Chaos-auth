@@ -3,69 +3,258 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A+ MINIMAL CHECK</title>
+    <title>A+ SANCTUARY | NEXUS</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* FORCE DARK MODE */
-        html, body { background-color: #000000; color: #fff; font-family: monospace; }
+        /* CORE THEME */
+        html, body { background-color: #000000; color: #e5e5e5; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        .sanctuary-bg {
+            position: fixed; inset: 0; z-index: -1;
+            background: radial-gradient(circle at 50% 50%, #0a1a0a 0%, #000 100%);
+        }
+        .grid-lines {
+            position: fixed; inset: 0; z-index: -1;
+            background-image: linear-gradient(rgba(0, 255, 65, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 255, 65, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            mask-image: radial-gradient(circle at center, black 60%, transparent 100%);
+        }
+
+        .dash-card {
+            background: rgba(15, 15, 15, 0.8); border: 1px solid #222; 
+            backdrop-filter: blur(10px); border-radius: 8px; padding: 1.2rem;
+            transition: all 0.2s; height: 100%; display: flex; flex-direction: column;
+        }
+        
+        .redacted { background: #000; color: #000; user-select: none; }
     </style>
 </head>
-<body class="p-6">
+<body class="min-h-screen p-4 md:p-8">
 
-    <div class="text-center mt-12">
-        <i class="fas fa-satellite-dish fa-spin text-4xl text-green-500 mb-4"></i>
-        <h1 class="text-white text-xl">UPLINK STATUS</h1>
-        <p class="text-gray-500 text-xs mb-6">Checking core systems...</p>
+    <div class="sanctuary-bg"></div>
+    <div class="grid-lines"></div>
 
-        <div id="status-box" class="bg-gray-900 p-4 rounded inline-block text-left">
-            <p class="text-sm font-bold text-green-400 mb-2">IDENTITY CHECK</p>
-            <p class="text-xs text-white" id="key-status">Key: Loading...</p>
-            <p class="text-xs text-white" id="name-status">Name: ---</p>
-            <p class="text-xs text-white" id="rank-status">Rank: ---</p>
-        </div>
-
-        <p id="error-message" class="text-red-500 mt-6 hidden">A critical error occurred. See console.</p>
+    <div id="loader" class="fixed inset-0 bg-black z-50 flex flex-col items-center justify-center transition-opacity duration-500">
+        <i class="fas fa-fingerprint fa-spin text-4xl text-green-600 mb-4"></i>
+        <div class="text-xs tracking-widest text-green-500 font-mono">ESTABLISHING SECURE UPLINK...</div>
     </div>
 
-    <script>
-        // CRITICAL ERROR CATCH: Display the error on screen if it happens.
-        window.onerror = function(msg, url, line) {
-            document.getElementById('error-message').innerText = `ERROR: ${msg} (Line ${line})`;
-            document.getElementById('error-message').classList.remove('hidden');
-            return true; 
-        };
-
-        const KEY = localStorage.getItem('chaos_key_vault');
+    <div id="dashboard" class="max-w-7xl mx-auto opacity-0 transition-opacity duration-1000">
         
-        document.getElementById('key-status').innerText = `Key: ${KEY ? KEY.substring(0, 10) + '...' : 'NONE'}`;
+        <header class="flex justify-between items-end mb-8 pb-4 border-b border-gray-900">
+            <div>
+                <h1 class="text-3xl font-bold text-white mb-1" id="callsign-header">...</h1>
+                <div class="text-[10px] text-green-500 font-mono tracking-widest uppercase">
+                    Secure Nexus • Active
+                </div>
+            </div>
+            <div class="text-right">
+                <div class="text-[10px] text-gray-600 uppercase">Trust Score</div>
+                <div id="trust-score" class="text-2xl font-bold text-white font-mono">0%</div>
+            </div>
+        </header>
 
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+            <div class="md:col-span-1">
+                <div class="dash-card border-l-4 border-l-green-600">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-sm font-bold text-white tracking-widest uppercase"><i class="fas fa-link mr-2 text-green-500"></i> Chaos Attached</h3>
+                        <div class="animate-pulse h-2 w-2 bg-green-500 rounded-full"></div>
+                    </div>
+                    <div class="space-y-3 flex-1">
+                        <div class="bg-green-900/10 p-3 rounded border border-green-500/30 flex justify-between items-center">
+                            <div class="flex items-center gap-3">
+                                <i class="fas fa-mobile-alt text-green-500 text-lg"></i>
+                                <div class="text-xs text-white font-bold">THIS DEVICE</div>
+                            </div>
+                            <i class="fas fa-check-circle text-green-500"></i>
+                        </div>
+                        <div class="bg-black/40 p-3 rounded border border-gray-800 flex justify-between items-center opacity-70">
+                            <div class="flex items-center gap-3">
+                                <i class="fas fa-warehouse text-gray-500 text-lg"></i>
+                                <div class="text-xs text-gray-300">A+ GARAGE HUB</div>
+                            </div>
+                            <div class="h-1.5 w-1.5 bg-yellow-500 rounded-full"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                <div class="dash-card border-l-4 border-l-blue-600">
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="text-xs font-bold text-blue-500"><i class="fas fa-dna mr-2"></i> BIO-AUDIT</span>
+                        <button onclick="startTraining()" class="text-[10px] bg-blue-900/20 text-blue-400 px-2 py-1 rounded hover:bg-blue-500 hover:text-black">TRAIN NEW</button>
+                    </div>
+                    
+                    <div class="text-center p-6 border border-gray-800 rounded">
+                        <i class="fas fa-fingerprint text-4xl text-gray-700 mb-2"></i>
+                        <p class="text-xs text-gray-400">
+                            The Adaptive Biometric Lab is currently **offline for maintenance**.<br>
+                            Click "Train New" to launch the **Simple Forge** until the Analyst is stable.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="dash-card">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-xs font-bold text-gray-400 uppercase">Master Key</h3>
+                        <button onclick="copyKey()" class="text-green-500 hover:text-white text-xs"><i class="fas fa-copy"></i></button>
+                    </div>
+                    <div class="bg-black p-3 rounded font-mono text-xs text-gray-500 truncate" id="api-key-display" onclick="revealKey()">
+                        •••••••••••••••••••••
+                    </div>
+                    <div class="mt-2 text-[10px] text-gray-600 flex justify-between">
+                        <span>API Access Token</span>
+                        <span class="cursor-pointer hover:text-white transition" onclick="revealKey()">REVEAL</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dash-card md:col-span-1 border-l-4 border-l-red-600">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-xs font-bold text-red-500"><i class="fas fa-box-open mr-2"></i> BLACK BOX</span>
+                    <button id="lock-btn" onclick="unlockBox()" class="text-xs text-gray-500 hover:text-white transition"><i class="fas fa-lock"></i> LOCKED</button>
+                </div>
+                <div class="relative flex-grow">
+                    <textarea id="secret-notes" class="w-full h-full min-h-[150px] bg-black border border-gray-800 rounded p-3 text-sm text-green-500 font-mono resize-none redacted" readonly></textarea>
+                    <div id="lock-overlay" class="absolute inset-0 bg-black/90 flex items-center justify-center flex-col">
+                        <div class="text-red-500 font-mono text-xs tracking-widest mb-2">[ SECURE CONTENT ]</div>
+                        <div class="text-[10px] text-gray-600">Bio-Audit Required</div>
+                    </div>
+                </div>
+                <button onclick="saveNotes()" class="mt-2 text-xs w-full bg-red-900/20 text-red-500 py-2 rounded hover:bg-red-500 hover:text-black transition">
+                    ENCRYPT & SAVE
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script>
+        // --- CORE VARIABLES ---
+        let currentKey = localStorage.getItem('chaos_key_vault');
+        
+        // --- 1. INITIALIZE ---
         window.onload = async () => {
-            if (!KEY) {
-                document.getElementById('rank-status').innerText = 'Rank: UNAUTHORIZED';
-                setTimeout(() => window.location.href = '/', 2000);
-                return;
-            }
-
+            if (!currentKey) { window.location.href = '/'; return; }
+            
+            // Fetch Profile
             try {
-                const res = await fetch('/api/v1/sentinel/verify', {
-                    method: 'POST',
-                    headers: { 'x-api-key': KEY }
-                });
-
-                if (res.status === 200) {
-                    const data = await res.json();
-                    document.getElementById('rank-status').innerText = `Rank: ${data.rank}`;
-                    document.getElementById('name-status').innerText = `Name: ${data.project || 'GHOST'}`;
-                } else {
-                    document.getElementById('rank-status').innerText = 'Rank: FORGOTTEN (Heal Needed)';
+                const res = await fetch('/api/v1/sentinel/verify', { headers: { 'x-api-key': currentKey } });
+                const data = await res.json();
+                renderDashboard(data);
+                
+                // Load Notes (Encrypted)
+                if(localStorage.getItem('black_box_notes')) {
+                    document.getElementById('secret-notes').value = localStorage.getItem('black_box_notes');
                 }
+
             } catch (e) {
-                document.getElementById('rank-status').innerText = 'Rank: OFFLINE (Server Down)';
-                document.getElementById('error-message').innerText = 'Error: Cannot connect to API.';
-                document.getElementById('error-message').classList.remove('hidden');
+                renderDashboard({ project: "OFFLINE", rank: "LOCAL", trustScore: 0 });
             }
         };
+
+        function renderDashboard(data) {
+            document.getElementById('loader').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('dashboard').classList.remove('opacity-0');
+            }, 500);
+
+            // Populate UI
+            document.getElementById('callsign-header').innerText = data.project || currentKey.substring(9, 14).toUpperCase();
+            document.getElementById('trust-score').innerText = (data.trustScore || 0) + "%";
+            document.getElementById('rank-badge').innerText = data.rank || "LOCAL";
+            document.getElementById('api-key-display').innerText = currentKey.substring(0, 16) + "••••••••";
+        }
+
+        // --- 2. BLACK BOX LOGIC ---
+        function unlockBox() {
+            // For stability, we use a simple alert-based unlock until the Biometric Lab is fixed.
+            const access = prompt("Enter 'chaos' to manually unlock the Black Box:");
+            
+            if (access === 'chaos') {
+                performUnlock();
+            } else {
+                alert("Incorrect override code.");
+            }
+        }
+
+        async function performUnlock() {
+            const area = document.getElementById('secret-notes');
+            const overlay = document.getElementById('lock-overlay');
+            const btn = document.getElementById('lock-btn');
+            
+            const saved = localStorage.getItem('black_box_notes');
+            if (saved) {
+                try {
+                    // Requires CryptoJS library (already linked)
+                    const decrypted = await decryptData(saved, currentKey);
+                    area.value = decrypted;
+                } catch(e) { area.value = "Decryption Failed."; }
+            } else { area.value = ""; }
+
+            area.readOnly = false;
+            area.classList.remove('redacted');
+            overlay.classList.add('hidden');
+            btn.innerHTML = '<i class="fas fa-unlock"></i> UNLOCKED';
+            btn.classList.add('text-green-500');
+        }
+
+        function saveNotes() {
+            if(document.getElementById('secret-notes').readOnly) return alert("Unlock Black Box first.");
+            
+            const text = document.getElementById('secret-notes').value;
+            encryptData(text, currentKey).then(enc => {
+                localStorage.setItem('black_box_notes', enc);
+                alert("Notes saved and sealed.");
+                window.location.reload(); // Relock
+            });
+        }
+        
+        // --- 3. CRYPTO ENGINE (Reusable from V202) ---
+        async function encryptData(data, keyString) {
+            const enc = new TextEncoder();
+            const keyMaterial = await window.crypto.subtle.importKey("raw", enc.encode(keyString.substring(0,32)), "AES-GCM", false, ["encrypt"]);
+            const iv = window.crypto.getRandomValues(new Uint8Array(12));
+            const encrypted = await window.crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, keyMaterial, enc.encode(data));
+            const ivArr = Array.from(iv);
+            const encArr = Array.from(new Uint8Array(encrypted));
+            return JSON.stringify({ iv: ivArr, data: encArr });
+        }
+
+        async function decryptData(jsonStr, keyString) {
+            try {
+                const bundle = JSON.parse(jsonStr);
+                const enc = new TextEncoder();
+                const keyMaterial = await window.crypto.subtle.importKey("raw", enc.encode(keyString.substring(0,32)), "AES-GCM", false, ["decrypt"]);
+                const decrypted = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv: new Uint8Array(bundle.iv) }, keyMaterial, new Uint8Array(bundle.data));
+                return new TextDecoder().decode(decrypted);
+            } catch(e) { return "ERROR: Key mismatch or corruption."; }
+        }
+
+        // --- 4. UTILS ---
+        function revealKey() {
+            const el = document.getElementById('api-key-display');
+            if(el.innerText.includes('•')) el.innerText = currentKey;
+            else el.innerText = currentKey.substring(0, 16) + "••••••••";
+        }
+
+        function copyKey() {
+            navigator.clipboard.writeText(currentKey);
+            alert("Key Copied");
+        }
+
+        function startTraining() {
+            // Placeholder: Link back to the reliable forge
+            window.location.href = '/abyss-forge.html';
+        }
     </script>
 </body>
 </html>
