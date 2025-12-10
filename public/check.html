@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>A+ SANCTUARY | NEXUS</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet"></script>
     <style>
         /* CRITICAL: Force Black Background immediately */
         html, body { background-color: #000000; color: #e5e5e5; font-family: 'Inter', sans-serif; overflow-x: hidden; }
@@ -30,6 +30,13 @@
         }
         
         .redacted { background: #000; color: #000; user-select: none; }
+
+        /* LOADING SPLASH SCREEN */
+        #loading-splash {
+             position: fixed; inset: 0; background: #000; z-index: 100;
+             display: flex; flex-direction: column; align-items: center; justify-content: center;
+             opacity: 1; transition: opacity 0.5s;
+        }
     </style>
 </head>
 <body class="min-h-screen p-4 md:p-8">
@@ -37,7 +44,12 @@
     <div class="sanctuary-bg"></div>
     <div class="grid-lines"></div>
 
-    <div id="dashboard" class="max-w-7xl mx-auto">
+    <div id="loading-splash">
+        <i class="fas fa-fingerprint fa-spin text-4xl text-green-600 mb-4"></i>
+        <div class="text-xs tracking-widest text-green-500 font-mono">LOADING SANCTUARY CORE...</div>
+    </div>
+    
+    <div id="dashboard" class="max-w-7xl mx-auto opacity-0 transition-opacity duration-1000">
         
         <header class="flex justify-between items-end mb-8 pb-4 border-b border-gray-900">
             <div>
@@ -119,7 +131,7 @@
                     <textarea id="secret-notes" class="w-full h-full min-h-[150px] bg-black border border-gray-800 rounded p-3 text-sm text-green-500 font-mono resize-none redacted" readonly></textarea>
                     <div id="lock-overlay" class="absolute inset-0 bg-black/90 flex items-center justify-center flex-col">
                         <div class="text-red-500 font-mono text-xs tracking-widest mb-2">[ SECURE CONTENT ]</div>
-                        <div class="text-[10px] text-gray-600">Bio-Audit Required</div>
+                        <div class="text-[10px] text-gray-600">Manual Override Required</div>
                     </div>
                 </div>
                 <button onclick="saveNotes()" class="mt-2 text-xs w-full bg-red-900/20 text-red-500 py-2 rounded hover:bg-red-500 hover:text-black transition">
@@ -135,14 +147,19 @@
         // --- CORE VARIABLES ---
         let currentKey = localStorage.getItem('chaos_key_vault');
         
-        // --- 1. INITIALIZE ---
-        window.onload = async () => {
-            if (!currentKey) { window.location.href = '/'; return; }
+        // --- 1. INITIALIZE (WITH CRITICAL DELAY) ---
+        window.onload = () => {
+            // CRITICAL FIX: Delay initialization to avoid race condition with LocalStorage/Crypto
+            setTimeout(initializeDashboard, 1000); 
+        };
+
+        async function initializeDashboard() {
+            if (!currentKey) { 
+                window.location.href = '/'; 
+                return; 
+            }
             
-            // Set initial opacity to 1 (Show dashboard immediately after loading finishes)
-            document.getElementById('dashboard').classList.remove('opacity-0');
-            
-            // Load and Render Logic (Minimal for stability)
+            // Fetch Profile
             try {
                 const res = await fetch('/api/v1/sentinel/verify', { headers: { 'x-api-key': currentKey } });
                 const data = await res.json();
@@ -150,24 +167,30 @@
             } catch (e) {
                 renderDashboard({ project: "OFFLINE", rank: "LOCAL", trustScore: 0 });
             }
-            
-            // Load Notes (Encrypted)
-            if(localStorage.getItem('black_box_notes')) {
-                // Must load the value before the user clicks unlock
-                document.getElementById('secret-notes').value = "Loading encrypted data...";
-            }
-        };
+        }
 
         function renderDashboard(data) {
+            // Hide Splash
+            document.getElementById('loading-splash').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('loading-splash').style.display = 'none';
+                document.getElementById('dashboard').classList.remove('opacity-0');
+            }, 500);
+
+            // Populate UI
             document.getElementById('callsign-header').innerText = data.project || currentKey.substring(9, 14).toUpperCase();
             document.getElementById('trust-score').innerText = (data.trustScore || 0) + "%";
             document.getElementById('rank-badge').innerText = data.rank || "LOCAL";
             document.getElementById('api-key-display').innerText = currentKey.substring(0, 16) + "••••••••";
+            
+            // Load Encrypted Notes
+            if(localStorage.getItem('black_box_notes')) {
+                document.getElementById('secret-notes').value = "Encrypted data loaded...";
+            }
         }
 
-        // --- 2. BLACK BOX LOGIC (Manual Unlock for Stability) ---
+        // --- BLACK BOX LOGIC (Manual Override) ---
         function unlockBox() {
-            // Manual unlock until the full Bio-Analyst module is stable
             const access = prompt("Enter 'chaos' to manually unlock the Black Box:");
             
             if (access === 'chaos') {
@@ -208,7 +231,7 @@
             });
         }
         
-        // --- 3. CRYPTO ENGINE (Reusable from V202) ---
+        // --- CRYPTO ENGINE (V202) ---
         async function encryptData(data, keyString) {
             const enc = new TextEncoder();
             const keyMaterial = await window.crypto.subtle.importKey("raw", enc.encode(keyString.substring(0,32)), "AES-GCM", false, ["encrypt"]);
@@ -229,7 +252,7 @@
             } catch(e) { throw new Error("Decryption Error"); }
         }
 
-        // --- 4. UTILS ---
+        // --- UTILS ---
         function revealKey() {
             const el = document.getElementById('api-key-display');
             if(el.innerText.includes('•')) el.innerText = currentKey;
