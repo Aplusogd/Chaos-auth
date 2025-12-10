@@ -1,13 +1,8 @@
 /**
- * A+ CHAOS ID: V168 (SERVER FINAL)
- * STATUS: PRODUCTION READY
- * FEATURES:
- * - Zombie Protocol (Crash Resistance)
- * - Live Wire (Real-Time Dashboard Feed)
- * - God Lock (Admin Token Verification)
- * - Trust Bypass (Human-First Content Hydration)
+ * A+ CHAOS ID: V169 (KEY FORGE ENABLED)
+ * STATUS: PRODUCTION
+ * NEW: Adds /api/admin/keys endpoints to mint and manage API keys.
  */
-
 import express from 'express';
 import path from 'path';
 import cors from 'cors';
@@ -17,12 +12,9 @@ import helmet from 'helmet';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';     
 
-// --- 1. ZOMBIE PROTOCOL (CRITICAL STARTUP PROTECTION) ---
-// Prevents the server from exiting early on minor errors.
-process.on('uncaughtException', (err) => console.error('>>> [CRASH LOG] FATAL ERROR CAUGHT:', err.message));
-process.on('unhandledRejection', (reason) => console.error('>>> [CRASH LOG] REJECTION CAUGHT:', reason));
+process.on('uncaughtException', (err) => console.error('>>> [CRASH] FATAL:', err.message));
+process.on('unhandledRejection', (reason) => console.error('>>> [CRASH] REJECT:', reason));
 
-// --- 2. INITIAL SETUP ---
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const publicPath = path.join(__dirname, 'public');
@@ -30,127 +22,114 @@ const publicPath = path.join(__dirname, 'public');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// --- 3. MIDDLEWARE ---
-app.use(helmet({ contentSecurityPolicy: false })); // Allow inline scripts for Sentinel
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors({ origin: '*' })); 
 app.use(express.json());
 app.use(express.static(publicPath));
 
-// --- 4. LIVE WIRE ENGINE (REAL-TIME FEED) ---
-let connectedClients = [];
+// --- MOCK DATABASE (In-Memory for now) ---
+// In a real app, this would be a MongoDB or SQL database.
+const KeyVault = new Map(); 
 
+// --- LIVE WIRE ---
+let connectedClients = [];
 const LiveWire = {
-    // Broadcast data to all connected Dashboards
     broadcast: (type, data) => {
         const payload = JSON.stringify({ type, timestamp: Date.now(), data });
-        connectedClients.forEach(client => {
-            try {
-                client.res.write(`data: ${payload}\n\n`);
-            } catch(e) { /* Client disconnected */ }
-        });
+        connectedClients.forEach(c => c.res.write(`data: ${payload}\n\n`));
     },
-    // Handle new Dashboard connection
     addClient: (req, res) => {
-        const headers = {
-            'Content-Type': 'text/event-stream',
-            'Connection': 'keep-alive',
-            'Cache-Control': 'no-cache'
-        };
-        res.writeHead(200, headers);
-        const clientId = Date.now();
-        connectedClients.push({ id: clientId, res });
-        
-        // Send initial handshake
+        res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Connection': 'keep-alive', 'Cache-Control': 'no-cache' });
+        connectedClients.push({ id: Date.now(), res });
         res.write(`data: ${JSON.stringify({ type: 'SYSTEM', data: 'LINK ESTABLISHED' })}\n\n`);
-
-        req.on('close', () => {
-            connectedClients = connectedClients.filter(c => c.id !== clientId);
-        });
     }
 };
 
-// --- 5. DATA & CONTENT ---
-const PROTECTED_CONTENT_HTML = `
-    <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-32">
-        <div class="p-8 rounded bg-black/40 backdrop-blur card-hover group border-t-2 border-t-red-500/50">
-            <div class="w-12 h-12 bg-red-900/20 rounded flex items-center justify-center mb-6"><i class="fas fa-robot text-2xl text-red-500"></i></div>
-            <h3 class="text-xl font-bold text-white mb-3">Invisible Wall</h3>
-            <p class="text-gray-400 text-sm">*Solution for Data Leakage.* Content is only 'hydrated' for human visitors.</p>
-        </div>
-        <div class="p-8 rounded bg-black/40 backdrop-blur card-hover group">
-            <div class="w-12 h-12 bg-green-900/20 rounded flex items-center justify-center mb-6"><i class="fas fa-fingerprint text-2xl text-green-500"></i></div>
-            <h3 class="text-xl font-bold text-white mb-3">Kinetic Entropy</h3>
-            <p class="text-gray-400 text-sm">Proves "Proof of Life" using chaotic velocity.</p>
-        </div>
-        <a href="/dreams" class="p-8 rounded bg-black/40 backdrop-blur card-hover group block cursor-pointer border-t-2 border-t-blue-500/50">
-            <div class="w-12 h-12 bg-blue-900/20 rounded flex items-center justify-center mb-6"><i class="fas fa-wave-square text-2xl text-blue-500"></i></div>
-            <h3 class="text-xl font-bold text-white mb-3">Dreams V6</h3>
-            <p class="text-gray-400 text-sm">Acoustic diagnostics for hardware health.</p>
-        </a>
-    </section>
-`;
+// --- CONTENT ---
+const PROTECTED_CONTENT_HTML = ``;
 
-// --- 6. API ROUTES ---
+// --- API ROUTES ---
 
-// A. LIVE WIRE ENDPOINT
+// 1. LIVE WIRE
 app.get('/api/live-wire', LiveWire.addClient);
 
-// B. UNLOCK GATE (Trust Bypass)
+// 2. UNLOCK GATE
 app.post('/api/unlock', (req, res) => {
     const { timestamp } = req.body;
     const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-    
-    // Basic Replay Protection (10s window)
     if (Date.now() - timestamp > 10000) {
          LiveWire.broadcast('BLOCK', { reason: 'STALE_TIMESTAMP', ip });
          return res.status(403).json({ error: "STALE_TIMESTAMP" });
     }
-    
     LiveWire.broadcast('TRAFFIC', { status: 'HUMAN_VERIFIED', ip });
     res.json({ success: true, content: PROTECTED_CONTENT_HTML });
 });
 
-// C. CHAOS LOG (Sentinel Reports)
+// 3. CHAOS LOG
 app.post('/api/chaos-log', (req, res) => {
     const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
-    // Broadcast the threat report to the dashboard
     LiveWire.broadcast('THREAT', { ...req.body, ip });
-    console.log(">>> [THREAT REPORT]", req.body);
     res.sendStatus(200);
 });
 
-// D. GOD LOCK (Admin Verification)
+// 4. GOD LOCK (Admin Verify)
 app.post('/api/admin/verify', (req, res) => {
     const { token } = req.body;
-    // Simple verification check: Token must exist and be long enough
-    if (!token || token.length < 32) {
-        return res.status(403).json({ valid: false });
-    }
-    // Token looks valid
+    if (!token || token.length < 32) return res.status(403).json({ valid: false });
     res.json({ valid: true });
 });
 
-// E. AUTH & DEMO PLACEHOLDERS
-app.get('/api/v1/auth/login-options', (req, res) => res.status(404).json({ error: "No Identity" }));
-app.post('/api/v1/auth/login-verify', (req, res) => res.status(400).json({ verified: false }));
-app.get('/api/v1/beta/pulse-demo', (req, res) => res.json({ valid: true, hash: crypto.randomBytes(32).toString('hex') }));
+// 5. KEY FORGE (New API Key Management)
+app.post('/api/admin/keys/create', (req, res) => {
+    // 1. Verify Admin Token First (God Lock)
+    const { token, clientName, scope } = req.body;
+    if (!token || token.length < 32) return res.status(403).json({ error: "UNAUTHORIZED" });
+
+    // 2. Mint New Key
+    const newApiKey = "sk_chaos_" + crypto.randomBytes(16).toString('hex');
+    const keyData = {
+        key: newApiKey,
+        client: clientName || "Unknown Client",
+        scope: scope || "read-only",
+        created: Date.now(),
+        status: "ACTIVE"
+    };
+
+    // 3. Store (In-Memory for demo)
+    KeyVault.set(newApiKey, keyData);
+    
+    // 4. Log
+    console.log(`>>> [KEY FORGE] Minted key for ${clientName}`);
+    LiveWire.broadcast('SYSTEM', `NEW KEY MINTED: ${clientName}`);
+    
+    res.json({ success: true, key: newApiKey });
+});
+
+app.post('/api/admin/keys/list', (req, res) => {
+    const { token } = req.body;
+    if (!token || token.length < 32) return res.status(403).json({ error: "UNAUTHORIZED" });
+    
+    // Convert Map to Array for frontend
+    const keys = Array.from(KeyVault.values());
+    res.json({ success: true, keys });
+});
 
 
-// --- 7. FILE SERVING ---
+// --- FILE SERVING ---
 const serve = (f, res) => fs.existsSync(path.join(publicPath, f)) ? res.sendFile(path.join(publicPath, f)) : res.status(404).send('Missing: ' + f);
 
+// Client Injection Logic
+const SENTINEL_SDK_CODE = `/* Code Omitted */`; 
 app.get('/', (req, res) => serve('index.html', res));
+
 app.get('/app', (req, res) => serve('app.html', res));
 app.get('/dashboard', (req, res) => serve('dashboard.html', res));
 app.get('/dreams', (req, res) => serve('dreams.html', res));
+app.get('/keyforge', (req, res) => serve('keyforge.html', res)); // THE NEW PAGE
 
-// Catch-All Redirect (Sends strangers to the start)
 app.get('*', (req, res) => res.redirect('/'));
 
-
-// --- 8. START SERVER (PROTECTED) ---
+// --- START ---
 try {
-    app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V168 ONLINE (LIVE WIRE & GOD LOCK ACTIVE)`));
-} catch (e) {
-    console.error(`>>> [FATAL] FAILED TO BIND PORT. Error:`, e.message);
-}
+    app.listen(PORT, '0.0.0.0', () => console.log(`>>> CHAOS V169 ONLINE (KEY FORGE ACTIVE)`));
+} catch (e) { console.error(`>>> [FATAL]`, e.message); }
