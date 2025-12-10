@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEARCHING THE ABYSS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+        
+        body { 
+            background-color: #000; 
+            color: #00ff41; 
+            font-family: 'JetBrains Mono', monospace; 
+            height: 100vh; 
+            display: flex; 
+            flex-direction: column;
+            align-items: center; 
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* TEXT SCRAMBLE EFFECT */
+        #search-text {
+            height: 1.5em; /* Fix height to prevent jump */
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+            font-weight: 700;
+        }
+
+        /* DOTS ANIMATION */
+        .dots span {
+            animation: blink 1.5s infinite;
+        }
+        .dots span:nth-child(2) { animation-delay: 0.5s; }
+        .dots span:nth-child(3) { animation-delay: 1s; }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="text-center">
+        <i class="fas fa-search fa-spin text-4xl text-green-500 mb-4"></i>
+        <div id="search-text" class="text-green-500 mb-4"></div>
+        <div class="text-xs text-gray-500 dots">
+            UPLINK ESTABLISHED <span>.</span><span>.</span><span>.</span>
+        </div>
+    </div>
+
+    <script>
+        const TEXTS = [
+            "SCANNING SENTINEL LOGS",
+            "DECRYPTING CALLSIGN SEED",
+            "CALCULATING TRUST MATRIX",
+            "ALIGNING QUANTUM ENTROPY",
+            "FETCHING SANCTUARY DATA"
+        ];
+        let index = 0;
+        const textElement = document.getElementById('search-text');
+
+        function scramble() {
+            textElement.textContent = TEXTS[index];
+            index = (index + 1) % TEXTS.length;
+        }
+
+        // Cycle text every 1 second
+        setInterval(scramble, 1000);
+        scramble();
+        
+        // This script will be run on a brief redirect. 
+        // The destination page (check.html) will handle the final redirect out.
+    </script>
+</body>
+</html>
