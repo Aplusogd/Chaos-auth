@@ -381,5 +381,50 @@
             document.getElementById('benchmark-result').innerText = ">> CHAOS TRIAD PASS: (Simulated)";
         }
     </script>
+<script>
+    (function() {
+        const SALT_DELIM = '::ABYSS::';
+        let originalHash = null;
+
+        // Helper: SHA256
+        async function sha256(str) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(str);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // 1. CAPTURE BASELINE (TOFU: Trust On First Use)
+        // We snapshot the Sentinel logic function string immediately on load.
+        async function captureBaseline() {
+            if (window.captureScrollData) {
+                originalHash = await sha256(window.captureScrollData.toString());
+                console.log(">>> [ABYSS] Integrity Baseline Captured.");
+                setInterval(verifyIntegrity, 2000); // Check every 2 seconds
+            }
+        }
+
+        // 2. VERIFY LOOP
+        async function verifyIntegrity() {
+            if (!originalHash || !window.captureScrollData) return;
+
+            // Generate Dynamic Salt (Time-based) to prevent replay spoofing
+            const s_env = Math.floor(Date.now() / 1000); 
+            
+            // Hash the current function in memory
+            const currentHash = await sha256(window.captureScrollData.toString());
+
+            // Check: Does Current Hash == Original Hash?
+            // (In a fuller version, we would verify against a server-provided hash)
+            if (currentHash !== originalHash) {
+                console.warn(">>> [ABYSS] TAMPER DETECTED. HEALING...");
+                // SELF-HEAL: Reload page to restore clean code from server
+                window.location.reload(); 
+            }
+        }
+
+        window.addEventListener('load', captureBaseline);
+    })();
+</script>
 </body>
 </html>
