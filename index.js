@@ -25,7 +25,7 @@ const KeyVault = new Map();
 const RateLimit = new Map();
 const Clients = new Set(); 
 
-// --- SEED ADMIN KEY ---
+// --- SEED ADMIN KEY (God Mode) ---
 const ADMIN_KEY = "sk_chaos_ee3aeaaaa3d193cee40bf7b2bc2e2432";
 KeyVault.set(ADMIN_KEY, { 
     key: ADMIN_KEY, 
@@ -85,23 +85,27 @@ app.post('/api/v1/sentinel/verify', (req, res) => {
 });
 
 // ==================================================================
-// ROUTING
+// ROUTING (All files wired)
 // ==================================================================
-// NOTE: ALL PAGES ARE EXPLICITLY MAPPED.
-
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public/index.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public/app.html')));
 app.get('/abyss.html', (req, res) => res.sendFile(path.join(__dirname, 'public/abyss.html')));
 app.get('/abyss-forge.html', (req, res) => res.sendFile(path.join(__dirname, 'public/abyss-forge.html')));
+
+// --- CORE PAGES ---
+app.get('/abyss-search.html', (req, res) => res.sendFile(path.join(__dirname, 'public/abyss-search.html'))); 
 app.get('/check.html', (req, res) => res.sendFile(path.join(__dirname, 'public/check.html')));
 
-// --- NEW ABYSS SEARCH SCREEN ---
-app.get('/abyss-search.html', (req, res) => res.sendFile(path.join(__dirname, 'public/abyss-search.html'))); 
+// --- OTHER TOOLS (For Dashboard links) ---
+app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public/dashboard.html')));
+app.get('/keyforge', (req, res) => res.sendFile(path.join(__dirname, 'public/keyforge.html')));
+app.get('/tech-hub', (req, res) => res.sendFile(path.join(__dirname, 'public/tech-hub.html')));
+app.get('/overwatch', (req, res) => res.sendFile(path.join(__dirname, 'public/overwatch.html')));
+app.get('/sdk', (req, res) => res.sendFile(path.join(__dirname, 'public/sdk.html')));
+app.get('/hydra', (req, res) => res.sendFile(path.join(__dirname, 'public/hydra.html')));
 
-// Redirect to Landing Page if / is accessed directly for check
-app.get('/check', (req, res) => res.redirect('/check.html')); 
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`⚡ A+ CHAOS CORE V210 ONLINE`);
+    console.log(`⚡ A+ CHAOS CORE V211 (FINAL PHASE 9) ONLINE`);
     console.log(`📡 LISTENING ON PORT ${PORT}`);
 });
