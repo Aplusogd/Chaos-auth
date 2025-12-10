@@ -28,6 +28,13 @@
             backdrop-filter: blur(10px); border-radius: 8px; padding: 1.2rem;
             transition: all 0.2s; height: 100%; display: flex; flex-direction: column;
         }
+
+        /* Loading Splash to cover async load time */
+        #loading-splash {
+             position: fixed; inset: 0; background: #000; z-index: 100;
+             display: flex; flex-direction: column; align-items: center; justify-content: center;
+             opacity: 1; transition: opacity 0.5s;
+        }
         
         .redacted { background: #000; color: #000; user-select: none; }
     </style>
@@ -37,7 +44,12 @@
     <div class="sanctuary-bg"></div>
     <div class="grid-lines"></div>
 
-    <div id="dashboard" class="max-w-7xl mx-auto">
+    <div id="loading-splash">
+        <i class="fas fa-fingerprint fa-spin text-4xl text-green-600 mb-4"></i>
+        <div class="text-xs tracking-widest text-green-500 font-mono">INITIALIZING CORE SYSTEMS...</div>
+    </div>
+
+    <div id="dashboard" class="max-w-7xl mx-auto opacity-0 transition-opacity duration-1000">
         
         <header class="flex justify-between items-end mb-8 pb-4 border-b border-gray-900">
             <div>
@@ -135,41 +147,82 @@
         // --- CORE VARIABLES ---
         let currentKey = localStorage.getItem('chaos_key_vault');
         
-        // --- 1. INITIALIZE (RESILIENT LOAD) ---
-        window.onload = () => {
-            // Get pre-verified data from session storage (placed there by app.html)
-            const dataString = sessionStorage.getItem('verified_user_data');
-            
-            if (!dataString) { 
-                // CRITICAL FIX: If no fresh session data, we check if a key even exists.
-                currentKey = localStorage.getItem('chaos_key_vault');
-                if (!currentKey) {
-                    // No key at all, go to login
-                    window.location.href = '/login'; 
-                    return;
-                }
-                // Key exists but session data is gone; load in offline mode
-                renderDashboard({ project: "OFFLINE_SESSION", rank: "LOCAL", trustScore: 0 });
-                return; 
-            }
-            
+        // --- 1. ASYNC INITIALIZATION PATTERN (Grok's Fix) ---
+
+        // Helper to retrieve data from LocalStorage via API
+        async function resilientFallback(key) {
             try {
-                const data = JSON.parse(dataString);
+                const response = await fetch('/api/v1/sentinel/verify', {
+                    method: 'POST',
+                    headers: { 'x-api-key': key }
+                });
+
+                if (!response.ok) return false;
+                
+                const data = await response.json();
+                sessionStorage.setItem('verified_user_data', JSON.stringify(data)); // Cache for session
+                return data;
+            } catch (err) {
+                return false;
+            }
+        }
+
+        async function initCore() {
+            // Step 1: Try sessionStorage (volatile, fast, guaranteed fresh data from login)
+            let dataString = sessionStorage.getItem('verified_user_data');
+            let data = null;
+
+            if (dataString) {
+                try { data = JSON.parse(dataString); } catch (e) { }
+            }
+
+            // Step 2: Fallback to localStorage key for API check
+            if (!data) {
+                const key = localStorage.getItem('chaos_key_vault');
+                if (key) {
+                    data = await resilientFallback(key); // Attempt API Re-verification
+                }
+            }
+
+            // Step 3: Final Check & Render
+            if (data) {
                 renderDashboard(data);
-            } catch (e) {
-                // If data is corrupt, force re-login
+            } else {
+                // All sources failed - redirect safely
                 window.location.href = '/login'; 
             }
-        };
 
+            // Step 4: Hide Splash after rendering logic
+            document.getElementById('loading-splash').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('loading-splash').style.display = 'none';
+                document.getElementById('dashboard').classList.remove('opacity-0');
+            }, 500);
+        }
+
+        // Hook to onload with a micro-delay to prevent storage race condition
+        window.addEventListener('DOMContentLoaded', async () => {
+            if (!localStorage.getItem('chaos_key_vault')) {
+                // If no key exists, skip init and go straight to login (prevents error)
+                 window.location.href = '/login'; 
+                 return;
+            }
+            setTimeout(initCore, 100); 
+        });
+
+
+        // --- 2. CRASH-PROOF RENDERER (Grok's Fix) ---
         function renderDashboard(data) {
-            currentKey = localStorage.getItem('chaos_key_vault');
+            const currentKey = localStorage.getItem('chaos_key_vault');
+
+            // Use Nullish Coalescing (??) and Optional Chaining (?.) for safety
+            document.getElementById('callsign-header').innerText = data?.project ?? 'UNKNOWN ENTITY';
+            document.getElementById('trust-score').innerText = (data?.trustScore ?? 0) + "%";
+            document.getElementById('rank-badge').innerText = data?.rank ?? "OFFLINE";
             
-            document.getElementById('callsign-header').innerText = data.project || (currentKey ? currentKey.substring(9, 14).toUpperCase() : 'GUEST');
-            document.getElementById('trust-score').innerText = (data.trustScore || 0) + "%";
-            document.getElementById('rank-badge').innerText = data.rank || "LOCAL";
             document.getElementById('api-key-display').innerText = currentKey ? currentKey.substring(0, 16) + "••••••••" : 'N/A';
             
+            // Load Encrypted Notes
             if(localStorage.getItem('black_box_notes')) {
                 document.getElementById('secret-notes').value = "Encrypted data loaded...";
             }
@@ -187,6 +240,8 @@
             const btn = document.getElementById('lock-btn');
             
             const saved = localStorage.getItem('black_box_notes');
+            const currentKey = localStorage.getItem('chaos_key_vault'); // Re-fetch key for crypto ops
+            
             if (saved) {
                 try {
                     const decrypted = await decryptData(saved, currentKey);
@@ -205,6 +260,7 @@
             if(document.getElementById('secret-notes').readOnly) return alert("Unlock Black Box first.");
             
             const text = document.getElementById('secret-notes').value;
+            const currentKey = localStorage.getItem('chaos_key_vault'); 
             encryptData(text, currentKey).then(enc => {
                 localStorage.setItem('black_box_notes', enc);
                 alert("Notes saved and sealed.");
@@ -235,13 +291,15 @@
 
         // --- UTILS ---
         function revealKey() {
+            const key = localStorage.getItem('chaos_key_vault');
             const el = document.getElementById('api-key-display');
-            if(el.innerText.includes('•')) el.innerText = currentKey;
-            else el.innerText = currentKey.substring(0, 16) + "••••••••";
+            if(el.innerText.includes('•')) el.innerText = key;
+            else el.innerText = key.substring(0, 16) + "••••••••";
         }
 
         function copyKey() {
-            navigator.clipboard.writeText(currentKey);
+            const key = localStorage.getItem('chaos_key_vault');
+            navigator.clipboard.writeText(key);
             alert("Key Copied");
         }
 
