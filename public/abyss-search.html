@@ -1,51 +1,32 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A+ SANCTUARY BRIDGE</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
-        
-        body { 
-            background-color: #000; 
-            color: #00ff41; 
-            font-family: 'JetBrains Mono', monospace; 
-            height: 100vh; 
-            display: flex; 
-            flex-direction: column;
-            align-items: center; 
-            justify-content: center;
-            overflow: hidden;
-        }
-    </style>
+    <title>Black Box Search</title>
+    <script src="chaos-sdk.js"></script>
+    <style>body{background:#000;color:#fff;font-family:monospace;padding:20px;}</style>
 </head>
 <body>
-
-    <div class="text-center">
-        <i class="fas fa-link fa-spin text-4xl text-green-500 mb-4"></i>
-        <div id="status-msg" class="text-green-500 mb-4 font-bold tracking-wider">SYNCHRONIZING SECURE SESSION...</div>
-        <div class="text-xs text-gray-500 mt-2">Performing Final Pre-Flight Check</div>
-    </div>
-
-    <script>
-        window.onload = function() {
-            const userData = sessionStorage.getItem('verified_user_data');
-            
-            if (!userData) {
-                // If the data isn't here, something went wrong in login; force relogin.
-                window.location.href = '/login';
-                return;
-            }
-
-            // SUCCESS: Data exists. We are stable.
-            // Immediately redirect to the heavy dashboard.
-            setTimeout(() => {
-                window.location.href = '/check.html';
-            }, 500); // 500ms delay for visual stability and to ensure session write completes.
-        };
-    </script>
+<h1>LOCAL BLACK BOX SEARCH</h1>
+<input id="search-input" placeholder="Search your Black Box notes..." 
+       oninput="chaosSearch(this.value)" 
+       style="background:#111;border:1px solid #00ff41;padding:10px;color:#fff;width:100%;margin-bottom:20px;">
+<div id="results" style="color:#00ff41;"></div>
+<script>
+    async function chaosSearch(q) {
+        // Use the simplified mock decryption from the SDK
+        const notes = await decryptNotes('encrypted_data_stub'); 
+        
+        const hits = notes.split('\n').filter(line => line.toLowerCase().includes(q.toLowerCase()));
+        
+        const resultsEl = document.getElementById('results');
+        if (hits.length > 0) {
+            resultsEl.innerHTML = hits.map(h=>`<p class="border-b border-gray-800 pb-1">${h}</p>`).join('');
+        } else if (q.length > 0) {
+             resultsEl.innerHTML = `<p>No matching chaos patterns found.</p>`;
+        } else {
+             resultsEl.innerHTML = `<p>Type to search your locally encrypted data.</p>`;
+        }
+    }
+</script>
 </body>
 </html>
