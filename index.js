@@ -85,15 +85,33 @@ app.post('/api/admin/keys/create', (req, res) => {
     res.json({ success: true, key: newKey });
 });
 
-// 4. GHOST REGISTER (Anonymous Identity)
+// 4. GHOST REGISTER (Anonymous Identity - NOW ACCEPTS CLIENT KEYS)
 app.post('/api/auth/ghost-register', (req, res) => {
-    const { alias, chaos_metric } = req.body;
+    const { alias, chaos_metric, provided_key } = req.body;
 
     // Silent Bot Check
     if (!chaos_metric || chaos_metric === 0) {
         LiveWire.broadcast('THREAT', { status: 'BOT_BLOCKED', target: alias });
         return res.status(403).json({ error: "BIOMETRIC_FAIL" });
     }
+
+    // CRITICAL FIX: Use the key the client calculated (from the words), 
+    // or generate a new one if missing.
+    const ghostKey = provided_key || ("sk_guest_" + crypto.randomBytes(12).toString('hex'));
+
+    KeyVault.set(ghostKey, { 
+        key: ghostKey, 
+        client: alias || "Anonymous", 
+        scope: "guest", 
+        created: Date.now(),
+        trustScore: 50
+    });
+    
+    LiveWire.broadcast('SYSTEM', `GHOST IDENTITY ESTABLISHED: ${alias}`);
+    
+    // Return the key so client confirms we have it
+    res.json({ success: true, key: ghostKey });
+});
 
     // Generate Key
     const ghostKey = "sk_guest_" + crypto.randomBytes(12).toString('hex');
