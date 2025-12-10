@@ -77,7 +77,7 @@
 
         <div id="view-success" class="hidden text-center mt-6">
             <div class="text-green-500 text-sm mb-2 tracking-widest font-bold">IDENTITY FORGED</div>
-            <div class="text-[10px] text-gray-500 mb-6">SAVE THIS SEQUENCE. IT IS YOUR KEY.</div>
+            <div class="text-[10px] text-gray-500 mb-6">SAVE THIS SEQUENCE. IT IS YOUR ONLY KEY.</div>
             
             <div class="flex items-center justify-center flex-wrap gap-2 mb-8" id="word-display">
                 </div>
@@ -160,7 +160,7 @@
             if (input.toLowerCase().startsWith('sk_')) {
                 key = input;
             } else if (input.split(/\s+|-/).length >= 3) {
-                const phrase = input.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                const phrase = input.toLowerCase().replace(/\s+/, '-').replace(/[^a-z0-9-]/g, '');
                 key = phraseToKey(phrase);
             } else {
                 msg.innerText = "Invalid input format.";
@@ -218,13 +218,13 @@
         }
 
         function enterPortal() {
-            // New users go through the search screen for a stable dashboard load
-            window.location.href = '/abyss-search.html';
+            // New users go through the login page for verification, which then redirects to check.html
+            window.location.href = '/login';
         }
         
         // Auto-Check if already logged in (Always redirects to the Login Page for verification)
         if (localStorage.getItem('chaos_key_vault')) {
-            window.location.href = '/abyss-forge.html'; 
+            window.location.href = '/login'; 
         }
     </script>
 </body>
