@@ -21,15 +21,13 @@
             overflow: hidden;
         }
 
-        /* TEXT SCRAMBLE EFFECT */
         #search-text {
-            height: 1.5em; /* Fix height to prevent jump */
+            height: 1.5em; 
             font-size: 1.2rem;
             letter-spacing: 2px;
             font-weight: 700;
         }
 
-        /* DOTS ANIMATION */
         .dots span {
             animation: blink 1.5s infinite;
         }
@@ -50,6 +48,7 @@
         <div class="text-xs text-gray-500 dots">
             UPLINK ESTABLISHED <span>.</span><span>.</span><span>.</span>
         </div>
+        <div class="mt-8 text-xs text-gray-700" id="timer">Redirecting in 3s...</div>
     </div>
 
     <script>
@@ -62,18 +61,35 @@
         ];
         let index = 0;
         const textElement = document.getElementById('search-text');
+        const timerElement = document.getElementById('timer');
+        let countdown = 3;
 
         function scramble() {
             textElement.textContent = TEXTS[index];
             index = (index + 1) % TEXTS.length;
         }
+        
+        function updateTimer() {
+            countdown--;
+            if (countdown > 0) {
+                timerElement.textContent = `Redirecting in ${countdown}s...`;
+            } else {
+                // Final Redirect to the stable dashboard
+                window.location.href = '/check.html'; 
+            }
+        }
 
-        // Cycle text every 1 second
+        // Start text cycling immediately
         setInterval(scramble, 1000);
         scramble();
         
-        // This script will be run on a brief redirect. 
-        // The destination page (check.html) will handle the final redirect out.
+        // Start countdown immediately
+        setTimeout(() => {
+             // Run once after 1s, then every second after
+             setInterval(updateTimer, 1000); 
+             updateTimer(); 
+        }, 1000);
+        
     </script>
 </body>
 </html>
