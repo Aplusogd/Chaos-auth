@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A+ CHAOS CORE | HUMAN GRACE TUNING</title>
+    <title>A+ CHAOS CORE | MICRO-MOVEMENT SENSITIVITY</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -60,7 +60,7 @@
         <section class="text-center space-y-8 mb-24">
             <div class="inline-flex items-center gap-2 border border-green-500/30 bg-green-900/10 px-4 py-1.5 rounded-full mb-4">
                 <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                <span class="text-[10px] text-green-400 tracking-[0.2em] font-bold mono">SYSTEM V169 HUMAN GRACE</span>
+                <span class="text-[10px] text-green-400 tracking-[0.2em] font-bold mono">SYSTEM V171 SENSITIVITY TUNE</span>
             </div>
             
             <h1 class="text-5xl md:text-8xl font-black tracking-tighter leading-none text-white">
@@ -209,7 +209,7 @@
         };
 
         function captureScrollData() {
-            if (document.hidden) return; // Ignore input if tab is hidden
+            if (document.hidden) return; 
 
             const now = Date.now();
             const y = window.scrollY;
@@ -236,9 +236,9 @@
 
         // --- MICRO-AUDIT HEARTBEAT (Runs every 250ms) ---
         const SENTINEL_CONFIG = {
-            // FORGIVENESS INCREASED: Allows more entropy (messiness) for human inputs
-            THRESHOLD_VARIANCE: 0.00005,  // Was 0.005. Only punish extreme perfection.
-            THRESHOLD_PATTERN: 10,        // Was 15. More forgiveness for slight timing errors.
+            // FORGIVENESS INCREASED: Allows extreme forgiveness for micro-movements
+            THRESHOLD_VARIANCE: 0.000001,  // Punish only 99.9999% perfection (was 0.000005)
+            THRESHOLD_PATTERN: 20,         // Forgives larger variances in timing (was 15)
             
             SPIKE_THRESHOLD_MS: 2,
             SPIKE_DISTANCE: 100,
@@ -252,13 +252,13 @@
         }
 
         function runMicroAudit() {
-            // Check 1: IDLE STATE (Longer timeout for human reading)
-            if (Date.now() - SCROLL_DATA.lastT > 1500) { // 1.5 seconds
+            // Check 1: IDLE STATE (1.5 seconds for reading)
+            if (Date.now() - SCROLL_DATA.lastT > 1500) { 
                 updateHUD(trustScore, "IDLE");
                 return;
             }
 
-            // Check 2: VELOCITY SPIKE TRAP
+            // Check 2: VELOCITY SPIKE TRAP (Teleport/Instant Jump)
             const lastDt = SCROLL_DATA.times[SCROLL_DATA.times.length - 1] || 999;
             const lastDy = Math.abs(window.scrollY - SCROLL_DATA.lastY) || 0;
             
@@ -288,9 +288,9 @@
                 }
 
                 if (isBot) {
-                    trustScore = Math.max(0, trustScore - 5); // Reduced Penalty (was 20)
+                    trustScore = Math.max(0, trustScore - 10); // Penalty is 10 points
                 } else {
-                    trustScore = Math.min(100, trustScore + 1);
+                    trustScore = Math.min(100, trustScore + 1); // Small reward
                 }
             }
 
@@ -328,11 +328,11 @@
         }
 
         // --- STARTUP SEQUENCE ---
-        window.auditInterval = setInterval(runMicroAudit, 250);
+        window.auditInterval = setInterval(runMicroAudit, 250); // The 0.25 second heartbeat
 
         window.onload = function() {
-            updateHUD(trustScore, "READY");
-            console.log(">>> Sentinel Micro-Audit V169 Initialized.");
+            updateHUD(100, "READY");
+            console.log(">>> Sentinel Micro-Audit V171 Initialized.");
         };
         
         // Placeholder for demo functions
