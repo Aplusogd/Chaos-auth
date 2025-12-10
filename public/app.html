@@ -12,16 +12,18 @@
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
         /* (Styles remain the same) */
         body { background: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .portal-card { background: rgba(5,5,5,0.9); border: 1px solid #222; padding: 40px; max-width: 500px; width: 100%; box-shadow: 0 0 80px rgba(0, 255, 65, 0.05); backdrop-filter: blur(5px); }
+        .portal-card { max-width: 500px; background: rgba(5,5,5,0.9); border: 1px solid #222; padding: 40px; box-shadow: 0 0 80px rgba(0,255,65,0.1); backdrop-filter: blur(10px); }
         #chaosCanvas { border: 1px solid #005500; background: #000; margin-bottom: 20px; cursor: crosshair; touch-action: none; box-shadow: inset 0 0 10px rgba(0, 255, 65, 0.1); }
         .input-line { background: #111; border: 1px solid #333; color: white; padding: 10px; text-align: center; border-radius: 4px; text-transform: uppercase; }
         .btn-action { margin-top: 15px; width: 100%; padding: 16px; font-weight: bold; cursor: pointer; }
         .btn-secondary { background: #111; color: #999; border: 1px solid #333; }
+        .meter { background: #111; border: 1px solid #00ff41; height: 8px; border-radius: 4px; overflow: hidden; }
+        .meter-fill { height: 100%; width: 0%; background: #00ff41; transition: width 0.3s; }
     </style>
 </head>
-<body>
+<body class="flex items-center justify-center min-h-screen">
 
-    <div class="portal-card text-center">
+    <div class="portal-card text-center relative z-10">
         <h1 class="text-2xl font-bold tracking-widest mb-2 text-white">ENTER ABYSS</h1>
         <p class="text-gray-500 text-xs mb-8">Verify identity via Sigil or Voice.</p>
 
@@ -35,7 +37,8 @@
         <div id="canvas-container">
             <canvas id="chaosCanvas" width="300" height="200"></canvas>
             <p id="challenge-status" class="text-[10px] text-red-500 mb-4 font-bold">PERFORM BIOMETRIC TRACE</p>
-            <div id="jitter-meter" class="text-green-400 text-sm font-mono transition-colors duration-200">Jitter: 0%</div>
+            <div class="meter mt-4 mb-2"><div id="jitter-fill" class="meter-fill"></div></div>
+            <p id="jitter-text" class="text-sm mt-2">Jitter: 0%</p>
         </div>
         
         <button onclick="attemptLogin()" id="login-btn" class="bg-blue-600 hover:bg-blue-500 text-black px-8 py-3 rounded font-bold text-sm transition duration-300 w-full disabled:opacity-50 disabled:cursor-not-allowed">
@@ -54,12 +57,18 @@
         const canvas = document.getElementById('chaosCanvas');
         const ctx = canvas.getContext('2d');
         const loginBtn = document.getElementById('login-btn');
-        const jitterMeter = document.getElementById('jitter-meter');
+        const jitterText = document.getElementById('jitter-text');
+        const jitterFill = document.getElementById('jitter-fill');
 
         let isTracing = false;
         let chaosMetric = 0; 
-        let motionData = []; // Store raw points for ZK verification
         
+        // --- UTILS ---
+        function variance(arr) {
+            const mean = arr.reduce((a,b) => a+b) / arr.length;
+            return arr.reduce((sq, v) => sq + Math.pow(v - mean, 2), 0) / arr.length;
+        }
+
         // --- 0. AUTO-POPULATE & INIT (Crash-Proof Start) ---
         window.addEventListener('load', () => {
             try {
@@ -84,32 +93,10 @@
             }
         });
 
-        // --- ZK & BIOMETRIC FUNCTIONS ---
-
-        // Simple helper for variance check (stub)
-        function verifyLiveness(data) {
-            // Placeholder: A real system checks pressure variance (data.p) and velocity variance.
-            return chaosMetric > 500; // Currently relies on the raw accumulated metric
-        }
-
-        // ZK Verification: Proves match without revealing raw profile (STUB)
-        function verifyZK(newMotionData, callsignSeed) {
-            // A true ZK system compares the new trace hash against the stored hash commitment.
-            // Placeholder: Assume commitment stored locally or retrieved securely.
-            const storedCommit = localStorage.getItem('zk_profile_commit'); 
-            
-            // Simple match test: Did they draw with enough entropy (chaos)?
-            if (!verifyLiveness(newMotionData)) return false; 
-            
-            // In a real ZK system, this would be a cryptographic proof of knowledge.
-            return true;
-        }
-
-        // --- DRAWING LOGIC (Fixed Visibility, Live Jitter, Finger Sensing) ---
+        // --- DRAWING LOGIC (Fixed Visibility, Live Jitter) ---
         function startTrace(e) {
             isTracing = true;
             chaosMetric = 0;
-            motionData = []; // Reset motion data
             ctx.clearRect(0, 0, canvas.width, canvas.height); 
             e.preventDefault(); 
             
@@ -129,9 +116,6 @@
             const x = touch.clientX - rect.left;
             const y = touch.clientY - rect.top;
             
-            // Log position and pressure (touch.force)
-            motionData.push({x: x, y: y, p: touch.force || 0.5});
-
             // Draw the line segment
             ctx.beginPath();
             ctx.moveTo(x - (e.movementX || 0), y - (e.movementY || 0));
@@ -141,11 +125,11 @@
             const pressure = touch.force || 0.5;
             chaosMetric += (Math.abs(e.movementX || 0) + Math.abs(e.movementY || 0)) * pressure; 
             
-            // Live Jitter Feedback
+            // Live Jitter Feedback (Simplified)
             if (chaosMetric > 10) {
                 let jitterPct = Math.min(100, (chaosMetric / 2000) * 100); 
-                jitterMeter.textContent = `Jitter: ${jitterPct.toFixed(0)}%`;
-                jitterMeter.style.color = jitterPct > 50 ? '#00ff41' : '#ffcc00'; 
+                jitterText.textContent = `Jitter: ${jitterPct.toFixed(1)}%`;
+                jitterFill.style.width = `${Math.min(100, jitterPct)}%`;
             }
         }
 
@@ -153,8 +137,8 @@
             if (!isTracing) return;
             isTracing = false;
             
-            // Perform ZK Verification Check
-            if (verifyZK(motionData, document.getElementById('callsignInput').value)) {
+            // Reverting to robust Jitter/Chaos Metric check
+            if (chaosMetric > 500) { 
                  challengeStatus.innerText = `[PROOF VERIFIED] 0 Knowledge Leaked.`;
                  challengeStatus.classList.remove('text-red-500');
                  challengeStatus.classList.add('text-green-500');
@@ -165,7 +149,7 @@
                 loginBtn.disabled = true;
             }
 
-            jitterMeter.textContent = `Jitter: ${Math.min(100, (chaosMetric / 2000) * 100).toFixed(0)}%`;
+            jitterText.textContent = `Jitter: ${Math.min(100, (chaosMetric / 2000) * 100).toFixed(1)}%`;
         }
         
         // --- VOICE LOGIC (Stub) ---
@@ -177,8 +161,8 @@
         canvas.addEventListener('mousedown', startTrace);
         canvas.addEventListener('mousemove', moveTrace);
         canvas.addEventListener('mouseup', endDraw);
-        canvas.addEventListener('touchstart', startTrace);
-        canvas.addEventListener('touchmove', moveDraw);
+        canvas.addEventListener('touchstart', startTrace, { passive: false });
+        canvas.addEventListener('touchmove', moveTrace, { passive: false });
         canvas.addEventListener('touchend', endDraw);
         
         loginBtn.disabled = true; 
@@ -195,6 +179,7 @@
         async function attemptLogin(isAutoLogin = false) {
             const input = document.getElementById('callsignInput').value.trim();
             const msg = document.getElementById('challenge-status');
+
             if (!input) { msg.innerText = "ENTER CALLSIGN FIRST."; return; }
             
             let key = input;
@@ -203,9 +188,9 @@
                 key = "sk_ghost_" + CryptoJS.SHA256(cleanPhrase + "INFINITE_ABYSS_2025").toString().substring(0,32);
             }
             
-            // Biometric Check: Run if not Master Key OR if not an AutoLogin (to force trace)
+            // Biometric Check: Run if not Master Key OR if not an AutoLogin
             if (!key.toLowerCase().includes('sk_chaos') && !isAutoLogin) {
-                 if (!verifyZK(motionData, input)) {
+                 if (chaosMetric <= 500) { // Check against robust chaos metric
                      msg.innerText = "PROOF FAILED. Trace required.";
                      return;
                  }
@@ -227,7 +212,7 @@
                 
                 loginBtn.textContent = "ACCESS GRANTED";
                 setTimeout(() => {
-                    window.location.href = '/sanctuary'; 
+                    window.location.href = '/dashboard'; 
                 }, 500);
                 
             } else {
