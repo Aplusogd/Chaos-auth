@@ -3,196 +3,305 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A+ LOGIN: BIOMETRIC TRACE</title>
+    <title>A+ SANCTUARY | NEXUS</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
-        body { background: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; height: 100vh; display: flex; align-items: center; justify-content: center; }
+        /* CRITICAL: Force Black Background immediately */
+        html, body { background-color: #000000; color: #e5e5e5; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        .sanctuary-bg {
+            position: fixed; inset: 0; z-index: -1;
+            background: radial-gradient(circle at 50% 50%, #0a1a0a 0%, #000 100%);
+        }
+        .grid-lines {
+            position: fixed; inset: 0; z-index: -1;
+            background-image: linear-gradient(rgba(0, 255, 65, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 255, 65, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+            mask-image: radial-gradient(circle at center, black 60%, transparent 100%);
+        }
+
+        .dash-card {
+            background: rgba(15, 15, 15, 0.8); border: 1px solid #222; 
+            backdrop-filter: blur(10px); border-radius: 8px; padding: 1.2rem;
+            transition: all 0.2s; height: 100%; display: flex; flex-direction: column;
+        }
+
+        /* Loading Splash to cover async load time */
+        #loading-splash {
+             position: fixed; inset: 0; background: #000; z-index: 100;
+             display: flex; flex-direction: column; align-items: center; justify-content: center;
+             opacity: 1; transition: opacity 0.5s;
+        }
         
-        .portal-card {
-            background: rgba(5,5,5,0.9); border: 1px solid #222; padding: 40px; 
-            max-width: 500px; width: 100%; box-shadow: 0 0 80px rgba(0, 255, 65, 0.05);
-            backdrop-filter: blur(5px);
-        }
-
-        #chaosCanvas {
-            border: 1px solid #005500; background: #000; margin-bottom: 20px;
-            cursor: crosshair; touch-action: none;
-            box-shadow: inset 0 0 10px rgba(0, 255, 65, 0.1);
-        }
-
-        .input-line {
-            background: #111; border: 1px solid #333; color: white; padding: 10px; text-align: center;
-            border-radius: 4px; text-transform: uppercase;
-        }
+        .redacted { background: #000; color: #000; user-select: none; }
     </style>
 </head>
 <body>
 
-    <div class="portal-card text-center">
-        <h1 class="text-2xl font-bold tracking-widest mb-2 text-white">VERIFY IDENTITY</h1>
-        <p class="text-gray-500 text-xs mb-8">Enter Callsign and trace Sigil to log in.</p>
+    <div class="sanctuary-bg"></div>
+    <div class="grid-lines"></div>
 
-        <input type="text" id="callsignInput" class="input-line w-full mb-4" placeholder="CRIMSON-VELVET-THUNDER OR MASTER_KEY">
+    <div id="loading-splash">
+        <i class="fas fa-fingerprint fa-spin text-4xl text-green-600 mb-4"></i>
+        <div class="text-xs tracking-widest text-green-500 font-mono">INITIALIZING CORE SYSTEMS...</div>
+    </div>
 
-        <div id="challenge-area">
-            <canvas id="chaosCanvas" width="300" height="200"></canvas>
-            <p class="text-[10px] text-red-500 mb-4 font-bold" id="challenge-status">PERFORM BIOMETRIC TRACE</p>
-        </div>
+    <div id="dashboard" class="max-w-7xl mx-auto opacity-0 transition-opacity duration-1000">
         
-        <button onclick="attemptLogin()" id="login-btn" class="bg-blue-600 hover:bg-blue-500 text-black px-8 py-3 rounded font-bold text-sm transition duration-300 w-full disabled:opacity-50 disabled:cursor-not-allowed">
-            VERIFY AND ACCESS
-        </button>
+        <header class="flex justify-between items-end mb-8 pb-4 border-b border-gray-900">
+            <div>
+                <h1 class="text-3xl font-bold text-white mb-1" id="callsign-header">...</h1>
+                <div class="text-[10px] text-green-500 font-mono tracking-widest uppercase">
+                    Secure Nexus • Active
+                </div>
+            </div>
+            <div class="text-right">
+                <div class="text-[10px] text-gray-600 uppercase">Trust Score</div>
+                <div id="trust-score" class="text-2xl font-bold text-white font-mono">0%</div>
+            </div>
+        </header>
 
-        <div class="mt-6 border-t border-gray-800 pt-4">
-            <a href="/" class="text-gray-600 hover:text-white text-xs mr-4">← Back to Landing</a>
-            <a href="/abyss.html" class="text-green-400 hover:text-white text-xs">Need a Callsign? Forge One.</a>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+            <div class="md:col-span-1">
+                <div class="dash-card border-l-4 border-l-green-600">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-sm font-bold text-white tracking-widest uppercase"><i class="fas fa-link mr-2 text-green-500"></i> Chaos Attached</h3>
+                        <div class="animate-pulse h-2 w-2 bg-green-500 rounded-full"></div>
+                    </div>
+                    <p class="text-xs text-gray-500 mb-4">Your Callsign is active on these nodes.</p>
+                    <div class="space-y-3 flex-1">
+                        <div class="bg-green-900/10 p-3 rounded border border-green-500/30 flex justify-between items-center">
+                            <div class="flex items-center gap-3">
+                                <i class="fas fa-mobile-alt text-green-500 text-lg"></i>
+                                <div class="text-xs text-white font-bold">THIS DEVICE</div>
+                            </div>
+                            <i class="fas fa-check-circle text-green-500"></i>
+                        </div>
+                        <div class="bg-black/40 p-3 rounded border border-gray-800 flex justify-between items-center opacity-70">
+                            <div class="flex items-center gap-3">
+                                <i class="fas fa-warehouse text-gray-500 text-lg"></i>
+                                <div class="text-xs text-gray-300">A+ GARAGE HUB</div>
+                            </div>
+                            <div class="h-1.5 w-1.5 bg-yellow-500 rounded-full"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                <div class="dash-card border-l-4 border-l-blue-600">
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="text-xs font-bold text-blue-500"><i class="fas fa-dna mr-2"></i> BIO-AUDIT</span>
+                        <button onclick="startTraining()" class="text-[10px] bg-blue-900/20 text-blue-400 px-2 py-1 rounded hover:bg-blue-500 hover:text-black">TRAIN NEW</button>
+                    </div>
+                    <div class="text-center p-6 border border-gray-800 rounded">
+                        <i class="fas fa-fingerprint text-4xl text-gray-700 mb-2"></i>
+                        <p class="text-xs text-gray-400">
+                            The Adaptive Biometric Lab is functional.<br>
+                            Click **Train New** to launch the Forge.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="dash-card">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-xs font-bold text-gray-400 uppercase">Master Key</h3>
+                        <button onclick="copyKey()" class="text-green-500 hover:text-white text-xs"><i class="fas fa-copy"></i></button>
+                    </div>
+                    <div class="bg-black p-3 rounded font-mono text-xs text-gray-500 truncate" id="api-key-display" onclick="revealKey()">
+                        •••••••••••••••••••••
+                    </div>
+                    <div class="mt-2 text-[10px] text-gray-600 flex justify-between">
+                        <span>API Access Token</span>
+                        <span class="cursor-pointer hover:text-white transition" onclick="revealKey()">REVEAL</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dash-card md:col-span-1 border-l-4 border-l-red-600">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-xs font-bold text-red-500"><i class="fas fa-box-open mr-2"></i> BLACK BOX</span>
+                    <button id="lock-btn" onclick="unlockBox()" class="text-xs text-gray-500 hover:text-white transition"><i class="fas fa-lock"></i> LOCKED</button>
+                </div>
+                <div class="relative flex-grow">
+                    <textarea id="secret-notes" class="w-full h-full min-h-[150px] bg-black border border-gray-800 rounded p-3 text-sm text-green-500 font-mono resize-none redacted" readonly></textarea>
+                    <div id="lock-overlay" class="absolute inset-0 bg-black/90 flex items-center justify-center flex-col">
+                        <div class="text-red-500 font-mono text-xs tracking-widest mb-2">[ SECURE CONTENT ]</div>
+                        <div class="text-[10px] text-gray-600">Manual Override Required</div>
+                    </div>
+                </div>
+                <button onclick="saveNotes()" class="mt-2 text-xs w-full bg-red-900/20 text-red-500 py-2 rounded hover:bg-red-500 hover:text-black transition">
+                    ENCRYPT & SAVE
+                </button>
+            </div>
+
         </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script>
-        const challengeStatus = document.getElementById('challenge-status');
-        const canvas = document.getElementById('chaosCanvas');
-        const ctx = canvas.getContext('2d');
-        const loginBtn = document.getElementById('login-btn');
+        // --- 1. ASYNC INITIALIZATION PATTERN (Grok's Fix for Stability) ---
 
-        let isTracing = false;
-        let chaosMetric = 0; 
-        
-        // --- DRAWING LOGIC (FIXED VISIBILITY) ---
-        function startTrace(e) {
-            isTracing = true;
-            chaosMetric = 0;
-            ctx.clearRect(0, 0, canvas.width, canvas.height); 
-            e.preventDefault();
-            
-            ctx.strokeStyle = '#00ff41'; // Bright Green
-            ctx.lineWidth = 3;
-            ctx.lineCap = 'round';
-        }
-
-        function moveTrace(e) {
-            if (!isTracing) return;
-            e.preventDefault();
-            
-            const rect = canvas.getBoundingClientRect();
-            const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-            const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
-            
-            ctx.beginPath();
-            ctx.moveTo(x - (e.movementX || 0), y - (e.movementY || 0));
-            ctx.lineTo(x, y);
-            ctx.stroke();
-
-            chaosMetric += (Math.abs(e.movementX || 0) + Math.abs(e.movementY || 0)); 
-        }
-
-        function endTrace() {
-            if (!isTracing) return;
-            isTracing = false;
-            
-            if (chaosMetric > 500) { 
-                challengeStatus.innerText = `[BIOMETRIC PASS] Jitter Ready.`;
-                challengeStatus.classList.remove('text-red-500');
-                challengeStatus.classList.add('text-green-500');
-                loginBtn.disabled = false;
-            } else {
-                challengeStatus.innerText = "MOVEMENT INSUFFICIENT. DRAW WITH INTENT.";
-                challengeStatus.classList.add('text-red-500');
-                loginBtn.disabled = true;
-            }
-        }
-
-        // Event Listeners (Mouse + Touch)
-        canvas.addEventListener('mousedown', startTrace);
-        canvas.addEventListener('mousemove', moveTrace);
-        canvas.addEventListener('mouseup', endTrace);
-        canvas.addEventListener('touchstart', startTrace);
-        canvas.addEventListener('touchmove', moveTrace);
-        canvas.addEventListener('touchend', endTrace);
-        
-        loginBtn.disabled = true; 
-
-        // --- LOGIN & REDIRECT LOGIC ---
-        async function getVerifiedData(key) {
+        // Helper to retrieve data from LocalStorage via API
+        async function resilientFallback(key) {
             try {
-                const res = await fetch('/api/v1/sentinel/verify', { headers: { 'x-api-key': key } });
-                if (res.status === 200) {
-                    return await res.json();
-                }
-            } catch (e) { return null; }
-            return null;
+                // We use the simpler POST method that the API is expecting
+                const response = await fetch('/api/v1/sentinel/verify', {
+                    method: 'POST',
+                    headers: { 'x-api-key': key }
+                });
+
+                if (!response.ok) return false;
+                
+                const data = await response.json();
+                sessionStorage.setItem('verified_user_data', JSON.stringify(data)); // Cache for session
+                return data;
+            } catch (err) {
+                return false;
+            }
         }
 
-        async function attemptLogin() {
-            const input = document.getElementById('callsignInput').value.trim();
-            const msg = document.getElementById('challenge-status');
+        async function initCore() {
+            // Step 1: Try sessionStorage (volatile, fast, guaranteed fresh data from login)
+            let dataString = sessionStorage.getItem('verified_user_data');
+            let data = null;
 
-            if (!input) {
-                msg.innerText = "ENTER CALLSIGN OR MASTER KEY FIRST.";
-                return;
+            if (dataString) {
+                try { data = JSON.parse(dataString); } catch (e) { }
             }
-            
-            let key = input;
-            if (!input.toLowerCase().startsWith('sk_')) {
-                const cleanPhrase = input.toLowerCase().replace(/\s+/g, '-');
-                key = "sk_ghost_" + CryptoJS.SHA256(cleanPhrase + "INFINITE_ABYSS_2025").toString().substring(0,32);
+
+            // Step 2: Fallback to localStorage key for API check
+            if (!data) {
+                const key = localStorage.getItem('chaos_key_vault');
+                if (key) {
+                    data = await resilientFallback(key); // Attempt API Re-verification
+                }
             }
-            
-            if (chaosMetric < 500 && !key.toLowerCase().includes('sk_chaos')) {
-                 msg.innerText = "PERFORM BIOMETRIC TRACE TO VERIFY.";
+
+            // Step 3: Final Check & Render
+            if (data) {
+                renderDashboard(data);
+            } else {
+                // All sources failed - redirect safely
+                window.location.href = '/login'; 
+            }
+
+            // Step 4: Hide Splash after rendering logic
+            document.getElementById('loading-splash').style.opacity = '0';
+            setTimeout(() => {
+                document.getElementById('loading-splash').style.display = 'none';
+                document.getElementById('dashboard').classList.remove('opacity-0');
+            }, 500);
+        }
+
+        // Hook to onload with a micro-delay to prevent storage race condition
+        window.addEventListener('DOMContentLoaded', async () => {
+            if (!localStorage.getItem('chaos_key_vault')) {
+                 window.location.href = '/login'; 
                  return;
             }
+            setTimeout(initCore, 100); 
+        });
 
-            loginBtn.disabled = true;
-            loginBtn.textContent = "VERIFYING IDENTITY...";
 
-            await registerWithServer(key, input, chaosMetric); 
-            const verifiedData = await getVerifiedData(key);
+        // --- 2. CRASH-PROOF RENDERER ---
+        function renderDashboard(data) {
+            const currentKey = localStorage.getItem('chaos_key_vault');
 
-            if (verifiedData) {
-                localStorage.setItem('chaos_key_vault', key);
-                // CRITICAL: Store pre-fetched data to guarantee instant dashboard load
-                sessionStorage.setItem('verified_user_data', JSON.stringify(verifiedData));
-                
-                loginBtn.textContent = "ACCESS GRANTED";
-                setTimeout(() => {
-                    // FINAL FAST ROUTE TO THE DASHBOARD
-                    window.location.href = '/check.html'; 
-                }, 500);
-                
-            } else {
-                loginBtn.disabled = false;
-                loginBtn.textContent = "VERIFY AND ACCESS";
-                msg.innerText = "VERIFICATION FAILED. KEY UNKNOWN OR TRACE LOW.";
+            // Use Nullish Coalescing (??) and Optional Chaining (?.) for safety
+            document.getElementById('callsign-header').innerText = data?.project ?? 'UNKNOWN ENTITY';
+            document.getElementById('trust-score').innerText = (data?.trustScore ?? 0) + "%";
+            
+            // This is the correct way to display key info without crashing on null
+            document.getElementById('api-key-display').innerText = currentKey ? currentKey.substring(0, 16) + "••••••••" : 'N/A';
+            
+            // Load Encrypted Notes
+            if(localStorage.getItem('black_box_notes')) {
+                document.getElementById('secret-notes').value = "Encrypted data loaded...";
             }
         }
+
+        // --- BLACK BOX LOGIC (Manual Override) ---
+        function unlockBox() {
+            const access = prompt("Enter 'chaos' to manually unlock the Black Box:");
+            if (access === 'chaos') { performUnlock(); } else { alert("Incorrect override code."); }
+        }
+
+        async function performUnlock() {
+            const area = document.getElementById('secret-notes');
+            const overlay = document.getElementById('lock-overlay');
+            const btn = document.getElementById('lock-btn');
+            
+            const saved = localStorage.getItem('black_box_notes');
+            const currentKey = localStorage.getItem('chaos_key_vault'); 
+            
+            if (saved) {
+                try {
+                    const decrypted = await decryptData(saved, currentKey);
+                    area.value = decrypted;
+                } catch(e) { area.value = "Decryption Failed. Key or data corrupt."; }
+            } else { area.value = ""; }
+
+            area.readOnly = false;
+            area.classList.remove('redacted');
+            overlay.classList.add('hidden');
+            btn.innerHTML = '<i class="fas fa-unlock"></i> UNLOCKED';
+            btn.classList.add('text-green-500');
+        }
+
+        function saveNotes() {
+            if(document.getElementById('secret-notes').readOnly) return alert("Unlock Black Box first.");
+            
+            const text = document.getElementById('secret-notes').value;
+            const currentKey = localStorage.getItem('chaos_key_vault'); 
+            encryptData(text, currentKey).then(enc => {
+                localStorage.setItem('black_box_notes', enc);
+                alert("Notes saved and sealed.");
+                window.location.reload(); 
+            });
+        }
         
-        // Self-Healing Registration Function (Used to verify a key exists)
-        async function registerWithServer(key, alias, chaosMetric) {
+        // --- CRYPTO ENGINE (V202) ---
+        async function encryptData(data, keyString) {
+            const enc = new TextEncoder();
+            const keyMaterial = await window.crypto.subtle.importKey("raw", enc.encode(keyString.substring(0,32)), "AES-GCM", false, ["encrypt"]);
+            const iv = window.crypto.getRandomValues(new Uint8Array(12));
+            const encrypted = await window.crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, keyMaterial, enc.encode(data));
+            const ivArr = Array.from(iv);
+            const encArr = Array.from(new Uint8Array(encrypted));
+            return JSON.stringify({ iv: ivArr, data: encArr });
+        }
+
+        async function decryptData(jsonStr, keyString) {
             try {
-                const res = await fetch('/api/auth/ghost-register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        alias: alias, 
-                        chaos_metric: chaosMetric,
-                        provided_key: key
-                    })
-                });
-                const data = await res.json();
-                return data.success;
-            } catch (e) {
-                return false; 
-            }
+                const bundle = JSON.parse(jsonStr);
+                const enc = new TextEncoder();
+                const keyMaterial = await window.crypto.subtle.importKey("raw", enc.encode(keyString.substring(0,32)), "AES-GCM", false, ["decrypt"]);
+                const decrypted = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv: new Uint8Array(bundle.iv) }, keyMaterial, new Uint8Array(bundle.data));
+                return new TextDecoder().decode(decrypted);
+            } catch(e) { throw new Error("Decryption Error"); }
         }
-        
-        // --- LOOP BREAKER FIX (Avoids looping back to login if key exists) ---
-        if (localStorage.getItem('chaos_key_vault')) {
-            window.location.href = '/check.html'; 
+
+        // --- UTILS ---
+        function revealKey() {
+            const key = localStorage.getItem('chaos_key_vault');
+            const el = document.getElementById('api-key-display');
+            if(el.innerText.includes('•')) el.innerText = key;
+            else el.innerText = key.substring(0, 16) + "••••••••";
+        }
+
+        function copyKey() {
+            const key = localStorage.getItem('chaos_key_vault');
+            navigator.clipboard.writeText(key);
+            alert("Key Copied");
+        }
+
+        function startTraining() {
+            window.location.href = '/profile/calibrate';
         }
     </script>
 </body>
