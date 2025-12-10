@@ -1,11 +1,10 @@
 {
   "name": "aplus-chaos-core",
-  "version": "2.4.3",
+  "version": "2.4.4",
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "build": "echo 'Build complete'" 
+    "start": "npm install && node index.js"
   },
   "dependencies": {
     "express": "^4.21.1",
