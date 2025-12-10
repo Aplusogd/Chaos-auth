@@ -3,291 +3,178 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ABYSS FORGE V2</title>
+    <title>A+ LOGIN: BIOMETRIC TRACE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
-        body { background: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; height: 100vh; overflow: hidden; user-select: none; touch-action: none; }
+        body { background: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; height: 100vh; display: flex; align-items: center; justify-content: center; }
         
-        .void-bg {
-            position: absolute; inset: 0; z-index: -1;
-            background: radial-gradient(circle at center, #0a1a0a 0%, #000 100%);
+        .portal-card {
+            background: rgba(5,5,5,0.9); border: 1px solid #222; padding: 40px; 
+            max-width: 500px; width: 100%; box-shadow: 0 0 80px rgba(0, 255, 65, 0.05);
+            backdrop-filter: blur(5px);
         }
 
-        #drawLayer {
-            position: absolute; inset: 0; width: 100%; height: 100%; cursor: crosshair; z-index: 10;
+        #chaosCanvas {
+            border: 1px solid #005500; background: #000; margin-bottom: 20px;
+            cursor: crosshair; touch-action: none;
+            box-shadow: inset 0 0 10px rgba(0, 255, 65, 0.1);
         }
 
-        .hud-center {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            text-align: center; pointer-events: none; z-index: 5;
-            transition: opacity 0.5s;
-        }
-
-        .particle {
-            position: absolute; background: #00ff41; border-radius: 50%;
-            pointer-events: none; opacity: 0;
-            animation: fadeParticle 1s forwards;
-        }
-
-        @keyframes fadeParticle {
-            0% { opacity: 1; transform: scale(1); }
-            100% { opacity: 0; transform: scale(0); }
+        .input-line {
+            background: #111; border: 1px solid #333; color: white; padding: 10px; text-align: center;
+            border-radius: 4px; text-transform: uppercase;
         }
     </style>
 </head>
 <body>
 
-    <div class="void-bg"></div>
-    <canvas id="drawLayer"></canvas>
+    <div class="portal-card text-center">
+        <h1 class="text-2xl font-bold tracking-widest mb-2 text-white">ENTER THE ABYSS</h1>
+        <p class="text-gray-500 text-xs mb-8">Type your Callsign and draw your Sigil.</p>
 
-    <div id="ui-setup" class="hud-center">
-        <i class="fas fa-fingerprint text-5xl text-gray-800 mb-6 animate-pulse"></i>
-        <h1 class="text-2xl text-white mb-2 font-bold tracking-widest">ABYSS FORGE</h1>
-        <p class="text-xs text-gray-500 mb-6">Draw a secret sign. This becomes your key.</p>
+        <input type="text" id="callsignInput" class="input-line w-full mb-4" placeholder="CRIMSON-VELVET-THUNDER">
+
+        <div id="challenge-area">
+            <canvas id="chaosCanvas" width="300" height="200"></canvas>
+            <p class="text-[10px] text-red-500 mb-4 font-bold" id="challenge-status">TRACE ANY SHAPE TO LOGIN</p>
+        </div>
         
-        <div class="pointer-events-auto">
-            <input id="callsign" type="text" placeholder="ENTER CALLSIGN" class="bg-black border border-gray-800 text-center text-green-500 p-2 text-sm rounded mb-4 uppercase w-64 focus:border-green-500 outline-none">
-            <br>
-            <button onclick="startSetup()" class="bg-green-900/30 text-green-400 border border-green-700 px-6 py-2 rounded text-xs font-bold hover:bg-green-500 hover:text-black transition">
-                BEGIN RITUAL
-            </button>
+        <button onclick="attemptLogin()" id="login-btn" class="bg-blue-600 hover:bg-blue-500 text-black px-8 py-3 rounded font-bold text-sm transition duration-300 w-full disabled:opacity-50 disabled:cursor-not-allowed">
+            VERIFY AND ACCESS
+        </button>
+
+        <div class="mt-6 border-t border-gray-800 pt-4">
+            <a href="/" class="text-gray-600 hover:text-white text-xs mr-4">← Back to Landing</a>
+            <a href="/abyss.html" class="text-green-400 hover:text-white text-xs">Need a Callsign? Forge One.</a>
         </div>
     </div>
 
-    <div id="ui-login" class="hud-center hidden">
-        <i class="fas fa-infinity text-6xl text-gray-900 mb-4 transition-colors duration-300" id="lock-icon"></i>
-        <div class="text-xs text-gray-600 tracking-[0.3em] font-bold" id="status-text">DRAW SIGIL</div>
-    </div>
-
     <script>
-        const canvas = document.getElementById('drawLayer');
+        const challengeStatus = document.getElementById('challenge-status');
+        const canvas = document.getElementById('chaosCanvas');
         const ctx = canvas.getContext('2d');
+        const loginBtn = document.getElementById('login-btn');
+
+        let isTracing = false;
+        let chaosMetric = 0; 
         
-        let rawPath = [];
-        let isDrawing = false;
-        let mode = 'INIT'; // INIT, RECORD, VERIFY
-
-        // RESIZE
-        function resize() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        window.addEventListener('resize', resize);
-        resize();
-
-        // --- 1. CORE LOGIC ---
-
-        function startSetup() {
-            const callsign = document.getElementById('callsign').value.trim();
-            if(callsign.length < 3) return alert("Callsign Required");
-            
-            sessionStorage.setItem('temp_callsign', callsign);
-            
-            document.getElementById('ui-setup').classList.add('hidden');
-            document.getElementById('ui-login').classList.remove('hidden');
-            document.getElementById('status-text').innerText = "DRAW NEW SIGIL";
-            document.getElementById('status-text').style.color = "#00ff41";
-            mode = 'RECORD';
+        // --- DRAWING LOGIC (Simplified Jitter Check) ---
+        function startTrace(e) {
+            isTracing = true;
+            chaosMetric = 0;
+            ctx.clearRect(0, 0, canvas.width, canvas.height); 
+            e.preventDefault();
         }
 
-        function startDraw(e) {
-            if(mode === 'INIT') return;
-            isDrawing = true;
-            rawPath = [];
-            ctx.clearRect(0,0,canvas.width, canvas.height);
+        function moveTrace(e) {
+            if (!isTracing) return;
+            e.preventDefault();
             
-            // Haptic
-            if(navigator.vibrate) navigator.vibrate(10);
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+            const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
             
-            const pt = getPoint(e);
-            rawPath.push(pt);
-            
-            document.getElementById('ui-login').style.opacity = '0.2'; // Dim HUD while drawing
+            // Draw
+            ctx.strokeStyle = '#00ff41';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(x - (e.movementX || 0), y - (e.movementY || 0));
+            ctx.lineTo(x, y);
+            ctx.stroke();
+
+            // Accumulate movement jitter as the chaos metric
+            chaosMetric += (Math.abs(e.movementX || 0) + Math.abs(e.movementY || 0)); 
         }
 
-        function moveDraw(e) {
-            if(!isDrawing) return;
-            const pt = getPoint(e);
-            rawPath.push(pt);
+        function endTrace() {
+            if (!isTracing) return;
+            isTracing = false;
             
-            // Visuals
-            renderTrail(pt);
-            spawnParticle(pt.x, pt.y);
+            if (chaosMetric > 500) { 
+                challengeStatus.innerText = `[BIOMETRIC PASS] Jitter Ready.`;
+                challengeStatus.classList.remove('text-red-500');
+                challengeStatus.classList.add('text-green-500');
+                loginBtn.disabled = false;
+            } else {
+                challengeStatus.innerText = "MOVEMENT INSUFFICIENT. DRAW WITH INTENT.";
+                challengeStatus.classList.add('text-red-500');
+                loginBtn.disabled = true;
+            }
         }
 
-        function endDraw() {
-            if(!isDrawing) return;
-            isDrawing = false;
-            document.getElementById('ui-login').style.opacity = '1';
+        // Event Listeners (Mouse + Touch)
+        canvas.addEventListener('mousedown', startTrace);
+        canvas.addEventListener('mousemove', moveTrace);
+        canvas.addEventListener('mouseup', endTrace);
+        canvas.addEventListener('touchstart', startTrace);
+        canvas.addEventListener('touchmove', moveTrace);
+        canvas.addEventListener('touchend', endTrace);
+        
+        loginBtn.disabled = true; // Disabled until trace is complete
 
-            if(rawPath.length < 20) {
-                feedback("TOO SHORT", "red");
+        // --- LOGIN & REDIRECT LOGIC ---
+        async function attemptLogin() {
+            const callsign = document.getElementById('callsignInput').value.trim();
+            const msg = document.getElementById('challenge-status');
+
+            if (!callsign || callsign.split('-').length < 3) {
+                msg.innerText = "ENTER VALID CALLSIGN FIRST.";
                 return;
             }
-
-            // --- THE MAGIC: NORMALIZE THE SHAPE ---
-            const normalizedShape = normalizePath(rawPath);
-
-            if (mode === 'RECORD') {
-                saveSigil(normalizedShape);
-            } else if (mode === 'VERIFY') {
-                verifySigil(normalizedShape);
+            if (chaosMetric < 500) {
+                 msg.innerText = "PERFORM BIOMETRIC TRACE TO VERIFY.";
+                 return;
             }
-        }
 
-        // --- 2. MATH ENGINE (Normalization) ---
-        // This makes the system "Fuzzy" and forgiving.
-        
-        function normalizePath(points) {
-            // A. Resample to exactly 50 points (Fixes speed issues)
-            const resampled = resample(points, 50);
-            
-            // B. Find Bounding Box
-            let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-            resampled.forEach(p => {
-                if(p.x < minX) minX = p.x;
-                if(p.x > maxX) maxX = p.x;
-                if(p.y < minY) minY = p.y;
-                if(p.y > maxY) maxY = p.y;
-            });
+            // 1. Convert Callsign -> Key
+            const cleanPhrase = callsign.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+            const key = "sk_ghost_" + CryptoJS.SHA256(cleanPhrase + "INFINITE_ABYSS_2025").toString().substring(0,32);
 
-            // C. Scale to 0.0 - 1.0 (Fixes size issues)
-            const w = maxX - minX;
-            const h = maxY - minY;
-            const scale = Math.max(w, h) || 1;
+            loginBtn.disabled = true;
+            loginBtn.textContent = "VERIFYING IDENTITY...";
 
-            // D. Center (Fixes position issues)
-            return resampled.map(p => ({
-                x: (p.x - minX) / scale,
-                y: (p.y - minY) / scale
-            }));
-        }
+            // 2. Self-Heal and Verify (Ensures the key is known to the server)
+            const success = await registerWithServer(key, callsign, chaosMetric);
 
-        function resample(points, n) {
-            // Basic resampling to get N evenly spaced points
-            // (Simplified for brevity, but effective for gestures)
-            const stride = Math.ceil(points.length / n);
-            const newPoints = [];
-            for(let i=0; i<points.length; i+=stride) {
-                newPoints.push(points[i]);
-            }
-            // Ensure exactly N
-            while(newPoints.length > n) newPoints.pop();
-            while(newPoints.length < n) newPoints.push(points[points.length-1]);
-            return newPoints;
-        }
-
-        // --- 3. VERIFICATION ---
-
-        function saveSigil(shape) {
-            const callsign = sessionStorage.getItem('temp_callsign');
-            const data = { callsign, shape };
-            localStorage.setItem('abyss_sigil_v2', JSON.stringify(data));
-            
-            feedback("SIGIL FORGED", "#00ff41");
-            setTimeout(() => {
-                location.reload();
-            }, 1500);
-        }
-
-        function verifySigil(inputShape) {
-            const stored = JSON.parse(localStorage.getItem('abyss_sigil_v2'));
-            if(!stored) return;
-
-            // Compare Distance (Euclidean matching of normalized points)
-            let totalDist = 0;
-            for(let i=0; i<inputShape.length; i++) {
-                const p1 = inputShape[i];
-                const p2 = stored.shape[i];
-                const d = Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
-                totalDist += d;
-            }
-            
-            const score = totalDist / inputShape.length; // Average error
-            console.log("Difference Score:", score);
-
-            // Threshold: < 0.25 is a good match for normalized shapes
-            if(score < 0.25) {
-                successLogin(stored.callsign);
+            if (success) {
+                localStorage.setItem('chaos_key_vault', key);
+                // Redirect through the search screen for a stable load
+                window.location.href = '/abyss-search.html';
             } else {
-                feedback("MISMATCH", "red");
-                if(navigator.vibrate) navigator.vibrate([50, 50, 50]);
+                loginBtn.disabled = false;
+                loginBtn.textContent = "VERIFY AND ACCESS";
+                msg.innerText = "VERIFICATION FAILED. CALLSIGN UNKNOWN OR TRACE LOW.";
             }
         }
-
-        function successLogin(callsign) {
-            document.getElementById('lock-icon').classList.remove('text-gray-900');
-            document.getElementById('lock-icon').classList.add('text-green-500');
-            document.getElementById('status-text').innerText = "ACCESS GRANTED";
-            
-            // Generate Key from Callsign
-            const key = "sk_ghost_" + CryptoJS.SHA256(callsign.toLowerCase() + "INFINITE_ABYSS_2025").toString().substring(0, 32);
-            localStorage.setItem('chaos_key_vault', key);
-
-            setTimeout(() => {
-                window.location.href = '/dashboard';
-            }, 1000);
+        
+        // Self-Healing Registration Function (Used to verify a key exists)
+        async function registerWithServer(key, alias, chaosMetric) {
+            try {
+                const res = await fetch('/api/auth/ghost-register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        alias: alias, 
+                        chaos_metric: chaosMetric,
+                        provided_key: key
+                    })
+                });
+                const data = await res.json();
+                return data.success;
+            } catch (e) {
+                // If API is down, we fail verification
+                return false; 
+            }
         }
-
-        // --- 4. UTILS & VISUALS ---
-
-        function getPoint(e) {
-            return {
-                x: e.touches ? e.touches[0].clientX : e.clientX,
-                y: e.touches ? e.touches[0].clientY : e.clientY
-            };
+        
+        // Auto-Check if already logged in
+        if (localStorage.getItem('chaos_key_vault')) {
+            // If key exists, send them to the Sanctuary (Dashboard) immediately
+            window.location.href = '/abyss-search.html'; 
         }
-
-        function renderTrail(pt) {
-            ctx.fillStyle = '#00ff41';
-            ctx.beginPath();
-            ctx.arc(pt.x, pt.y, 2, 0, Math.PI*2);
-            ctx.fill();
-        }
-
-        function spawnParticle(x, y) {
-            // Adds Chaos feel
-            const p = document.createElement('div');
-            p.classList.add('particle');
-            const size = Math.random() * 4 + 2;
-            p.style.width = size + 'px';
-            p.style.height = size + 'px';
-            p.style.left = x + 'px';
-            p.style.top = y + 'px';
-            document.body.appendChild(p);
-            setTimeout(() => p.remove(), 1000);
-        }
-
-        function feedback(text, color) {
-            const el = document.getElementById('status-text');
-            el.innerText = text;
-            el.style.color = color;
-            el.classList.add('animate-pulse');
-            setTimeout(() => {
-                el.innerText = mode === 'RECORD' ? "DRAW SIGIL" : "DRAW SIGIL";
-                el.style.color = "gray";
-                el.classList.remove('animate-pulse');
-                ctx.clearRect(0,0,canvas.width, canvas.height);
-            }, 1000);
-        }
-
-        // --- INIT CHECK ---
-        if(localStorage.getItem('abyss_sigil_v2')) {
-            document.getElementById('ui-setup').classList.add('hidden');
-            document.getElementById('ui-login').classList.remove('hidden');
-            mode = 'VERIFY';
-        }
-
-        // EVENTS
-        canvas.addEventListener('mousedown', startDraw);
-        canvas.addEventListener('mousemove', moveDraw);
-        canvas.addEventListener('mouseup', endDraw);
-        canvas.addEventListener('touchstart', startDraw);
-        canvas.addEventListener('touchmove', moveDraw);
-        canvas.addEventListener('touchend', endDraw);
     </script>
 </body>
 </html>
