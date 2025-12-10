@@ -44,7 +44,7 @@
         
         <div class="mt-6 text-[9px] text-gray-700">
             SECURE SESSION ID GENERATION<br>
-            MOVES MOUSE OR TOUCH SCREEN TO SEED KEY
+            MOVE MOUSE OR TOUCH SCREEN TO SEED KEY
         </div>
     </div>
 
@@ -106,7 +106,7 @@
             // Payload Construction
             const payload = `${epsilon_kinetic}|${jitter_t}|${exp_x}|v176`;
             
-            // Cryptographic Signing (HMAC simulation using SHA-256 for client demo)
+            // Cryptographic Signing (HMAC simulation using SHA-256)
             const encoder = new TextEncoder();
             const data = encoder.encode(payload);
             const hashBuffer = await crypto.subtle.digest('SHA-256', data);
