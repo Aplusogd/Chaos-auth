@@ -8,7 +8,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
-        body { background-color: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; height: 100vh; overflow: hidden; }
+        body { background-color: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; height: 100vh; overflow: hidden; display: none; /* Hidden until verified */ }
         
         /* LAYOUT */
         .grid-layout { display: grid; grid-template-rows: auto 1fr; height: 100%; }
@@ -55,7 +55,8 @@
             </div>
         </div>
         <div class="flex gap-4">
-            <button onclick="logout()" class="text-xs text-red-500 hover:text-red-400">[ TERMINATE ]</button>
+            <div id="clock" class="text-gray-500 text-xs mt-1 font-bold">00:00:00</div>
+            <button onclick="logout()" class="text-xs text-red-500 hover:text-red-400 border border-red-900/50 px-3 py-1 rounded hover:bg-red-900/20 transition">[ TERMINATE SESSION ]</button>
         </div>
     </header>
 
@@ -67,11 +68,11 @@
                 <span class="text-[10px] text-gray-600">PORT 3000 LISTENER</span>
             </div>
             <div id="terminal">
-                <div class="log-entry"><span class="log-time">--:--:--</span><span class="log-type type-SYSTEM">SYSTEM</span> Connecting to Live Wire...</div>
+                <div class="log-entry"><span class="log-time">--:--:--</span><span class="log-type type-SYSTEM">SYSTEM</span> Initializing Secure Uplink...</div>
             </div>
         </div>
 
-        <div class="panel bg-black">
+        <div class="panel bg-black border-l border-gray-800">
             <div class="panel-header">
                 <span class="panel-title">THREAT INTELLIGENCE</span>
             </div>
@@ -86,25 +87,29 @@
                 <div class="stat-label">Threats Neutralized</div>
             </div>
 
-            <div class="stat-card border-l-4 border-l-yellow-500">
-                <div class="stat-val text-yellow-500" id="cnt-integrity">V176</div>
-                <div class="stat-label">System Version</div>
+            <div class="stat-card border-l-4 border-l-blue-500">
+                <div class="stat-val text-blue-500" id="cnt-integrity">V176</div>
+                <div class="stat-label">Sentinel Version</div>
             </div>
 
             <div class="mt-auto">
                 <div class="text-[10px] text-gray-500 mb-2">MODULE STATUS</div>
-                <div class="space-y-2">
+                <div class="space-y-2 border-t border-gray-800 pt-2">
                     <div class="flex justify-between text-xs">
                         <span class="text-gray-400">SENTINEL AI</span>
-                        <span class="text-green-500">ONLINE</span>
+                        <span class="text-green-500 font-bold">ONLINE</span>
                     </div>
                     <div class="flex justify-between text-xs">
                         <span class="text-gray-400">ABYSS INTEGRITY</span>
-                        <span class="text-green-500">ARMED</span>
+                        <span class="text-green-500 font-bold">ARMED</span>
                     </div>
                     <div class="flex justify-between text-xs">
                         <span class="text-gray-400">NIGHTMARE AUTH</span>
-                        <span class="text-green-500">ACTIVE</span>
+                        <span class="text-green-500 font-bold">ACTIVE</span>
+                    </div>
+                    <div class="flex justify-between text-xs">
+                        <span class="text-gray-400">GOD LOCK</span>
+                        <span class="text-blue-500 font-bold">SECURE</span>
                     </div>
                 </div>
             </div>
@@ -112,14 +117,62 @@
     </div>
 
     <script>
-        // AUTH CHECK
-        if (!sessionStorage.getItem('chaos_session')) {
-            window.location.href = '/app';
+        // --- GOD LOCK PROTOCOL (Verify Token with Server) ---
+        const sessionToken = sessionStorage.getItem('chaos_session');
+
+        async function verifyAccess() {
+            if (!sessionToken) {
+                terminateSession("NO CREDENTIALS FOUND");
+                return;
+            }
+
+            try {
+                // Check token against server secret
+                const res = await fetch('/api/admin/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: sessionToken })
+                });
+                
+                const data = await res.json();
+                
+                if (!data.valid) {
+                    terminateSession("INVALID SESSION TOKEN");
+                } else {
+                    // ACCESS GRANTED
+                    document.body.style.display = "grid"; // Reveal UI
+                    startClock();
+                    connectLiveWire(); 
+                    console.log(">>> [ADMIN] GOD LOCK OPEN.");
+                }
+            } catch (e) {
+                terminateSession("SERVER HANDSHAKE FAILED");
+            }
+        }
+
+        function terminateSession(reason) {
+            console.warn(`>>> [SECURITY] LOCKOUT: ${reason}`);
+            sessionStorage.removeItem('chaos_session');
+            document.body.style.display = "flex";
+            document.body.innerHTML = `
+                <div class="flex items-center justify-center h-screen text-red-600 font-bold bg-black flex-col w-full">
+                    <i class="fas fa-shield-alt text-6xl mb-6"></i>
+                    <div class="text-2xl tracking-widest">ACCESS DENIED</div>
+                    <div class="text-xs text-gray-600 mt-4 font-mono border border-red-900 p-2 rounded">ERROR: ${reason}</div>
+                </div>
+            `;
+            setTimeout(() => window.location.href = '/app', 2000);
         }
 
         function logout() {
             sessionStorage.removeItem('chaos_session');
             window.location.href = '/';
+        }
+
+        function startClock() {
+            setInterval(() => {
+                document.getElementById('clock').innerText = new Date().toLocaleTimeString();
+            }, 1000);
         }
 
         // --- LIVE WIRE CONNECTION ---
@@ -134,13 +187,13 @@
                     const payload = JSON.parse(event.data);
                     logEvent(payload);
                     updateMetrics(payload);
-                } catch(e) { console.error("Parse Error", e); }
+                } catch(e) { console.error("Data Parse Error", e); }
             };
 
             evtSource.onerror = function() {
-                logEvent({ type: 'SYSTEM', data: 'Connection Lost. Reconnecting...' });
+                logEvent({ type: 'SYSTEM', data: 'Signal Lost. Re-acquiring...' });
                 evtSource.close();
-                setTimeout(connectLiveWire, 2000);
+                setTimeout(connectLiveWire, 3000);
             };
         }
 
@@ -152,16 +205,17 @@
             const time = new Date().toLocaleTimeString();
             let msg = typeof payload.data === 'string' ? payload.data : JSON.stringify(payload.data);
             
-            // Clean up JSON display
+            // Format JSON data for readability
             if (typeof payload.data === 'object') {
                 if (payload.data.reason) msg = `REASON: ${payload.data.reason} | SCORE: ${payload.data.score || 0}`;
                 if (payload.data.status) msg = `STATUS: ${payload.data.status}`;
+                if (payload.data.ip) msg += ` [IP: ${payload.data.ip}]`;
             }
 
             row.innerHTML = `<span class="log-time">${time}</span><span class="log-type type-${payload.type}">${payload.type}</span> ${msg}`;
             
             term.appendChild(row);
-            term.scrollTop = term.scrollHeight; // Auto-scroll
+            term.scrollTop = term.scrollHeight; // Auto-scroll to newest
         }
 
         function updateMetrics(payload) {
@@ -172,14 +226,14 @@
             if (payload.type === 'THREAT' || payload.type === 'BLOCK') {
                 threatCount++;
                 document.getElementById('cnt-threats').innerText = threatCount;
-                // Visual Flash
-                document.body.style.boxShadow = "inset 0 0 50px rgba(255,0,0,0.2)";
+                // Red Flash Effect
+                document.body.style.boxShadow = "inset 0 0 50px rgba(255,0,0,0.3)";
                 setTimeout(() => document.body.style.boxShadow = "none", 200);
             }
         }
 
-        // INIT
-        connectLiveWire();
+        // STARTUP
+        verifyAccess();
     </script>
 </body>
 </html>
