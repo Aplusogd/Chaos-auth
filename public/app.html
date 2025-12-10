@@ -1,187 +1,62 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A+ LOGIN: BIOMETRIC TRACE</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
-        body { background: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; height: 100vh; display: flex; align-items: center; justify-content: center; }
+// --- In public/app.html's <script> block, replace attemptLogin and its helpers ---
+
+// The new API call to get all necessary data at once
+async function getVerifiedData(key) {
+    try {
+        const res = await fetch('/api/v1/sentinel/verify', { headers: { 'x-api-key': key } });
+        if (res.status === 200) {
+            return await res.json();
+        }
+    } catch (e) { return null; }
+    return null;
+}
+
+async function attemptLogin() {
+    const input = document.getElementById('callsignInput').value.trim();
+    const msg = document.getElementById('challenge-status');
+
+    if (!input) {
+        msg.innerText = "ENTER CALLSIGN OR MASTER KEY FIRST.";
+        return;
+    }
+    
+    // 1. Determine Key
+    let key = input;
+    if (!input.toLowerCase().startsWith('sk_')) {
+        const cleanPhrase = input.toLowerCase().replace(/\s+/g, '-');
+        key = "sk_ghost_" + CryptoJS.SHA256(cleanPhrase + "INFINITE_ABYSS_2025").toString().substring(0,32);
+    }
+    
+    // Check trace unless it is the Master Key
+    if (chaosMetric < 500 && !key.toLowerCase().includes('sk_chaos')) {
+         msg.innerText = "PERFORM BIOMETRIC TRACE TO VERIFY.";
+         return;
+    }
+
+    loginBtn.disabled = true;
+    loginBtn.textContent = "VERIFYING IDENTITY...";
+
+    // 2. Self-Heal and Get Verified Data
+    await registerWithServer(key, input, chaosMetric); // Ensure key is on server (Self-Heal)
+    
+    // 3. CRITICAL: Fetch ALL necessary data before proceeding
+    const verifiedData = await getVerifiedData(key);
+
+    if (verifiedData) {
+        localStorage.setItem('chaos_key_vault', key);
+        // Store the bulky data in SESSION Storage (fast, temporary, only for this login)
+        sessionStorage.setItem('verified_user_data', JSON.stringify(verifiedData));
         
-        .portal-card {
-            background: rgba(5,5,5,0.9); border: 1px solid #222; padding: 40px; 
-            max-width: 500px; width: 100%; box-shadow: 0 0 80px rgba(0, 255, 65, 0.05);
-            backdrop-filter: blur(5px);
-        }
-
-        #chaosCanvas {
-            border: 1px solid #005500; background: #000; margin-bottom: 20px;
-            cursor: crosshair; touch-action: none;
-            box-shadow: inset 0 0 10px rgba(0, 255, 65, 0.1);
-        }
-
-        .input-line {
-            background: #111; border: 1px solid #333; color: white; padding: 10px; text-align: center;
-            border-radius: 4px; text-transform: uppercase;
-        }
-    </style>
-</head>
-<body>
-
-    <div class="portal-card text-center">
-        <h1 class="text-2xl font-bold tracking-widest mb-2 text-white">VERIFY IDENTITY</h1>
-        <p class="text-gray-500 text-xs mb-8">Enter Callsign and trace Sigil to log in.</p>
-
-        <input type="text" id="callsignInput" class="input-line w-full mb-4" placeholder="CRIMSON-VELVET-THUNDER OR MASTER_KEY">
-
-        <div id="challenge-area">
-            <canvas id="chaosCanvas" width="300" height="200"></canvas>
-            <p class="text-[10px] text-red-500 mb-4 font-bold" id="challenge-status">PERFORM BIOMETRIC TRACE</p>
-        </div>
+        loginBtn.textContent = "ACCESS GRANTED";
+        setTimeout(() => {
+            window.location.href = '/check.html'; // Direct, fast redirect
+        }, 500);
         
-        <button onclick="attemptLogin()" id="login-btn" class="bg-blue-600 hover:bg-blue-500 text-black px-8 py-3 rounded font-bold text-sm transition duration-300 w-full disabled:opacity-50 disabled:cursor-not-allowed">
-            VERIFY AND ACCESS
-        </button>
+    } else {
+        loginBtn.disabled = false;
+        loginBtn.textContent = "VERIFY AND ACCESS";
+        msg.innerText = "VERIFICATION FAILED. KEY UNKNOWN OR TRACE LOW.";
+    }
+}
 
-        <div class="mt-6 border-t border-gray-800 pt-4">
-            <a href="/" class="text-gray-600 hover:text-white text-xs mr-4">← Back to Landing</a>
-            <a href="/abyss.html" class="text-green-400 hover:text-white text-xs">Need a Callsign? Forge One.</a>
-        </div>
-    </div>
-
-    <script>
-        const challengeStatus = document.getElementById('challenge-status');
-        const canvas = document.getElementById('chaosCanvas');
-        const ctx = canvas.getContext('2d');
-        const loginBtn = document.getElementById('login-btn');
-
-        let isTracing = false;
-        let chaosMetric = 0; 
-        
-        // --- DRAWING LOGIC (FIXED) ---
-        function startTrace(e) {
-            isTracing = true;
-            chaosMetric = 0;
-            ctx.clearRect(0, 0, canvas.width, canvas.height); 
-            e.preventDefault();
-            
-            // Set style for drawing the trail
-            ctx.strokeStyle = '#00ff41'; // Bright Green
-            ctx.lineWidth = 3;
-            ctx.lineCap = 'round';
-        }
-
-        function moveTrace(e) {
-            if (!isTracing) return;
-            e.preventDefault();
-            
-            const rect = canvas.getBoundingClientRect();
-            const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-            const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
-            
-            // Draw the line segment
-            ctx.beginPath();
-            ctx.moveTo(x - (e.movementX || 0), y - (e.movementY || 0));
-            ctx.lineTo(x, y);
-            ctx.stroke();
-
-            // Accumulate movement jitter
-            chaosMetric += (Math.abs(e.movementX || 0) + Math.abs(e.movementY || 0)); 
-        }
-
-        function endTrace() {
-            if (!isTracing) return;
-            isTracing = false;
-            
-            if (chaosMetric > 500) { 
-                challengeStatus.innerText = `[BIOMETRIC PASS] Jitter Ready.`;
-                challengeStatus.classList.remove('text-red-500');
-                challengeStatus.classList.add('text-green-500');
-                loginBtn.disabled = false;
-            } else {
-                challengeStatus.innerText = "MOVEMENT INSUFFICIENT. DRAW WITH INTENT.";
-                challengeStatus.classList.add('text-red-500');
-                loginBtn.disabled = true;
-            }
-        }
-
-        // Event Listeners (Mouse + Touch)
-        canvas.addEventListener('mousedown', startTrace);
-        canvas.addEventListener('mousemove', moveTrace);
-        canvas.addEventListener('mouseup', endTrace);
-        canvas.addEventListener('touchstart', startTrace);
-        canvas.addEventListener('touchmove', moveTrace);
-        canvas.addEventListener('touchend', endTrace);
-        
-        loginBtn.disabled = true; 
-
-        // --- LOGIN & REDIRECT LOGIC ---
-        async function attemptLogin() {
-            const input = document.getElementById('callsignInput').value.trim();
-            const msg = document.getElementById('challenge-status');
-
-            if (!input) {
-                msg.innerText = "ENTER CALLSIGN OR MASTER KEY FIRST.";
-                return;
-            }
-            // Check trace unless it is the Master Key
-            if (chaosMetric < 500 && !input.toLowerCase().startsWith('sk_chaos')) {
-                 msg.innerText = "PERFORM BIOMETRIC TRACE TO VERIFY.";
-                 return;
-            }
-
-            // 1. Determine Key (Master Key vs. Callsign)
-            let key = input;
-            if (!input.toLowerCase().startsWith('sk_')) {
-                const cleanPhrase = input.toLowerCase().replace(/\s+/g, '-');
-                // NOTE: This requires CryptoJS library to be loaded
-                key = "sk_ghost_" + CryptoJS.SHA256(cleanPhrase + "INFINITE_ABYSS_2025").toString().substring(0,32);
-            }
-
-            loginBtn.disabled = true;
-            loginBtn.textContent = "VERIFYING IDENTITY...";
-
-            // 2. Self-Heal and Verify
-            const success = await registerWithServer(key, input, chaosMetric);
-
-            if (success) {
-                localStorage.setItem('chaos_key_vault', key);
-                // DIRECT REDIRECT TO STABLE DASHBOARD (No more search screen)
-                window.location.href = '/check.html';
-            } else {
-                loginBtn.disabled = false;
-                loginBtn.textContent = "VERIFY AND ACCESS";
-                msg.innerText = "VERIFICATION FAILED. KEY UNKNOWN OR TRACE LOW.";
-            }
-        }
-        
-        // Self-Healing Registration Function (Verifies key existence on server)
-        async function registerWithServer(key, alias, chaosMetric) {
-            // Note: Crypto-JS is required for the key generation step
-            try {
-                const res = await fetch('/api/auth/ghost-register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        alias: alias, 
-                        chaos_metric: chaosMetric,
-                        provided_key: key
-                    })
-                });
-                const data = await res.json();
-                return data.success;
-            } catch (e) {
-                return false; 
-            }
-        }
-        
-        // Auto-Check if already logged in
-        if (localStorage.getItem('chaos_key_vault')) {
-            window.location.href = '/check.html'; 
-        }
-    </script>
-</body>
-</html>
+// (Keep the registerWithServer function and all drawing/utility functions intact)
