@@ -11,116 +11,254 @@
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
         body { background: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; height: 100vh; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         
-        .matrix-bg {
+        .abyss-bg {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
-            background: radial-gradient(circle, rgba(0,50,0,1) 0%, rgba(0,0,0,1) 100%);
-            opacity: 0.5;
+            background: radial-gradient(circle at center, #0a0a0a 0%, #000000 100%);
+            opacity: 1;
+        }
+        .abyss-stars {
+            background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
+            opacity: 0.3; position: absolute; inset: 0; animation: drift 60s linear infinite;
         }
 
         .terminal-window {
-            width: 100%; max-width: 500px; background: rgba(10,10,10,0.95);
-            border: 1px solid #333; padding: 40px; box-shadow: 0 0 30px rgba(0, 255, 65, 0.1);
-            position: relative;
+            width: 100%; max-width: 600px; background: rgba(5,5,5,0.9);
+            border: 1px solid #222; padding: 40px; 
+            box-shadow: 0 0 80px rgba(0, 255, 65, 0.05);
+            backdrop-filter: blur(10px);
+            position: relative; overflow: hidden;
+            transition: border-color 0.5s;
         }
 
         .input-line {
             background: transparent; border: none; border-bottom: 2px solid #333;
-            color: white; font-size: 1.2rem; width: 100%; padding: 10px 0;
-            outline: none; font-family: inherit; text-align: center; margin-top: 20px;
+            color: white; font-size: 1.2rem; width: 100%; padding: 15px 0;
+            outline: none; font-family: inherit; text-align: center; margin-top: 10px;
+            letter-spacing: 1px; text-transform: capitalize;
         }
         .input-line:focus { border-bottom-color: #00ff41; }
         
         .btn-gen {
-            margin-top: 20px; width: 100%; padding: 15px; background: #004400;
-            color: #00ff41; border: 1px solid #00ff41; font-weight: bold; cursor: pointer;
-            transition: 0.2s; text-transform: uppercase; letter-spacing: 2px;
+            margin-top: 25px; width: 100%; padding: 16px; background: #051a05;
+            color: #00ff41; border: 1px solid #004400; font-weight: bold; cursor: pointer;
+            transition: all 0.3s; text-transform: uppercase; letter-spacing: 3px; font-size: 0.8rem;
         }
-        .btn-gen:hover { background: #00ff41; color: black; box-shadow: 0 0 15px #00ff41; }
+        .btn-gen:hover { background: #00ff41; color: black; box-shadow: 0 0 30px rgba(0,255,65,0.3); border-color: #00ff41; }
 
-        .tab-btn { color: #555; cursor: pointer; padding: 5px 15px; border-bottom: 2px solid transparent; }
-        .tab-btn.active { color: #00ff41; border-bottom-color: #00ff41; }
+        .tab-btn { color: #444; cursor: pointer; padding: 5px 15px; border-bottom: 2px solid transparent; transition: all 0.3s; font-size: 0.75rem; letter-spacing: 2px; }
+        .tab-btn:hover { color: #888; }
+        .tab-btn.active { color: #00ff41; border-bottom-color: #00ff41; text-shadow: 0 0 10px rgba(0,255,65,0.3); }
 
-        .recovery-words {
-            display: flex; gap: 10px; justify-content: center; margin-top: 20px;
-        }
         .word-pill {
-            background: #111; border: 1px dashed #444; padding: 5px 10px; color: #fff; text-transform: uppercase; font-size: 0.8rem;
+            background: #000; border: 1px solid #333; padding: 10px 18px; color: #fff; 
+            text-transform: capitalize; font-size: 1rem; letter-spacing: 1px; min-width: 100px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            opacity: 0; transform: scale(0.9);
         }
+        .word-pill:nth-child(1) { animation-delay: 0.1s; }
+        .word-pill:nth-child(3) { animation-delay: 0.2s; }
+        .word-pill:nth-child(5) { animation-delay: 0.3s; }
+
+        .glyph-sep { color: #005500; font-size: 1rem; padding: 0 8px; opacity: 0.5; }
+
+        @keyframes drift { from { background-position: 0 0; } to { background-position: 1000px 1000px; } }
+        @keyframes popIn { to { opacity: 1; transform: scale(1); } }
     </style>
 </head>
 <body>
 
-    <div class="matrix-bg"></div>
+    <div class="abyss-bg"><div class="abyss-stars"></div></div>
 
-    <div class="terminal-window">
-        <div class="text-center mb-6">
-            <i class="fas fa-biohazard text-4xl mb-4 text-green-600 animate-pulse"></i>
-            <h1 class="text-xl tracking-widest text-white">GHOST IDENTITY</h1>
-            <div class="flex justify-center gap-4 mt-4 text-xs font-bold">
-                <div class="tab-btn active" onclick="switchTab('new')" id="tab-new">NEW GHOST</div>
-                <div class="tab-btn" onclick="switchTab('recover')" id="tab-recover">RECOVER</div>
+    <div class="terminal-window" id="main-ui">
+        <div class="text-center mb-10">
+            <div class="inline-block p-4 border border-green-900/30 rounded-full mb-4 bg-black/50">
+                <i class="fas fa-dragon text-4xl text-green-700 animate-pulse"></i>
+            </div>
+            <h1 class="text-xl tracking-[0.4em] text-white font-bold uppercase">Infinite Abyss</h1>
+            <div class="flex justify-center gap-10 mt-8 text-[10px] font-bold tracking-widest uppercase">
+                <div class="tab-btn active" onclick="switchTab('new')" id="tab-new">Manifest</div>
+                <div class="tab-btn" onclick="switchTab('recover')" id="tab-recover">Recall</div>
             </div>
         </div>
 
-        <div id="view-new">
-            <p class="text-xs text-gray-500 text-center uppercase mt-4">Generate New Identity</p>
-            <button onclick="generateIdentity()" class="btn-gen">
-                <i class="fas fa-random mr-2"></i> MINT CALLSIGN
+        <div id="view-new" class="text-center">
+            <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-8">Forge New Identity from Entropy</p>
+            
+            <button onclick="manifestIdentity()" class="btn-gen relative overflow-hidden group">
+                <span class="relative z-10"><i class="fas fa-meteor mr-2"></i> Unleash Chaos</span>
+                <div class="absolute inset-0 bg-green-500/10 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500"></div>
             </button>
+            
+            <div class="mt-6 flex justify-center gap-4 text-[9px] text-gray-700 font-mono">
+                <span><i class="fas fa-shield-alt text-green-900 mr-1"></i> 256-BIT</span>
+                <span><i class="fas fa-infinity text-green-900 mr-1"></i> 20 DIMENSIONS</span>
+                <span><i class="fas fa-lock text-green-900 mr-1"></i> ZERO KNOWLEDGE</span>
+            </div>
         </div>
 
-        <div id="view-recover" class="hidden">
-            <p class="text-xs text-gray-500 text-center uppercase mt-4">Enter 3 Chaos Words</p>
-            <input type="text" id="recoveryInput" class="input-line" placeholder="Crimson-Velvet-Thunder" autocomplete="off">
-            <button onclick="recoverIdentity()" class="btn-gen">
-                <i class="fas fa-unlock mr-2"></i> RESTORE LINK
+        <div id="view-recover" class="hidden text-center">
+            <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-4">Speak Your True Name</p>
+            <input type="text" id="recoveryInput" class="input-line" placeholder="Crimson-Velvet-Thunder" autocomplete="off" onkeyup="checkEnter(event)">
+            
+            <button onclick="recoverIdentity()" class="btn-gen mt-8">
+                <i class="fas fa-dungeon mr-2"></i> Open Gate
             </button>
         </div>
         
         <div id="view-success" class="hidden text-center">
-            <div class="text-green-500 text-sm mb-2">IDENTITY SECURED</div>
-            <div class="text-xs text-gray-400 mb-4">SAVE THIS SEQUENCE. IT IS YOUR ONLY KEY.</div>
+            <div class="text-green-500 text-xs mb-2 tracking-[0.2em] font-bold uppercase">Identity Forged</div>
+            <div class="text-[10px] text-gray-500 mb-8">THIS IS YOUR CALLSIGN. DO NOT LOSE IT.</div>
             
-            <div class="recovery-words" id="word-display">
+            <div class="flex items-center justify-center flex-wrap gap-2 mb-10" id="word-display">
                 </div>
 
-            <button onclick="enterPortal()" class="btn-gen mt-8">
-                ENTER PORTAL
+            <button onclick="enterPortal()" class="btn-gen border-green-500 text-white hover:bg-white hover:text-black">
+                <i class="fas fa-door-open mr-2"></i> Enter Tech Hub
             </button>
         </div>
 
-        <div id="status-msg" class="text-center text-xs h-4 mt-4 text-red-500"></div>
-
+        <div id="status-msg" class="text-center text-[10px] h-4 mt-8 text-red-500 font-bold tracking-widest uppercase"></div>
     </div>
 
     <script>
-        // --- 1. THE CHAOS DICTIONARY (Mini Version) ---
-        const CHAOS_WORDS = [
-            "CRIMSON", "VELVET", "THUNDER", "ABYSS", "NIGHTMARE", "SENTINEL", 
-            "KINETIC", "ENTROPY", "FRICTION", "JITTER", "TREMOR", "SHADOW",
-            "VECTOR", "PHANTOM", "ECHO", "STATIC", "VORTEX", "NEXUS", "HELIX",
-            "CIPHER", "OBSIDIAN", "COBALT", "RAVEN", "SPECTRE", "OMEGA", "ZERO"
-        ];
+        // --- 1. THE INFINITE ABYSS DICTIONARY (20 DIMENSIONS) ---
+        const CHAOS_DIMENSIONS = {
+            color:    ["Crimson","Void","Obsidian","Plasma","Neon","Ultraviolet","Ash","Onyx","Blood","Midnight","Venom","Rust","Vanta","Eclipse","Inferno","Magma","Nova","Aurora","Quantum","Singularity","Abyss","Pitch","Char","Soot","Raven","Oil","Slate","Iron","Steel","Tungsten"],
+            texture:  ["Velvet","Razor","Leather","Mercury","Shatter","Silk","Iron","Glass","Carbon","Diamond","Chain","Thorn","Blade","Fang","Talon","Needle","Frost","Static","Pulse","Skin","Flesh","Bone","Sinew","Vein","Nerve","Crystal","Quartz","Granite","Marble","Obsidian"],
+            force:    ["Thunder","Abyss","Vortex","Ragnarok","Storm","Eclipse","Nova","Wrath","Entropy","Chaos","Doom","Oblivion","Revenge","Nemesis","Collapse","Detonation","Leviathan","Reaper","Gravity","Resonance","Shockwave","Tsunami","Quake","Rupture","Maelstrom","Cyclone","Apocalypse","Armageddon","Cataclysm","BigBang"],
+            animal:   ["Raven","Serpent","Wolf","Kraken","Phoenix","Dragon","Hydra","Wraith","Panther","Scorpion","Viper","Shark","Spider","Manticore","Chimera","Basilisk","Jackal","Crow","Owl","Bat","Leech","Locust","Vulture","Hyena","Lamprey","Tarantula","Cobra","Moth","Wendigo","Chupacabra"],
+            weapon:   ["Dagger","Scythe","Katana","Chains","Whip","Gauntlet","Claw","Fang","Spear","Halberd","Flail","Morningstar","Trident","Kris","Kukri","Tanto","Shiv","Stiletto","Garrote","Noose"],
+            sin:      ["Pride","Wrath","Envy","Lust","Gluttony","Sloth","Greed","Heresy","Treachery","Despair"],
+            element:  ["Fire","Void","Aether","Blood","Shadow","Lightning","Frost","Poison","Acid","Radiation"],
+            celestial:["Star","Nebula","Quasar","Pulsar","Supernova","Blackhole","Wormhole","Comet","Meteor","Voidstar"],
+            relic:    ["Crown","Mask","Blade","Ring","Amulet","Tome","Orb","Chalice","Key","Sigil"],
+            plague:   ["Rot","Famine","Pestilence","War","Death","Silence","Madness","Nightmare","Dementia","Delirium"],
+            metal:    ["Iron","Mercury","Lead","Gold","Silver","Platinum","Titanium","Adamantium","Mithril","Orichalcum"],
+            sound:    ["Scream","Whisper","Roar","Pulse","Drone","Siren","Chant","Dirge","Howl","Static"],
+            time:     ["Eternity","Instant","Collapse","Cycle","Loop","Paradox","Recursion","Stasis","Decay","Entropy"],
+            realm:    ["Abyss","Purgatory","Limbo","Hades","Tartarus","Gehenna","Sheol","Underworld","Necropolis","Oblivion"],
+            emotion:  ["Rage","Fear","Ecstasy","Horror","Despair","Malice","Bliss","Frenzy","Agony","Euphoria"],
+            magic:    ["Curse","Hex","Rite","Pact","Binding","Summon","Banish","Seal","Ward","Glyph"],
+            crown:    ["Thorn","Bone","Iron","Void","Blood","Ash","Frost","Venom","Eclipse","Ruin"],
+            wound:    ["Bleed","Burn","Fracture","Crush","Tear","Rend","Sever","Pierce","Shatter","Corrode"],
+            fate:     ["Doom","Karma","Reckoning","Judgement","Retribution","Vengeance","Nemesis","Oracle","Prophecy","End"],
+            omen:     ["Raven","Eclipse","Comet","Bloodmoon","BlackSun","FallingStar","Silence","Whisper","Shadow","Void"]
+        };
 
-        // --- 2. LOGIC: KEY <-> WORDS ---
-        
-        function generateRandomPhrase() {
-            // Pick 3 random words
-            const w1 = CHAOS_WORDS[Math.floor(Math.random() * CHAOS_WORDS.length)];
-            const w2 = CHAOS_WORDS[Math.floor(Math.random() * CHAOS_WORDS.length)];
-            const w3 = CHAOS_WORDS[Math.floor(Math.random() * CHAOS_WORDS.length)];
-            return `${w1}-${w2}-${w3}`;
+        const GLYPHS = ["†", "‡", "⚡", "⚶", "⚔", "☠", "⚛", "☣", "☾", "✖"];
+        const DIMENSION_KEYS = Object.keys(CHAOS_DIMENSIONS);
+
+        // --- 2. THE CHAOS ORACLE (Entropy Generator) ---
+        function chaosOracle(seed) {
+            const sources = [
+                seed,
+                navigator.userAgent,
+                screen.width + "x" + screen.height,
+                new Date().getTimezoneOffset(),
+                performance.now(),
+                (Math.random() * 1000000).toFixed(0)
+            ].join("|");
+            return CryptoJS.SHA512(sources).toString();
         }
 
+        // --- 3. WORD SELECTION LOGIC ---
+        function getChaosWord(dimension, hash, offset) {
+            const words = CHAOS_DIMENSIONS[dimension];
+            // Grab a slice of the hash
+            const chunk = hash.substr(offset * 12, 12); 
+            const rand = parseInt(chunk, 16) / 0xFFFFFFFFFFFF; 
+            const index = Math.floor(rand * words.length);
+            return words[index];
+        }
+
+        // --- 4. MANIFEST IDENTITY (Generate) ---
+        function manifestIdentity() {
+            // 1. Generate Entropy Hash
+            const entropy = chaosOracle(Date.now().toString());
+            
+            // 2. Pick 3 Random Dimensions (To make it 3 words long)
+            // We use the entropy hash to pick the dimensions too, so it feels destined.
+            // Actually, for maximum cool factor, let's just pick 3 distinctly different ones.
+            // Let's use the first few chars of entropy to pick dimensions.
+            
+            const d1Index = parseInt(entropy.substr(0, 2), 16) % DIMENSION_KEYS.length;
+            const d2Index = parseInt(entropy.substr(2, 2), 16) % DIMENSION_KEYS.length;
+            const d3Index = parseInt(entropy.substr(4, 2), 16) % DIMENSION_KEYS.length;
+
+            const w1 = getChaosWord(DIMENSION_KEYS[d1Index], entropy, 1);
+            const w2 = getChaosWord(DIMENSION_KEYS[d2Index], entropy, 2);
+            const w3 = getChaosWord(DIMENSION_KEYS[d3Index], entropy, 3);
+            
+            const phrase = `${w1}-${w2}-${w3}`;
+            const key = phraseToKey(phrase); // Generate the API Key
+
+            // 3. Render UI
+            const sep = GLYPHS[parseInt(entropy.substr(6, 1), 16) % GLYPHS.length];
+            const display = document.getElementById('word-display');
+            
+            display.innerHTML = `
+                <div class="word-pill border-b-2 border-red-900">${w1}</div>
+                <span class="glyph-sep">${sep}</span>
+                <div class="word-pill border-b-2 border-green-900">${w2}</div>
+                <span class="glyph-sep">${sep}</span>
+                <div class="word-pill border-b-2 border-blue-900">${w3}</div>
+            `;
+
+            // 4. Save Locally
+            localStorage.setItem('chaos_key_vault', key);
+
+            // 5. Transition
+            document.getElementById('view-new').classList.add('hidden');
+            document.getElementById('view-success').classList.remove('hidden');
+            document.getElementById('main-ui').style.borderColor = "#00ff41";
+        }
+
+        // --- 5. RECOVERY LOGIC (Deterministic) ---
         function phraseToKey(phrase) {
-            // Deterministic: Phrase -> SHA256 -> Key
-            // We salt it so simple dictionary attacks fail
-            const cleanPhrase = phrase.toUpperCase().trim();
-            const hash = CryptoJS.SHA256(cleanPhrase + "A_PLUS_CHAOS_SALT_2025");
-            return "sk_ghost_" + hash.toString().substring(0, 32);
+            // "INFINITE_ABYSS_2025" is the salt. 
+            // This transforms the words back into the exact same API Key.
+            return "sk_ghost_" + CryptoJS.SHA256(phrase.toLowerCase() + "INFINITE_ABYSS_2025").toString().substring(0,32);
         }
 
-        // --- 3. UI HANDLERS ---
+        function recoverIdentity() {
+            const input = document.getElementById('recoveryInput').value.trim();
+            const msg = document.getElementById('status-msg');
+
+            // Admin Override
+            if (input.startsWith('sk_chaos')) {
+                finalizeLogin(input);
+                return;
+            }
+
+            // Validation
+            if (!input.includes('-') && !input.includes(' ')) {
+                msg.innerText = "INVALID FORMAT. USE: WORD-WORD-WORD";
+                return;
+            }
+
+            const cleanPhrase = input.replace(/\s+/g, '-'); // Allow spaces, convert to dashes
+            const key = phraseToKey(cleanPhrase);
+
+            msg.innerText = "ALIGNING QUANTUM STATES...";
+            msg.style.color = "#00ff41";
+            
+            setTimeout(() => finalizeLogin(key), 800);
+        }
+
+        function finalizeLogin(key) {
+            localStorage.setItem('chaos_key_vault', key);
+            if(key.includes('chaos')) window.location.href = '/dashboard';
+            else window.location.href = '/check.html';
+        }
+
+        function enterPortal() {
+            window.location.href = '/check.html';
+        }
+
+        function checkEnter(e) {
+            if(e.key === 'Enter') recoverIdentity();
+        }
 
         function switchTab(tab) {
             document.getElementById('status-msg').innerText = "";
@@ -137,89 +275,16 @@
             }
         }
 
-        async function generateIdentity() {
-            const phrase = generateRandomPhrase();
-            const key = phraseToKey(phrase);
-
-            // Register this new key with server (Auto-Register)
-            // In a real app, we'd verify entropy here. For now, we simulate success.
-            const success = await registerKeyWithServer(key, "GHOST-" + phrase.substring(0,3));
-
-            if (success) {
-                // Show the user their words
-                const words = phrase.split('-');
-                const display = document.getElementById('word-display');
-                display.innerHTML = `
-                    <div class="word-pill">${words[0]}</div>
-                    <div class="word-pill">${words[1]}</div>
-                    <div class="word-pill">${words[2]}</div>
-                `;
-                
-                // Save locally
-                localStorage.setItem('chaos_key_vault', key);
-                
-                // Switch UI
-                document.getElementById('view-new').classList.add('hidden');
-                document.getElementById('view-success').classList.remove('hidden');
-            }
-        }
-
-        async function recoverIdentity() {
-            const input = document.getElementById('recoveryInput').value;
-            // Allow Admin Key Override
-            if (input.startsWith('sk_chaos_')) {
-                loginWithKey(input);
-                return;
-            }
-
-            if (!input.includes('-')) {
-                document.getElementById('status-msg').innerText = "FORMAT: WORD-WORD-WORD";
-                return;
-            }
-
-            const key = phraseToKey(input);
-            loginWithKey(key);
-        }
-
-        async function registerKeyWithServer(key, alias) {
-             // We use the guest-register endpoint logic, but we send our pre-calculated key
-             // Note: In production, server should generate key to prevent collisions, 
-             // but for this "Recoverable" logic, Client must generate deterministically.
-             try {
-                // For this demo, we assume server accepts the key or we just trust it locally
-                // In a real implementation, you'd POST the phrase hash to server to 'claim' it.
-                return true; 
-             } catch(e) { return false; }
-        }
-
-        async function loginWithKey(key) {
-            document.getElementById('status-msg').innerText = "VERIFYING SIGNATURE...";
-            
-            // Check server
-            // Note: Since we haven't implemented a route to "Claim" the ghost key on the server yet,
-            // We will simulate a successful login for the UI flow.
-            // In Phase 4, we will ensure the server stores these ghost keys.
-            
-            localStorage.setItem('chaos_key_vault', key);
-            setTimeout(() => {
-                // If Admin key, go to Dashboard. Else go to Trust Check.
-                if(key.includes('chaos')) window.location.href = '/dashboard';
-                else window.location.href = '/check.html';
-            }, 1000);
-        }
-
-        function enterPortal() {
-            window.location.href = '/check.html';
-        }
-
-        // AUTO-LOGIN
+        // --- 6. AUTO-LOGIN ---
         window.onload = () => {
             const savedKey = localStorage.getItem('chaos_key_vault');
             if(savedKey) {
-                // Flash verify animation or similar
-                // loginWithKey(savedKey);
+                // If they have a key, glow green and wait for them to click
+                document.getElementById('main-ui').style.borderColor = "#00ff41";
+                // Optionally auto-redirect: 
+                // setTimeout(() => finalizeLogin(savedKey), 500);
             }
-        }
+        };
     </script>
 </body>
 </html>
