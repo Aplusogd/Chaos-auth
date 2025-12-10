@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A+ FORGE: MINT CALLSIGN</title>
+    <title>A+ CHAOS FORGE | CREATE CALLSIGN</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -12,15 +12,9 @@
         body { background: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; height: 100vh; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         
         .abyss-bg {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1;
-            background: radial-gradient(circle at center, #0a0a0a 0%, #000000 100%);
-            opacity: 1;
+            position: absolute; inset: 0; z-index: -1;
+            background: radial-gradient(circle at center, #0a1a0a 0%, #000000 100%);
         }
-        .abyss-stars {
-            background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
-            opacity: 0.3; position: absolute; inset: 0; animation: drift 60s linear infinite;
-        }
-
         .portal-card {
             width: 100%; max-width: 600px; background: rgba(5,5,5,0.9);
             border: 1px solid #222; padding: 40px; 
@@ -28,60 +22,73 @@
             backdrop-filter: blur(10px);
         }
 
-        .btn-gen {
-            margin-top: 25px; width: 100%; padding: 16px; background: #051a05;
-            color: #00ff41; border: 1px solid #004400; font-weight: bold; cursor: pointer;
+        /* BUTTONS */
+        .btn-action {
+            margin-top: 15px; width: 100%; padding: 16px; font-weight: bold; cursor: pointer;
             transition: all 0.3s; text-transform: uppercase; letter-spacing: 3px; font-size: 0.8rem;
         }
-        .btn-gen:hover { background: #00ff41; color: black; box-shadow: 0 0 30px rgba(0,255,65,0.3); border-color: #00ff41; }
-        
+        .btn-mint {
+            background: #004400; color: #00ff41; border: 1px solid #004400;
+        }
+        .btn-mint:hover { background: #00ff41; color: black; box-shadow: 0 0 20px rgba(0,255,65,0.4); }
+        .btn-secondary {
+            background: #111; color: #999; border: 1px solid #333;
+        }
+        .btn-secondary:hover { background: #222; color: white; }
+
+        /* WORD DISPLAY */
         .word-pill {
             background: #000; border: 1px solid #333; padding: 10px 18px; color: #fff; 
             text-transform: capitalize; font-size: 1rem; letter-spacing: 1px; min-width: 100px;
-            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-            opacity: 0; transform: scale(0.9);
         }
-        .word-pill:nth-child(1) { animation-delay: 0.1s; }
-        .word-pill:nth-child(3) { animation-delay: 0.2s; }
-        .word-pill:nth-child(5) { animation-delay: 0.3s; }
-
-        .glyph-sep { color: #005500; font-size: 1rem; padding: 0 8px; opacity: 0.5; }
-
-        @keyframes drift { from { background-position: 0 0; } to { background-position: 1000px 1000px; } }
-        @keyframes popIn { to { opacity: 1; transform: scale(1); } }
     </style>
 </head>
 <body>
 
-    <div class="abyss-bg"><div class="abyss-stars"></div></div>
+    <div class="abyss-bg"></div>
 
     <div class="portal-card text-center">
-        <div id="view-forge">
-            <h1 class="text-3xl tracking-[0.4em] text-white font-bold uppercase mb-2">CHAOS FORGE</h1>
-            <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-8">Mint Your Eternal Callsign</p>
-            
-            <input type="text" id="aliasInput" class="input-line w-full bg-transparent border-b border-gray-700 text-white text-center p-3 text-sm focus:border-green-500 outline-none mb-8" placeholder="Enter Codename (Optional)">
+        <h1 class="text-3xl tracking-[0.4em] text-white font-bold uppercase mb-2">CHAOS FORGE</h1>
+        <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-8">Mint Your Eternal Callsign</p>
+        
+        <div id="hint-display" class="bg-gray-900 border border-gray-800 p-4 rounded mb-6 text-sm">
+            <p class="text-gray-400 mb-2">Pattern: <span class="text-red-400 font-bold">COLOR</span> - <span class="text-green-400 font-bold">TEXTURE</span> - <span class="text-blue-400 font-bold">FORCE</span></p>
+        </div>
+        
+        <div id="view-options">
+            <input type="text" id="aliasInput" class="input-line w-full bg-transparent border-b border-gray-700 text-white text-center p-3 text-sm focus:border-green-500 outline-none mb-6" placeholder="Enter Codename (Optional)">
 
-            <button onclick="manifestIdentity()" class="btn-gen relative overflow-hidden group">
-                <span class="relative z-10"><i class="fas fa-meteor mr-2"></i> MINT CALLSIGN</span>
-                <div class="absolute inset-0 bg-green-500/10 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-500"></div>
+            <button onclick="manifestIdentity()" class="btn-action btn-mint">
+                <i class="fas fa-meteor mr-2"></i> MINT NEW CALLSIGN
+            </button>
+            <button onclick="toggleRecall()" class="btn-action btn-secondary">
+                <i class="fas fa-redo mr-2"></i> RECALL EXISTING KEY
             </button>
         </div>
 
-        <div id="view-success" class="hidden text-center">
+        <div id="view-recall" class="hidden mt-4">
+            <input type="text" id="recallInput" class="input-line w-full bg-transparent border border-gray-700 text-white text-center p-3 text-sm focus:border-green-500 outline-none" placeholder="Paste Callsign Key OR 3 Words">
+            <button onclick="processRecall()" class="btn-action btn-secondary mt-3">
+                <i class="fas fa-fingerprint mr-2"></i> VALIDATE KEY
+            </button>
+            <p id="recall-msg" class="text-red-400 text-xs mt-2"></p>
+        </div>
+
+
+        <div id="view-success" class="hidden text-center mt-6">
             <div class="text-green-500 text-sm mb-2 tracking-widest font-bold">IDENTITY FORGED</div>
-            <div class="text-[10px] text-gray-500 mb-6">SAVE THIS SEQUENCE. IT IS YOUR ONLY KEY.</div>
+            <div class="text-[10px] text-gray-500 mb-6">SAVE THIS SEQUENCE. IT IS YOUR KEY.</div>
             
             <div class="flex items-center justify-center flex-wrap gap-2 mb-8" id="word-display">
                 </div>
 
-            <button onclick="enterPortal()" class="btn-gen border-green-500 text-white hover:bg-white hover:text-black">
+            <button onclick="enterPortal()" class="btn-action btn-mint text-white hover:bg-white hover:text-black">
                 <i class="fas fa-door-open mr-2"></i> ENTER SANCTUARY
             </button>
         </div>
         
         <div class="mt-6 border-t border-gray-800 pt-4">
-            <a href="/" class="text-gray-600 hover:text-white text-xs mr-4">← Back to Home</a>
+            <a href="/" class="text-gray-600 hover:text-white text-xs">← Back to Landing Page</a>
         </div>
     </div>
 
@@ -93,7 +100,6 @@
             TEXTURE: ["VELVET", "RAZOR", "LEATHER", "MERCURY", "SHATTER", "SILK", "GLASS", "ICE", "FIRE", "STONE"],
             FORCE: ["THUNDER", "ABYSS", "ECLIPSE", "VORTEX", "RAGNAROK", "NOVA", "STORM", "QUAKE", "TSUNAMI", "FLOOD"]
         };
-        const GLYPHS = ["†", "‡", "⚡", "⚶", "⚔", "☠", "⚛", "☣"];
 
         // --- MINTING LOGIC ---
         async function manifestIdentity() {
@@ -108,17 +114,16 @@
             const key = phraseToKey(phrase);
 
             // 2. SYNC WITH SERVER (Self-Healing Registration)
-            const success = await registerWithServer(key, alias, 1.0); // 1.0 = Biometric Pass
+            const success = await registerWithServer(key, alias, 1.0); 
 
             if (success) {
                 // 3. Render UI
-                const sep = GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
                 const display = document.getElementById('word-display');
                 display.innerHTML = `
                     <div class="word-pill border-b-2 border-red-900">${c}</div>
-                    <span class="glyph-sep">${sep}</span>
+                    <span class="glyph-sep text-gray-500 text-lg">-</span>
                     <div class="word-pill border-b-2 border-green-900">${t}</div>
-                    <span class="glyph-sep">${sep}</span>
+                    <span class="glyph-sep text-gray-500 text-lg">-</span>
                     <div class="word-pill border-b-2 border-blue-900">${f}</div>
                 `;
 
@@ -127,34 +132,87 @@
                 localStorage.setItem('chaos_callsign_words', phrase);
                 
                 // 5. Transition
-                document.getElementById('view-forge').classList.add('hidden');
+                document.getElementById('view-options').classList.add('hidden');
                 document.getElementById('view-success').classList.remove('hidden');
+                document.getElementById('hint-display').classList.add('hidden');
             } else {
                 alert("Manifestation Failed. Check server connection.");
             }
         }
         
-        // Converts Words -> Key (The Core Math)
+        // --- RECALL LOGIC ---
+        function toggleRecall() {
+            const recallView = document.getElementById('view-recall');
+            if (recallView.classList.contains('hidden')) {
+                recallView.classList.remove('hidden');
+            } else {
+                recallView.classList.add('hidden');
+            }
+        }
+
+        async function processRecall() {
+            const input = document.getElementById('recallInput').value.trim();
+            const msg = document.getElementById('recall-msg');
+            msg.innerText = "Processing...";
+
+            // Assume Callsign unless it looks like a full sk_ key
+            let key;
+            if (input.toLowerCase().startsWith('sk_')) {
+                key = input;
+            } else if (input.split(/\s+|-/).length >= 3) {
+                const phrase = input.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+                key = phraseToKey(phrase);
+            } else {
+                msg.innerText = "Invalid input format.";
+                return;
+            }
+
+            // Attempt to verify the key through a safe channel
+            const isValid = await verifyWithServer(key);
+
+            if (isValid) {
+                localStorage.setItem('chaos_key_vault', key);
+                msg.innerText = "Key validated. Entering portal...";
+                enterPortal();
+            } else {
+                msg.innerText = "Validation FAILED. Key or Callsign unknown.";
+            }
+        }
+
+        // --- SHARED UTILS ---
         function phraseToKey(phrase) {
             return "sk_ghost_" + CryptoJS.SHA256(phrase.toLowerCase() + "INFINITE_ABYSS_2025").toString().substring(0,32);
         }
 
-        // Registers the calculated key with the server
-        async function registerWithServer(key, alias, chaosMetric) {
+        async function verifyWithServer(key) {
+             // Use the ghost-register endpoint to both verify and heal the identity
             try {
                 const res = await fetch('/api/auth/ghost-register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
-                        alias: alias, 
-                        chaos_metric: chaosMetric,
+                        alias: 'RECALL_ATTEMPT', 
+                        chaos_metric: 1.0,
                         provided_key: key
                     })
                 });
                 const data = await res.json();
                 return data.success;
             } catch (e) {
-                console.error("Registration Error:", e);
+                return false;
+            }
+        }
+        
+        async function registerWithServer(key, alias, chaosMetric) {
+            try {
+                const res = await fetch('/api/auth/ghost-register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ alias: alias, chaos_metric: chaosMetric, provided_key: key })
+                });
+                const data = await res.json();
+                return data.success;
+            } catch (e) {
                 return false;
             }
         }
@@ -164,10 +222,9 @@
             window.location.href = '/abyss-search.html';
         }
         
-        // Auto-Check if already logged in
+        // Auto-Check if already logged in (Always redirects to the Login Page for verification)
         if (localStorage.getItem('chaos_key_vault')) {
-            // If key exists, send them to the login screen for auto-login/verification
-            window.location.href = '/login'; 
+            window.location.href = '/abyss-forge.html'; 
         }
     </script>
 </body>
