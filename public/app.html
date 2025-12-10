@@ -2,211 +2,105 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>A+ CHAOS | SECURE GATE</title>
+    <title>A+ CHAOS | ZERO TRUST LOGIN</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/@simplewebauthn/browser@10.0.0/dist/bundle/index.umd.min.js"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
-        body { background-color: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; touch-action: none; overflow: hidden; user-select: none; }
-        .hud-status { font-size: 1.8rem; font-weight: 800; text-align: center; margin-top: 20vh; text-shadow: 0 0 15px #00ff41; pointer-events: none; transition: all 0.5s; }
-        .well-container { position: absolute; bottom: 140px; left: 50%; transform: translateX(-50%); width: 120px; height: 160px; border-left: 2px solid #004400; border-right: 2px solid #004400; border-bottom: 2px solid #004400; border-radius: 0 0 30px 30px; border-top: none; background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0, 255, 65, 0.05)); pointer-events: none; z-index: 10; }
-        .totem { width: 90px; height: 90px; background: #00ff41; border-radius: 50%; position: absolute; bottom: 130px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; font-size: 36px; color: #002200; box-shadow: 0 0 25px #00ff41; cursor: grab; z-index: 50; transition: filter 0.5s, box-shadow 0.5s, background-color 0.5s; }
-        .totem.offline { filter: grayscale(100%); opacity: 0.3; cursor: wait; }
-        .totem.imprint { background: #0088ff; box-shadow: 0 0 25px #0088ff; color: #001133; }
-        .totem:active:not(.offline) { transform: translateX(-50%) scale(1.15); cursor: grabbing; box-shadow: 0 0 60px #00ff41; }
-        .launching { transition: bottom 0.4s cubic-bezier(0.1, 0.7, 0.1, 1), opacity 0.4s; bottom: 120vh !important; opacity: 0; }
-        .falling { transition: bottom 0.6s cubic-bezier(0.5, 0, 0.5, 1.5); bottom: 130px !important; }
-        .status-dot { position: absolute; top: 20px; right: 20px; width: 8px; height: 8px; border-radius: 50%; background: #330000; border: 1px solid #550000; transition: all 0.5s; }
-        .status-dot.online { background: #00ff41; border-color: #aaffaa; box-shadow: 0 0 10px #00ff41; }
-        
-        #hidden-trigger { position: fixed; top: 0; left: 50%; transform: translateX(-50%); width: 200px; height: 50px; z-index: 100; cursor: pointer; }
-        /* V143 DEBUG TOAST */
-        #error-toast { position: fixed; top: 0; left: 0; width: 100%; background: #aa0000; color: white; padding: 10px; font-size: 10px; text-align: center; display: none; z-index: 9999; }
+        body { background: #050505; color: #e5e5e5; font-family: 'JetBrains Mono', monospace; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        .login-box { width: 100%; max-width: 400px; padding: 40px; background: #0a0a0a; border: 1px solid #333; text-align: center; }
+        .input-field { width: 100%; background: #000; border: 1px solid #333; color: white; padding: 10px; margin-bottom: 20px; font-family: inherit; }
+        .btn { width: 100%; padding: 15px; background: #004400; color: #00ff41; border: 1px solid #00ff41; cursor: pointer; font-weight: bold; transition: all 0.2s; }
+        .btn:hover { background: #00ff41; color: black; }
+        .entropy-bar { height: 4px; width: 0%; background: #333; margin-bottom: 20px; transition: width 0.1s; }
     </style>
 </head>
-<body class="h-screen w-screen">
+<body>
 
-    <div id="error-toast"></div>
-    <div id="status-dot" class="status-dot"></div>
-    
-    <div id="hidden-trigger"></div>
-    <div class="text-center pt-6 text-[10px] text-gray-700 tracking-widest select-none">A+ CHAOS CORE V143</div>
+    <div class="login-box">
+        <h1 class="text-3xl font-bold mb-2">A+ ACCESS</h1>
+        <div class="text-xs text-gray-500 mb-8">NIGHTMARE PROTOCOL V1.0</div>
 
-    <div id="hud" class="hud-status text-yellow-500">CONNECTING...</div>
-    <div class="well-container"><div class="text-[10px] text-green-900 text-center mt-28 select-none tracking-widest">SWIPE UP</div></div>
-    <div class="totem offline" id="totem"><i class="fas fa-fingerprint"></i></div>
+        <div class="text-[10px] text-left text-gray-600 mb-1">BEHAVIORAL ENTROPY</div>
+        <div class="w-full bg-gray-900 h-1 mb-6">
+            <div id="entropy-fill" class="h-full bg-blue-500 w-0"></div>
+        </div>
+
+        <div id="status" class="text-xs text-red-500 mb-4 h-4"></div>
+
+        <button onclick="attemptLogin()" class="btn">
+            <i class="fas fa-fingerprint mr-2"></i> AUTHENTICATE
+        </button>
+        
+        <div class="mt-6 text-[10px] text-gray-600">
+            SECURE SESSION ID GENERATION<br>
+            MOVES MOUSE TO GENERATE KEY
+        </div>
+    </div>
 
     <script>
-        const { startRegistration, startAuthentication } = SimpleWebAuthnBrowser;
-        const API_BASE = '/api/v1';
-        const HEADERS = { 'Content-Type': 'application/json' };
+        // NIGHTMARE FORMULA: ZERO TRUST TOKEN
+        let entropyBuffer = [];
         
-        // --- ERROR TRAPPING ---
-        window.onerror = function(msg, url, line) {
-            const toast = document.getElementById('error-toast');
-            toast.style.display = 'block';
-            toast.innerText = `DEBUG: ${msg} (Line ${line})`;
-            return false;
-        };
-
-        let mode = 'LOGIN';
-        let masterKey = '';
-        let isDragging = false; let startY = 0; let lastTime = 0; let velocityY = 0; let pathData = []; 
-        let authOptions = null;
-        const totem = document.getElementById('totem');
-
-        // --- HIDDEN MENU LOGIC ---
-        let taps = 0;
-        document.getElementById('hidden-trigger').addEventListener('click', () => {
-            taps++;
-            if (taps >= 3) {
-                forceRegister();
-                taps = 0;
-            }
+        // 1. Capture Micro-movements
+        window.addEventListener('mousemove', (e) => {
+            if(entropyBuffer.length > 50) entropyBuffer.shift();
+            // Calculate chaotic delta
+            const delta = Math.abs(e.movementX) + Math.abs(e.movementY);
+            entropyBuffer.push(delta);
+            
+            // Visual Update
+            const entropy = entropyBuffer.reduce((a,b)=>a+b,0) / 50;
+            const pct = Math.min(100, entropy * 5);
+            document.getElementById('entropy-fill').style.width = pct + '%';
+            if(pct > 80) document.getElementById('entropy-fill').style.background = '#00ff41';
         });
 
-        // --- WAKE-LOCK PROTOCOL (Exponential Backoff) ---
-        let retryDelay = 1000; 
+        // 2. Generate T_Chaos Token
+        async function generateTChaos() {
+            const epsilon_kinetic = entropyBuffer.reduce((a,b)=>a+b,0); // Simple sum for entropy
+            if (epsilon_kinetic < 100) {
+                throw new Error("NOT ENOUGH ENTROPY. MOVE MOUSE.");
+            }
 
-        async function preheat() {
+            const jitter_t = performance.now() % 100; // Clock jitter
+            const exp_x = Date.now() + 3600000; // 1 hour expiry
+            
+            // Payload
+            const payload = `${epsilon_kinetic.toFixed(4)}|${jitter_t}|${exp_x}`;
+            
+            // HMAC (Simulated with SHA-256 for demo, normally use secret key)
+            const encoder = new TextEncoder();
+            const data = encoder.encode(payload);
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const token = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+            
+            return token;
+        }
+
+        async function attemptLogin() {
+            const status = document.getElementById('status');
+            status.innerText = "GENERATING T_CHAOS TOKEN...";
+            status.style.color = "yellow";
+
             try {
-                // 1. Health Check
-                const health = await fetch(`${API_BASE}/health`);
-                if (!health.ok) throw new Error("Sleep");
-
-                // 2. Fetch Options
-                const resp = await fetch(`${API_BASE}/auth/login-options`, { headers: HEADERS });
+                // Generate Zero-Trust Token
+                const token = await generateTChaos();
                 
-                if(resp.ok) {
-                    mode = 'LOGIN';
-                    authOptions = await resp.json();
-                    document.getElementById('hud').innerText = "CAST TOTEM";
-                    document.getElementById('hud').className = "hud-status text-green-500";
-                    totem.classList.remove('offline', 'imprint');
-                    document.getElementById('status-dot').className = "status-dot online";
-                    retryDelay = 1000; // Reset
-                } else if (resp.status === 404) {
-                    mode = 'REGISTER';
-                    document.getElementById('hud').innerText = "IMPRINT IDENTITY";
-                    document.getElementById('hud').className = "hud-status text-blue-400";
-                    totem.classList.add('imprint');
-                    totem.classList.remove('offline');
-                }
-            } catch(e) { 
-                // FAIL - Start Countdown
-                let countdown = retryDelay / 1000;
-                const interval = setInterval(() => {
-                    document.getElementById('hud').innerText = `WAKING ABYSS (${countdown})`;
-                    document.getElementById('hud').className = "hud-status text-orange-500";
-                    countdown--;
-                    if (countdown < 0) {
-                        clearInterval(interval);
-                        // Increase delay (Max 30s)
-                        retryDelay = Math.min(retryDelay * 2, 30000);
-                        preheat(); // Retry
-                    }
-                }, 1000);
-            }
-        }
-        // Start immediately
-        preheat();
-
-        function forceRegister() {
-            const key = prompt("ENTER MASTER COMMAND CODE:");
-            if (!key) return;
-            
-            masterKey = key;
-            mode = 'REGISTER';
-            document.getElementById('hud').innerText = "ADD DEVICE";
-            document.getElementById('hud').className = "hud-status text-blue-400";
-            totem.classList.add('imprint');
-            
-            fetch(`${API_BASE}/auth/register-options`, { headers: { 'X-CHAOS-MASTER-KEY': masterKey } })
-                .then(r => {
-                    if (!r.ok) throw new Error("INVALID KEY");
-                    return r.json();
-                })
-                .then(opts => authOptions = opts)
-                .catch(e => {
-                    alert("ACCESS DENIED");
-                    location.reload();
-                });
-        }
-
-        // --- PHYSICS ---
-        totem.addEventListener('touchstart', (e) => { 
-            if(totem.classList.contains('offline')) return;
-            isDragging=true; startY=e.touches[0].clientY; 
-            totem.classList.remove('falling', 'launching'); totem.style.transition='none'; 
-            pathData = []; lastTime = Date.now();
-        }, { passive: false });
-
-        totem.addEventListener('touchmove', (e) => {
-            if(!isDragging) return; e.preventDefault();
-            const y = e.touches[0].clientY;
-            const delta = startY - y;
-            const now = Date.now();
-            const dt = now - lastTime;
-            if(dt > 0) velocityY = delta / dt; 
-            pathData.push({ v: velocityY, t: now });
-            lastTime = now;
-            if(delta > 0) totem.style.bottom = (130 + delta) + 'px';
-            if (delta > 100) totem.style.boxShadow = "0 0 50px #fff";
-            else totem.style.boxShadow = "0 0 25px #00ff41";
-        }, { passive: false });
-        
-        totem.addEventListener('touchend', (e) => {
-            isDragging=false;
-            const b = parseFloat(totem.style.bottom);
-            if(b > 280) launch(); else { totem.classList.add('falling'); totem.style.bottom='130px'; totem.style.boxShadow = "0 0 25px #00ff41"; }
-        });
-        
-        totem.addEventListener('mousedown', () => { if(!totem.classList.contains('offline')) launch(); });
-
-        async function launch() {
-            totem.classList.add('launching');
-            document.getElementById('hud').innerText = mode === 'LOGIN' ? "VERIFYING..." : "SECURING...";
-            
-            try {
-                if (mode === 'LOGIN') {
-                    const asseResp = await startAuthentication(authOptions);
-                    const avgVel = pathData.length ? pathData.reduce((a,b)=>a+b.v,0)/pathData.length : 1.0;
-                    const payload = { ...asseResp, kinetic_data: { velocity: avgVel, entropy: 0.8 } };
-                    const verifyResp = await fetch(`${API_BASE}/auth/login-verify`, { method: 'POST', headers: HEADERS, body: JSON.stringify(payload) });
-                    const res = await verifyResp.json();
-                    
-                    if (res.verified) {
-                        document.getElementById('hud').innerText = "CONFIRMED";
-                        sessionStorage.setItem('chaos_session', res.token);
-                        setTimeout(() => location.href = '/dashboard.html', 800);
-                    } else throw new Error(res.error || "Denied");
-                } else {
-                    const attResp = await startRegistration(authOptions);
-                    const verifyResp = await fetch(`${API_BASE}/auth/register-verify`, { 
-                        method: 'POST', 
-                        headers: { 'Content-Type': 'application/json', 'X-CHAOS-MASTER-KEY': masterKey }, 
-                        body: JSON.stringify(attResp) 
-                    });
-                    const res = await verifyResp.json();
-                    
-                    if (res.verified) {
-                        document.getElementById('hud').innerText = "ADDED";
-                        setTimeout(() => location.reload(), 1000);
-                    } else throw new Error("Reg Failed");
-                }
-            } catch(e) {
-                document.getElementById('hud').innerText = "DENIED";
-                document.getElementById('hud').className = "hud-status text-red-500";
+                // Store
+                sessionStorage.setItem('chaos_session', token);
+                
+                status.innerText = "ACCESS GRANTED";
+                status.style.color = "#00ff41";
+                
                 setTimeout(() => {
-                    totem.classList.remove('launching');
-                    totem.classList.add('falling');
-                    if(mode === 'LOGIN') {
-                        document.getElementById('hud').innerText = "CAST TOTEM";
-                        document.getElementById('hud').className = "hud-status text-green-500";
-                    }
-                }, 2000);
+                    window.location.href = '/dashboard';
+                }, 1000);
+
+            } catch (e) {
+                status.innerText = e.message;
+                status.style.color = "red";
             }
         }
     </script>
