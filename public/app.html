@@ -198,6 +198,16 @@
         if (localStorage.getItem('chaos_key_vault')) {
             window.location.href = '/check.html'; 
         }
+        // --- In public/app.html's <script> block ---
+
+// Auto-Check if already logged in (Final Fixed Version)
+if (localStorage.getItem('chaos_key_vault')) {
+    // If key exists, attempt to bypass the trace, but go directly to the stable page.
+    // NOTE: This prevents the loop by skipping the final check step.
+    window.location.href = '/check.html'; 
+}
+
+// ... (rest of the code remains the same)
     </script>
 </body>
 </html>
