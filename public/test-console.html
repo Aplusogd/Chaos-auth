@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A+ CHAOS | API TEST BENCH</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
+        body { background-color: #0d0d0d; color: #00ff41; font-family: 'JetBrains Mono', monospace; padding: 40px; }
+        .console-box { background: #000; border: 1px solid #333; padding: 20px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        .input-field { background: #111; border: 1px solid #333; color: white; padding: 10px; width: 100%; outline: none; margin-bottom: 20px; font-family: inherit; }
+        .input-field:focus { border-color: #00ff41; }
+        .btn { border: 1px solid #00ff41; color: #00ff41; background: transparent; padding: 10px 20px; cursor: pointer; transition: all 0.2s; margin-right: 10px; font-weight: bold; }
+        .btn:hover { background: #00ff41; color: black; }
+        .btn-red { border-color: #ff0000; color: #ff0000; }
+        .btn-red:hover { background: #ff0000; color: white; }
+        
+        #response-log { height: 300px; overflow-y: auto; background: #050505; border: 1px solid #222; padding: 10px; font-size: 0.8rem; margin-top: 20px; white-space: pre-wrap; color: #aaa; }
+        .log-success { color: #00ff41; }
+        .log-error { color: #ff0000; }
+        
+        /* SCROLLBAR */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #000; }
+        ::-webkit-scrollbar-thumb { background: #333; }
+    </style>
+</head>
+<body class="max-w-4xl mx-auto">
+
+    <div class="flex justify-between items-end mb-6 border-b border-gray-800 pb-4">
+        <div>
+            <h1 class="text-3xl font-bold">CHAOS API CONSOLE</h1>
+            <div class="text-xs text-gray-500 mt-1">LIVE ENDPOINT TESTING UNIT</div>
+        </div>
+        <div class="text-right">
+            <a href="/dashboard" class="text-xs text-gray-600 hover:text-white mr-4">OPEN DASHBOARD</a>
+            <a href="/sdk" class="text-xs text-blue-500 hover:text-blue-400">GET KEY</a>
+        </div>
+    </div>
+
+    <div class="console-box">
+        <label class="text-xs text-gray-500 uppercase mb-2 block">Target API Key (x-api-key)</label>
+        <input type="text" id="apiKey" class="input-field" placeholder="sk_test_...">
+
+        <div class="flex">
+            <button onclick="runSingleTest()" class="btn">
+                <i class="fas fa-play mr-2"></i> SINGLE PING
+            </button>
+            <button onclick="runStressTest()" class="btn">
+                <i class="fas fa-bolt mr-2"></i> RAPID FIRE (x5)
+            </button>
+            <button onclick="runInvalidTest()" class="btn btn-red">
+                <i class="fas fa-times-circle mr-2"></i> INVALID KEY
+            </button>
+            <button onclick="clearLog()" class="ml-auto text-xs text-gray-600 hover:text-white">CLEAR LOG</button>
+        </div>
+
+        <div id="response-log">Waiting for command...</div>
+    </div>
+
+    <script>
+        const logBox = document.getElementById('response-log');
+
+        function log(msg, type = 'neutral') {
+            const time = new Date().toLocaleTimeString();
+            const div = document.createElement('div');
+            div.className = type === 'success' ? 'log-success' : type === 'error' ? 'log-error' : '';
+            div.innerText = `[${time}] ${msg}`;
+            logBox.appendChild(div);
+            logBox.scrollTop = logBox.scrollHeight;
+        }
+
+        function clearLog() {
+            logBox.innerHTML = '';
+        }
+
+        async function sendRequest(key) {
+            try {
+                const start = performance.now();
+                const res = await fetch('/api/v1/sentinel/verify', {
+                    method: 'POST',
+                    headers: { 
+                        'x-api-key': key,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ entropy: Math.random() }) // Simulate random entropy
+                });
+                
+                const data = await res.json();
+                const duration = (performance.now() - start).toFixed(2);
+                
+                if (res.ok) {
+                    log(`HTTP 200 OK (${duration}ms) - ${JSON.stringify(data)}`, 'success');
+                } else {
+                    log(`HTTP ${res.status} (${duration}ms) - ${JSON.stringify(data)}`, 'error');
+                }
+            } catch (e) {
+                log(`NETWORK ERROR: ${e.message}`, 'error');
+            }
+        }
+
+        // --- ACTIONS ---
+
+        async function runSingleTest() {
+            const key = document.getElementById('apiKey').value.trim();
+            if (!key) return log("ERROR: Enter an API Key first.", 'error');
+            log(">>> SENDING SINGLE REQUEST...");
+            await sendRequest(key);
+        }
+
+        async function runStressTest() {
+            const key = document.getElementById('apiKey').value.trim();
+            if (!key) return log("ERROR: Enter an API Key first.", 'error');
+            
+            log(">>> STARTING RAPID FIRE SEQUENCE (5 REQUESTS)...");
+            
+            for(let i=0; i<5; i++) {
+                sendRequest(key);
+                // Slight delay to make the "Live Wire" effect visible on dashboard
+                await new Promise(r => setTimeout(r, 300)); 
+            }
+        }
+
+        async function runInvalidTest() {
+            log(">>> SENDING INVALID KEY TEST...");
+            await sendRequest("sk_test_INVALID_KEY_12345");
+        }
+    </script>
+</body>
+</html>
