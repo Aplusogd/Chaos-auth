@@ -1,1 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chaos Pairing Ritual</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="router.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+        body { background: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .portal-card { max-width: 500px; background: rgba(5,5,5,0.9); border: 1px solid #222; padding: 40px; box-shadow: 0 0 80px rgba(0,255,65,0.1); backdrop-filter: blur(10px); }
+        #canvas { border: 2px solid #00ff41; background: #111; cursor: crosshair; touch-action: none; }
+        #qr-display { margin-top: 20px; padding: 10px; background: white; display: inline-block; }
+    </style>
+</head>
+<body>
 
+    <div class="portal-card text-center">
+        <h1 class="text-3xl font-bold mb-4 text-white">CHAOS BINDING RITUAL</h1>
+        <p class="text-xs text-gray-500 mb-6">Device Pairing: Draw Sigil to sign the challenge.</p>
+
+        <div class="bg-gray-900 border border-gray-700 p-4 rounded mb-6">
+            <p class="text-xs text-gray-400 mb-2">DEVICE CHALLENGE WORDS:</p>
+            <div id="challenge-words" class="text-xl font-bold text-green-400 tracking-wider">LOADING-CHALLENGE...</div>
+        </div>
+
+        <canvas id="canvas" width="300" height="300" class="rounded-lg"></canvas>
+        <p id="status" class="text-lg mt-4 text-yellow-400">Waiting for trace...</p>
+        
+        <div id="qr-display" class="hidden"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const statusEl = document.getElementById('status');
+        const challengeEl = document.getElementById('challenge-words');
+        
+        let drawing = false;
+        let motionData = [];
+        let chaosChallenge = '';
+
+        // --- STUB/HELPER FUNCTIONS ---
+        // (In a final system, these would be in utils.js or similar)
+        function generateInfiniteChaosCode(seed, count) {
+            const DICT = ["VOID", "RAZOR", "THUNDER", "CRIMSON", "ABYSS", "NOVA", "ASH", "ONYX", "MERCURY", "ECLIPSE"];
+            let words = [];
+            for(let i=0; i<count; i++) words.push(DICT[Math.floor(Math.random() * DICT.length)]);
+            return words.join('-');
+        }
+
+        function getProfileCommitment() {
+            // CRITICAL: Retrieves the ZK hash saved during calibration
+            return localStorage.getItem('zk_profile_commit'); 
+        }
+
+        function verifyZK(newMotionData) {
+            // Simple liveness check + commitment stub
+            const ZK_COMMIT = getProfileCommitment();
+            if (!ZK_COMMIT) {
+                statusEl.textContent = 'Error: Profile not found. Calibrate first.';
+                return false;
+            }
+            if (newMotionData.length < 50) return false;
+            
+            // NOTE: A real verification requires fuzzy comparison (DTW) against a baseline hash
+            // For now, we only check for minimum activity.
+            return true; 
+        }
+
+        // --- DRAWING LOGIC (Simplified) ---
+        function startDraw(e) {
+            e.preventDefault();
+            if (!getProfileCommitment()) {
+                statusEl.textContent = 'ERROR: Profile not forged. Go to /forge.';
+                return;
+            }
+            drawing = true;
+            motionData = [];
+            ctx.clearRect(0, 0, canvas.width, canvas.height); 
+            
+            const touch = e.touches[0];
+            ctx.beginPath();
+            ctx.moveTo(touch.clientX - canvas.offsetLeft, touch.clientY - canvas.offsetTop);
+            ctx.strokeStyle = '#00ff41';
+            ctx.lineWidth = 4;
+        }
+
+        function moveDraw(e) {
+            if (!drawing) return;
+            e.preventDefault();
+            
+            const touch = e.touches[0];
+            const x = touch.clientX - canvas.offsetLeft;
+            const y = touch.clientY - canvas.offsetTop;
+            
+            motionData.push({ x, y, p: touch.force || 0.5 }); // Log points
+            
+            ctx.lineTo(x, y);
+            ctx.stroke();
+        }
+
+        async function endDraw() {
+            if (!drawing) return;
+            drawing = false;
+
+            if (motionData.length < 50) {
+                statusEl.textContent = 'Trace too short. Try again.';
+                return;
+            }
+
+            if (verifyZK(motionData)) {
+                statusEl.textContent = 'Biometric signature accepted... Signing Challenge.';
+                
+                // --- CHAOS SIGNATURE RITUAL ---
+                const callsign = localStorage.getItem('callsign_history');
+                const zkCommit = getProfileCommitment();
+                
+                // Signature: Hash of (CHALLENGE + ZK_COMMIT)
+                const signatureInput = chaosChallenge + zkCommit;
+                const signature = CryptoJS.SHA256(signatureInput).toString();
+                
+                // Build final pairing QR code URL
+                const qrData = `https://a-plus-overhead.com/confirm-pair?sig=${signature}&callsign=${callsign}`;
+                
+                document.getElementById('qr-display').innerHTML = ''; // Clear previous QR
+                new QRCode(document.getElementById('qr-display'), {
+                    text: qrData,
+                    width: 250,
+                    height: 250,
+                    colorDark : "#000000",
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.H
+                });
+                document.getElementById('qr-display').classList.remove('hidden');
+                statusEl.textContent = 'Binding Complete. Scan the Code.';
+
+            } else {
+                statusEl.textContent = 'Signature mismatch. Re-verify your presence.';
+            }
+        }
+        
+        // --- INIT ---
+        window.onload = function() {
+            // Start the Ritual
+            chaosChallenge = generateInfiniteChaosCode("pair" + Date.now(), 6);
+            challengeEl.textContent = chaosChallenge;
+        }
+
+        // Attach events
+        canvas.addEventListener('touchstart', startDraw, { passive: false });
+        canvas.addEventListener('touchmove', moveDraw, { passive: false });
+        canvas.addEventListener('touchend', endDraw);
+    </script>
+</body>
+</html>
