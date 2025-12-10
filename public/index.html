@@ -202,3 +202,144 @@
 
         // --- SENTINEL INITIALIZATION AND SCROLL DATA CAPTURE ---
         const SCROLL_DATA = {
+            times: [],   
+            velocity: [], 
+            lastY: 0,
+            lastT: Date.now()
+        };
+
+        function captureScrollData() {
+            if (document.hidden) return; // Ignore input if tab is hidden
+
+            const now = Date.now();
+            const y = window.scrollY;
+            const dt = now - SCROLL_DATA.lastT;
+            const dy = y - SCROLL_DATA.lastY;
+            
+            if (Math.abs(dy) > 0 && dt > 0) {
+                const velocity = Math.abs(dy / dt);
+                
+                SCROLL_DATA.times.push(dt);
+                SCROLL_DATA.velocity.push(velocity);
+                
+                if (SCROLL_DATA.times.length > 20) {
+                    SCROLL_DATA.times.shift();
+                    SCROLL_DATA.velocity.shift();
+                }
+            }
+            SCROLL_DATA.lastY = y;
+            SCROLL_DATA.lastT = now;
+        }
+
+        window.addEventListener('scroll', captureScrollData, { passive: true });
+        window.addEventListener('mousemove', captureScrollData, { passive: true });
+
+        // --- MICRO-AUDIT HEARTBEAT (Runs every 250ms) ---
+        const SENTINEL_CONFIG = {
+            // FORGIVENESS INCREASED: Allows more entropy (messiness) for human inputs
+            THRESHOLD_VARIANCE: 0.00005,  // Was 0.005. Only punish extreme perfection.
+            THRESHOLD_PATTERN: 10,        // Was 15. More forgiveness for slight timing errors.
+            
+            SPIKE_THRESHOLD_MS: 2,
+            SPIKE_DISTANCE: 100,
+        };
+        let trustScore = 100;
+        
+        function calculateVariance(arr) {
+            if (arr.length < 2) return 999;
+            const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+            return arr.reduce((sq, n) => sq + Math.pow(n - mean, 2), 0) / arr.length;
+        }
+
+        function runMicroAudit() {
+            // Check 1: IDLE STATE (Longer timeout for human reading)
+            if (Date.now() - SCROLL_DATA.lastT > 1500) { // 1.5 seconds
+                updateHUD(trustScore, "IDLE");
+                return;
+            }
+
+            // Check 2: VELOCITY SPIKE TRAP
+            const lastDt = SCROLL_DATA.times[SCROLL_DATA.times.length - 1] || 999;
+            const lastDy = Math.abs(window.scrollY - SCROLL_DATA.lastY) || 0;
+            
+            if (lastDt < SENTINEL_CONFIG.SPIKE_THRESHOLD_MS && lastDy > SENTINEL_CONFIG.SPIKE_DISTANCE) {
+                lockout('SPIKE_TRAP');
+                return;
+            }
+
+            // --- BOT DETECTION RULES (Active only if buffer is full enough) ---
+            if (SCROLL_DATA.velocity.length >= 10) {
+                const velocityVariance = calculateVariance(SCROLL_DATA.velocity);
+                const timeVariance = calculateVariance(SCROLL_DATA.times);
+                
+                let isBot = false;
+                let lastProbe = "ACTIVE";
+
+                // RULE 1: Too Smooth (Punish Extreme Perfection)
+                if (velocityVariance < SENTINEL_CONFIG.THRESHOLD_VARIANCE) {
+                    isBot = true;
+                    lastProbe = "PERFECTION_VELOCITY";
+                }
+                
+                // RULE 2: Too Regular (Punish Robot Timing)
+                if (timeVariance < SENTINEL_CONFIG.THRESHOLD_PATTERN) {
+                    isBot = true;
+                    lastProbe = "PATTERN_TIME";
+                }
+
+                if (isBot) {
+                    trustScore = Math.max(0, trustScore - 5); // Reduced Penalty (was 20)
+                } else {
+                    trustScore = Math.min(100, trustScore + 1);
+                }
+            }
+
+            if (trustScore <= 0) {
+                lockout("KINETIC_DECAY");
+                return;
+            }
+
+            updateHUD(trustScore, "ACTIVE");
+        }
+
+        function lockout(reason) {
+            clearInterval(window.auditInterval);
+            document.getElementById('bot-lockout').style.display = 'flex';
+            // Log failure to server
+            navigator.sendBeacon('/api/chaos-log', JSON.stringify({ reason: reason, score: trustScore }));
+            window.removeEventListener('scroll', captureScrollData);
+            window.removeEventListener('mousemove', captureScrollData);
+        }
+
+        function updateHUD(score, state) {
+            hudFill.style.width = score + '%';
+            hudPct.innerText = Math.floor(score) + '%';
+            hudState.innerText = state;
+
+            if (score > 40) {
+                hudStatus.innerText = "VERIFIED";
+                hudStatus.style.color = "#00ff41";
+                hudFill.style.background = "#00ff41";
+            } else {
+                hudStatus.innerText = "THREAT";
+                hudStatus.style.color = "#ff0000";
+                hudFill.style.background = "#ff0000";
+            }
+        }
+
+        // --- STARTUP SEQUENCE ---
+        window.auditInterval = setInterval(runMicroAudit, 250);
+
+        window.onload = function() {
+            updateHUD(trustScore, "READY");
+            console.log(">>> Sentinel Micro-Audit V169 Initialized.");
+        };
+        
+        // Placeholder for demo functions
+        function runBenchmark() {
+            console.log("Triad Audit Simulated: CHAOS TRIAD PASS.");
+            document.getElementById('benchmark-result').innerText = ">> CHAOS TRIAD PASS: (Simulated)";
+        }
+    </script>
+</body>
+</html>
