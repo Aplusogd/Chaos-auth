@@ -82,7 +82,6 @@
             const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
             const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
             
-            // Draw the line segment
             ctx.beginPath();
             ctx.moveTo(x - (e.movementX || 0), y - (e.movementY || 0));
             ctx.lineTo(x, y);
@@ -118,7 +117,6 @@
         loginBtn.disabled = true; 
 
         // --- LOGIN & REDIRECT LOGIC ---
-
         async function getVerifiedData(key) {
             try {
                 const res = await fetch('/api/v1/sentinel/verify', { headers: { 'x-api-key': key } });
@@ -138,14 +136,12 @@
                 return;
             }
             
-            // 1. Determine Key
             let key = input;
             if (!input.toLowerCase().startsWith('sk_')) {
                 const cleanPhrase = input.toLowerCase().replace(/\s+/g, '-');
                 key = "sk_ghost_" + CryptoJS.SHA256(cleanPhrase + "INFINITE_ABYSS_2025").toString().substring(0,32);
             }
             
-            // 2. Check trace unless it is the Master Key
             if (chaosMetric < 500 && !key.toLowerCase().includes('sk_chaos')) {
                  msg.innerText = "PERFORM BIOMETRIC TRACE TO VERIFY.";
                  return;
@@ -154,7 +150,6 @@
             loginBtn.disabled = true;
             loginBtn.textContent = "VERIFYING IDENTITY...";
 
-            // 3. Self-Heal and Get Verified Data (The Pre-Flight Check)
             await registerWithServer(key, input, chaosMetric); 
             const verifiedData = await getVerifiedData(key);
 
@@ -165,7 +160,8 @@
                 
                 loginBtn.textContent = "ACCESS GRANTED";
                 setTimeout(() => {
-                    window.location.href = '/check.html'; // Direct, fast redirect
+                    // FINAL FAST ROUTE TO THE DASHBOARD
+                    window.location.href = '/check.html'; 
                 }, 500);
                 
             } else {
@@ -194,20 +190,10 @@
             }
         }
         
-        // Auto-Check if already logged in
+        // --- LOOP BREAKER FIX (Avoids looping back to login if key exists) ---
         if (localStorage.getItem('chaos_key_vault')) {
             window.location.href = '/check.html'; 
         }
-        // --- In public/app.html's <script> block ---
-
-// Auto-Check if already logged in (Final Fixed Version)
-if (localStorage.getItem('chaos_key_vault')) {
-    // If key exists, attempt to bypass the trace, but go directly to the stable page.
-    // NOTE: This prevents the loop by skipping the final check step.
-    window.location.href = '/check.html'; 
-}
-
-// ... (rest of the code remains the same)
     </script>
 </body>
 </html>
