@@ -23,12 +23,12 @@ app.get('/health', (req, res) => {
     res.status(200).send('OK');
 });
 
-// --- IN-MEMORY DATABASES (Phase 9 - Live Wire) ---
+// --- IN-MEMORY DATABASES (The Vault) ---
 const KeyVault = new Map();
 const RateLimit = new Map();
 const Clients = new Set(); 
 
-// --- SEED ADMIN KEY (Security Priority: Ensures YOU are never locked out) ---
+// --- SEED ADMIN KEY (Security Priority) ---
 const ADMIN_KEY = "sk_chaos_ee3aeaaaa3d193cee40bf7b2bc2e2432";
 KeyVault.set(ADMIN_KEY, { 
     key: ADMIN_KEY, 
@@ -37,7 +37,7 @@ KeyVault.set(ADMIN_KEY, {
     created: Date.now() 
 });
 
-// --- LIVE WIRE (Simplified event broadcast) ---
+// --- LIVE WIRE (Event broadcast stub) ---
 const LiveWire = {
     broadcast: (type, data) => {
         const payload = `data: ${JSON.stringify({ type, data, time: Date.now() })}\n\n`;
@@ -46,7 +46,7 @@ const LiveWire = {
 };
 
 // ==================================================================
-// API ROUTES (Self-Healing / Verification)
+// API ROUTES (Functional Core)
 // ==================================================================
 
 // 1. ADMIN VERIFY (Used for auto-login/session check)
@@ -56,11 +56,10 @@ app.post('/api/admin/verify', (req, res) => {
     else res.status(401).json({ valid: false });
 });
 
-// 2. GHOST REGISTER (Used for Callsign creation AND Self-Healing Login)
+// 2. GHOST REGISTER (Used for Callsign creation AND Self-Healing Login/Trace Verification)
 app.post('/api/auth/ghost-register', (req, res) => {
     const { alias, chaos_metric, provided_key } = req.body;
     
-    // Minimal anti-bot check
     if (!chaos_metric || chaos_metric === 0) {
         return res.status(403).json({ error: "BIOMETRIC_FAIL" });
     }
@@ -71,7 +70,7 @@ app.post('/api/auth/ghost-register', (req, res) => {
     res.json({ success: true, key: ghostKey });
 });
 
-// 3. SENTINEL VERIFY (Used by check.html to pull rank/trust score)
+// 3. SENTINEL VERIFY (Used by Sanctuary/check.html to pull rank/trust score)
 app.post('/api/v1/sentinel/verify', (req, res) => {
     const apiKey = req.headers['x-api-key'];
     if (!apiKey || !KeyVault.has(apiKey)) return res.status(401).json({ error: "INVALID_KEY", status: "DENIED" });
@@ -93,29 +92,23 @@ app.post('/api/v1/sentinel/verify', (req, res) => {
 });
 
 // ==================================================================
-// ROUTING (Deep Think: Mapping the 3 Files)
+// ROUTING (Final Sorted Map)
 // ==================================================================
 
-// 1. LANDING PAGE
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public/index.html')));
-
-// 2. CREATION PAGE (Chaos Forge)
-app.get('/abyss.html', (req, res) => res.sendFile(path.join(__dirname, 'public/abyss.html')));
-
-// 3. LOGIN PAGE (Biometric Trace Login)
-app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public/app.html')));
-
+// --- CORE USER FLOW ---
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public/index.html'))); // Landing Page (Selector)
+app.get('/abyss.html', (req, res) => res.sendFile(path.join(__dirname, 'public/abyss.html'))); // Callsign CREATION (3-Word Generator)
+app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public/app.html'))); // Login Page (Biometric Trace)
 
 // --- POST-LOGIN PAGES ---
-app.get('/abyss-forge.html', (req, res) => res.sendFile(path.join(__dirname, 'public/abyss-forge.html'))); // Sigil Calibration/Training
-app.get('/abyss-search.html', (req, res) => res.sendFile(path.join(__dirname, 'public/abyss-search.html'))); // Loading Screen
 app.get('/check.html', (req, res) => res.sendFile(path.join(__dirname, 'public/check.html'))); // Sanctuary Dashboard
+app.get('/abyss-forge.html', (req, res) => res.sendFile(path.join(__dirname, 'public/abyss-forge.html'))); // Biometric Calibration/Training (Optional Link)
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public/dashboard.html'))); // Admin Dashboard (Original name)
 
 
 // --- START SERVER ---
 // Binding to 0.0.0.0 is crucial for external cloud access
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`⚡ A+ CHAOS CORE V218 ONLINE`);
+    console.log(`⚡ A+ CHAOS CORE V219 ONLINE`);
     console.log(`📡 LISTENING ON PORT ${PORT} (Admin Key Secure)`);
 });
