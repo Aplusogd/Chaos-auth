@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SEARCHING THE ABYSS</title>
+    <title>A+ SANCTUARY BRIDGE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -20,74 +20,32 @@
             justify-content: center;
             overflow: hidden;
         }
-
-        #search-text {
-            height: 1.5em; 
-            font-size: 1.2rem;
-            letter-spacing: 2px;
-            font-weight: 700;
-        }
-
-        .dots span {
-            animation: blink 1.5s infinite;
-        }
-        .dots span:nth-child(2) { animation-delay: 0.5s; }
-        .dots span:nth-child(3) { animation-delay: 1s; }
-        
-        @keyframes blink {
-            0%, 100% { opacity: 0.2; }
-            50% { opacity: 1; }
-        }
     </style>
 </head>
 <body>
 
     <div class="text-center">
-        <i class="fas fa-search fa-spin text-4xl text-green-500 mb-4"></i>
-        <div id="search-text" class="text-green-500 mb-4"></div>
-        <div class="text-xs text-gray-500 dots">
-            UPLINK ESTABLISHED <span>.</span><span>.</span><span>.</span>
-        </div>
-        <div class="mt-8 text-xs text-gray-700" id="timer">Redirecting in 3s...</div>
+        <i class="fas fa-link fa-spin text-4xl text-green-500 mb-4"></i>
+        <div id="status-msg" class="text-green-500 mb-4 font-bold tracking-wider">SYNCHRONIZING SECURE SESSION...</div>
+        <div class="text-xs text-gray-500 mt-2">Performing Final Pre-Flight Check</div>
     </div>
 
     <script>
-        const TEXTS = [
-            "SCANNING SENTINEL LOGS",
-            "DECRYPTING CALLSIGN SEED",
-            "CALCULATING TRUST MATRIX",
-            "ALIGNING QUANTUM ENTROPY",
-            "FETCHING SANCTUARY DATA"
-        ];
-        let index = 0;
-        const textElement = document.getElementById('search-text');
-        const timerElement = document.getElementById('timer');
-        let countdown = 3;
-
-        function scramble() {
-            textElement.textContent = TEXTS[index];
-            index = (index + 1) % TEXTS.length;
-        }
-        
-        function updateTimer() {
-            countdown--;
-            if (countdown > 0) {
-                timerElement.textContent = `Redirecting in ${countdown}s...`;
-            } else {
-                // FINAL REDIRECT TO THE STABLE DASHBOARD
-                window.location.href = '/check.html'; 
+        window.onload = function() {
+            const userData = sessionStorage.getItem('verified_user_data');
+            
+            if (!userData) {
+                // If the data isn't here, something went wrong in login; force relogin.
+                window.location.href = '/login';
+                return;
             }
-        }
 
-        setInterval(scramble, 1000);
-        scramble();
-        
-        // Start countdown after 1 second of text display
-        setTimeout(() => {
-             updateTimer(); 
-             setInterval(updateTimer, 1000); 
-        }, 1000);
-        
+            // SUCCESS: Data exists. We are stable.
+            // Immediately redirect to the heavy dashboard.
+            setTimeout(() => {
+                window.location.href = '/check.html';
+            }, 500); // 500ms delay for visual stability and to ensure session write completes.
+        };
     </script>
 </body>
 </html>
