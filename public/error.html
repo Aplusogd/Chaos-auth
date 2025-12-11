@@ -1,25 +1,47 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Abyss Alert</title>
+    <meta charset="UTF-8">
+    <title>Abyss Error</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="chaos-sdk.js"></script> <style>
-        body { background: #000; color: #ff4141; font-family: 'JetBrains Mono', monospace; text-align: center; padding: 50px; }
-        h1 { font-size: 2em; }
-        p { font-size: 1.2em; }
-        a { color: #00ff41; text-decoration: underline; margin-top: 20px; display: inline-block; }
+        body { background: #050000; color: #ff3333; font-family: monospace; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        .glitch-text { text-shadow: 2px 0 #fff, -2px 0 #00ff41; animation: noise 0.5s infinite linear alternate-reverse; }
+        @keyframes noise { 0% { opacity: 0.8; } 100% { opacity: 1; } }
     </style>
 </head>
 <body>
-<h1>THE ORACLE SPEAKS</h1>
-<div id="prophecy" style="font-size:3em;margin:50px;color:#00ff41;"></div>
-<script>
-    // Note: The logic in router.js adds the code parameter. This simply reads it.
-    if (typeof generateInfiniteChaosCode !== 'undefined') {
-        document.getElementById('prophecy').textContent = generateInfiniteChaosCode("error"+Date.now(),3).join('-');
-    } else {
-         document.getElementById('prophecy').textContent = 'VOID-FATAL-ERROR';
-    }
-</script>
-<p>Return to the light → <a href="/">/</a></p>
+    <h1 class="text-6xl font-bold mb-4 glitch-text" id="error-code">404</h1>
+    
+    <div class="border border-red-900 bg-red-900 bg-opacity-20 p-8 rounded text-center max-w-lg">
+        <p class="text-xs text-red-400 mb-2">THE ORACLE SPEAKS:</p>
+        <div id="prophecy" class="text-2xl font-bold mb-6 tracking-widest text-white">
+            LOADING_ENTROPY...
+        </div>
+        <p class="text-sm text-red-500">The path you seek has collapsed.</p>
+    </div>
+
+    <div class="mt-8">
+        <a href="/" class="text-gray-500 hover:text-white transition border-b border-gray-700 hover:border-white pb-1">
+            Return to the Source
+        </a>
+    </div>
+
+    <script>
+        // 1. Get Error Code from URL (e.g., ?code=404)
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code') || 'VOID';
+        document.getElementById('error-code').innerText = code;
+
+        // 2. Generate Chaos Prophecy
+        if (typeof generateInfiniteChaosCode !== 'undefined') {
+            const seed = "ERROR" + code + Date.now();
+            const words = generateInfiniteChaosCode(seed, 3); // From chaos-sdk.js
+            document.getElementById('prophecy').innerText = words.join(' - ');
+        } else {
+            // Fallback if SDK fails
+            document.getElementById('prophecy').innerText = "SYSTEM_FAILURE - REALITY_LOST";
+        }
+    </script>
 </body>
 </html>
