@@ -10,6 +10,17 @@
         body { background: #000; color: #e5e5e5; font-family: monospace; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         canvas { background: #080808; border: 2px solid #333; border-radius: 8px; touch-action: none; margin-bottom: 20px; }
         input { -webkit-appearance: none; border-radius: 0; }
+        
+        /* The Link Box Style */
+        .link-box {
+            display: block; width: 100%; text-align: center;
+            padding: 14px; border-radius: 8px;
+            font-weight: 700; text-decoration: none;
+            border: 1px solid rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.05);
+            color: #aaa; transition: all 0.2s;
+        }
+        .link-box:hover { background: rgba(255,255,255,0.1); color: #fff; border-color: #fff; }
     </style>
 </head>
 <body class="p-6">
@@ -25,22 +36,23 @@
 
         <div class="mb-6 text-center">
             <label class="block text-gray-500 text-xs mb-2 text-left">TRACE SIGIL KEY</label>
-            <div class="relative inline-block">
-                <canvas id="canvas" width="320" height="240"></canvas>
+            <div class="relative inline-block w-full">
+                <canvas id="canvas" width="320" height="240" class="w-full"></canvas>
                 <div class="absolute top-2 right-2 text-xs text-gray-600">SECURE</div>
             </div>
         </div>
 
-        <button onclick="login()" id="btn" class="w-full bg-white text-black font-black text-xl py-4 rounded shadow hover:bg-gray-200 transition">
+        <button onclick="login()" id="btn" class="w-full bg-white text-black font-black text-xl py-4 rounded shadow hover:bg-gray-200 transition mb-6">
             VERIFY ACCESS
         </button>
         
-        <div class="mt-6 text-center">
-            <a href="/abyss.html" class="text-sm text-gray-600 underline">Lost? Re-Forge Identity</a>
-        </div>
+        <a href="/abyss.html" class="link-box text-sm">
+            LOST? RE-FORGE IDENTITY
+        </a>
     </div>
 
     <script>
+        // ... (Same Script Logic as Before) ...
         // Pre-fill
         if(localStorage.getItem('callsign_history')) {
             document.getElementById('callsign').value = localStorage.getItem('callsign_history');
@@ -53,6 +65,8 @@
         let isDrawing = false;
         let points = 0;
 
+        // Resize canvas for better mobile fit logic could go here, but fixed 320 is safe for most phones
+        
         function drawGuide() {
             ctx.strokeStyle = '#111'; // Very faint guide
             ctx.lineWidth = 8;
@@ -73,7 +87,11 @@
             e.preventDefault();
             const t = e.touches ? e.touches[0] : e;
             const r = canvas.getBoundingClientRect();
-            ctx.lineTo(t.clientX - r.left, t.clientY - r.top);
+            // Scaling logic for touch coordinates vs canvas internal size
+            const scaleX = canvas.width / r.width;
+            const scaleY = canvas.height / r.height;
+            
+            ctx.lineTo((t.clientX - r.left)*scaleX, (t.clientY - r.top)*scaleY);
             ctx.strokeStyle = '#00ff41'; ctx.lineWidth = 3; ctx.stroke();
             points++;
         }
@@ -86,13 +104,10 @@
 
         function login() {
             const val = document.getElementById('callsign').value;
-            // Simple validation: Needs text + >30 draw points
             if(!val || points < 30) {
                 alert("Identity Mismatch. Trace the key properly.");
                 return;
             }
-
-            // Success
             localStorage.setItem('chaos_key_vault', 'valid');
             localStorage.setItem('session_start', Date.now());
             document.getElementById('btn').textContent = "UNLOCKING...";
