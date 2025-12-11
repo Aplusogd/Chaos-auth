@@ -4,130 +4,93 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Home Base</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="router.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
     <style>
-        body { 
-            background: #0f172a; /* Slate 900 - Deep Blue/Black */
-            color: #e2e8f0; 
-            font-family: 'Inter', sans-serif; 
-            min-height: 100vh;
+        body { background: #0f172a; color: #fff; font-family: sans-serif; padding-bottom: 100px; }
+        
+        .card-btn {
+            display: flex; align-items: center; justify-content: space-between;
+            background: #1e293b; border: 1px solid #334155;
+            padding: 24px; border-radius: 16px; margin-bottom: 16px;
+            transition: transform 0.1s;
         }
-        /* Glassmorphism Card Style */
-        .glass-card {
-            background: rgba(30, 41, 59, 0.7); /* Slate 800 */
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(148, 163, 184, 0.1);
-            border-radius: 16px;
-            transition: transform 0.2s, background 0.2s;
+        .card-btn:active { transform: scale(0.98); background: #334155; }
+        
+        .icon-box {
+            width: 50px; height: 50px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center; font-size: 24px;
         }
-        .glass-card:active { transform: scale(0.98); background: rgba(30, 41, 59, 0.9); }
     </style>
 </head>
-<body class="p-6 pb-24">
+<body class="p-6">
 
-    <header class="flex justify-between items-center mb-8 pt-4">
+    <div class="flex justify-between items-center mb-8">
         <div>
-            <p class="text-slate-400 text-sm font-medium">WELCOME HOME,</p>
-            <h1 id="user-id" class="text-2xl font-bold text-white tracking-tight">OPERATOR</h1>
+            <div class="text-xs text-slate-400 font-bold tracking-widest">OPERATOR</div>
+            <div class="text-2xl font-black" id="user-id">UNKNOWN</div>
         </div>
-        <div class="glass-card w-12 h-12 flex items-center justify-center relative">
-            <i class="fas fa-user text-slate-300"></i>
-            <div class="absolute top-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-slate-900 animate-pulse"></div>
+        <div class="bg-green-900/30 text-green-400 px-3 py-1 rounded text-xs font-mono border border-green-900">
+            SECURE
         </div>
-    </header>
-
-    <section class="glass-card p-6 mb-8 bg-gradient-to-br from-indigo-900 to-slate-900 border-indigo-500/30">
-        <div class="flex justify-between items-start">
-            <div>
-                <h2 class="text-indigo-200 text-xs font-bold tracking-widest mb-1">SESSION ACTIVE</h2>
-                <div class="text-3xl font-bold text-white font-mono" id="session-timer">00:00</div>
-            </div>
-            <i class="fas fa-shield-alt text-3xl text-indigo-400 opacity-50"></i>
-        </div>
-        <div class="mt-4 flex gap-3">
-            <button onclick="extendSession()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition w-full">
-                Extend Time
-            </button>
-        </div>
-    </section>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        
-        <a href="/sdk" class="glass-card p-6 flex items-center gap-4 group">
-            <div class="w-12 h-12 rounded-full bg-teal-900/50 flex items-center justify-center group-hover:bg-teal-500 transition">
-                <i class="fas fa-book-open text-teal-400 group-hover:text-white text-xl"></i>
-            </div>
-            <div>
-                <h3 class="font-bold text-lg text-white">Dreams</h3>
-                <p class="text-sm text-slate-400">Protocols & Knowledge</p>
-            </div>
-        </a>
-
-        <a href="/search" class="glass-card p-6 flex items-center gap-4 group">
-            <div class="w-12 h-12 rounded-full bg-blue-900/50 flex items-center justify-center group-hover:bg-blue-500 transition">
-                <i class="fas fa-search text-blue-400 group-hover:text-white text-xl"></i>
-            </div>
-            <div>
-                <h3 class="font-bold text-lg text-white">Black Box</h3>
-                <p class="text-sm text-slate-400">Search Archives</p>
-            </div>
-        </a>
-
-        <a href="/pair" class="glass-card p-6 flex items-center gap-4 group">
-            <div class="w-12 h-12 rounded-full bg-purple-900/50 flex items-center justify-center group-hover:bg-purple-500 transition">
-                <i class="fas fa-plug text-purple-400 group-hover:text-white text-xl"></i>
-            </div>
-            <div>
-                <h3 class="font-bold text-lg text-white">Bind Plug</h3>
-                <p class="text-sm text-slate-400">Hardware Integration</p>
-            </div>
-        </a>
-
-        <a href="/admin" class="glass-card p-6 flex items-center gap-4 group border-red-900/30">
-            <div class="w-12 h-12 rounded-full bg-red-900/20 flex items-center justify-center group-hover:bg-red-600 transition">
-                <i class="fas fa-radiation text-red-500 group-hover:text-white text-xl"></i>
-            </div>
-            <div>
-                <h3 class="font-bold text-lg text-red-100">The Abyss</h3>
-                <p class="text-sm text-red-400/60">Admin Overwatch</p>
-            </div>
-        </a>
-
     </div>
 
-    <div class="fixed bottom-6 left-0 w-full px-6">
-        <a href="/logout" class="block w-full glass-card py-4 text-center text-red-400 font-bold hover:bg-red-900/40 hover:text-red-200 transition">
-            <i class="fas fa-lock mr-2"></i> SEAL SESSION
+    <h2 class="text-xs text-slate-500 mb-4 ml-1">COMMAND DECK</h2>
+    
+    <a href="/pair" class="card-btn group">
+        <div class="flex items-center gap-4">
+            <div class="icon-box bg-purple-500/20 text-purple-400"><i class="fas fa-plug"></i></div>
+            <div>
+                <div class="font-bold text-lg">Bind Device</div>
+                <div class="text-slate-400 text-xs">Sync Hardware Plug</div>
+            </div>
+        </div>
+        <i class="fas fa-chevron-right text-slate-600"></i>
+    </a>
+
+    <a href="/search" class="card-btn group">
+        <div class="flex items-center gap-4">
+            <div class="icon-box bg-blue-500/20 text-blue-400"><i class="fas fa-search"></i></div>
+            <div>
+                <div class="font-bold text-lg">Black Box</div>
+                <div class="text-slate-400 text-xs">Search Archives</div>
+            </div>
+        </div>
+        <i class="fas fa-chevron-right text-slate-600"></i>
+    </a>
+
+    <a href="/sdk" class="card-btn group">
+        <div class="flex items-center gap-4">
+            <div class="icon-box bg-teal-500/20 text-teal-400"><i class="fas fa-book"></i></div>
+            <div>
+                <div class="font-bold text-lg">Protocols</div>
+                <div class="text-slate-400 text-xs">Read Documentation</div>
+            </div>
+        </div>
+        <i class="fas fa-chevron-right text-slate-600"></i>
+    </a>
+
+    <h2 class="text-xs text-red-900/60 mb-4 ml-1 mt-8">RESTRICTED</h2>
+    
+    <a href="/admin" class="card-btn border-red-900/30 bg-red-900/10">
+        <div class="flex items-center gap-4">
+            <div class="icon-box bg-red-500/20 text-red-500"><i class="fas fa-shield-alt"></i></div>
+            <div>
+                <div class="font-bold text-lg text-red-100">The Abyss</div>
+                <div class="text-red-400/50 text-xs">Admin Overwatch</div>
+            </div>
+        </div>
+    </a>
+
+    <div class="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-slate-900 to-transparent">
+        <a href="/logout" class="block w-full bg-slate-800 text-red-400 text-center font-bold py-4 rounded-xl border border-slate-700 hover:bg-slate-700 transition">
+            SEAL SESSION
         </a>
     </div>
 
     <script>
-        // Personalize Header
-        const callsign = localStorage.getItem('callsign_history') || 'OPERATOR';
-        document.getElementById('user-id').innerText = callsign;
-
-        // Session Logic
-        let start = parseInt(localStorage.getItem('session_start') || Date.now());
-        
-        function updateTimer() {
-            const elapsed = Date.now() - start;
-            const min = Math.floor(elapsed / 60000);
-            const sec = Math.floor((elapsed % 60000) / 1000).toString().padStart(2,'0');
-            document.getElementById('session-timer').innerText = `${min}:${sec}`;
-        }
-        
-        function extendSession() {
-            start = Date.now();
-            localStorage.setItem('session_start', start);
-            updateTimer();
-        }
-
-        setInterval(updateTimer, 1000);
-        updateTimer();
+        document.getElementById('user-id').innerText = localStorage.getItem('callsign_history') || 'OPERATOR';
     </script>
 </body>
 </html>
