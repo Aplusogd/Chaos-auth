@@ -1,6 +1,5 @@
 #ifndef CHAOS_SDK_H
 #define CHAOS_SDK_H
-
 #include <Arduino.h>
 #include <SPIFFS.h>
 #include <Crypto.h> // Assuming a library like CryptoSuite/Sha256 (built-in in newer ESP32 cores)
