@@ -3,73 +3,181 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A+ CHAOS CORE | SYSTEM OVERVIEW</title>
+    <title>A+ CHAOS CORE</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="router.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap');
-        
-        body { background-color: #000; color: #e5e5e5; font-family: 'Inter', sans-serif; overflow-x: hidden; }
-        .font-mono { font-family: 'JetBrains Mono', monospace; }
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
 
-        .hero-section {
-            position: relative; height: 100vh; display: flex; align-items: center; justify-content: center;
-            background: radial-gradient(circle at 50% 50%, #0a1a0a 0%, #000 100%);
-            overflow: hidden;
-        }
-        .grid-overlay {
-            position: absolute; inset: 0; 
-            background-image: linear-gradient(rgba(0, 255, 65, 0.03) 1px, transparent 1px),
-                              linear-gradient(90deg, rgba(0, 255, 65, 0.03) 1px, transparent 1px);
-            background-size: 50px 50px;
-            mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
-        }
+    <style>
+        body { background-color: #030303; color: #e5e5e5; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .accent { color: #00ff41; }
+        .gradient-text { background: linear-gradient(90deg, #fff, #888); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         
-        .gradient-text {
-            background: linear-gradient(to right, #fff, #4ade80);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        /* Subtle Grid Background */
+        .bg-grid {
+            background-image: linear-gradient(rgba(20,20,20,0.5) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(20,20,20,0.5) 1px, transparent 1px);
+            background-size: 40px 40px;
         }
+
+        /* The Living Line Animation */
+        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.4; pointer-events: none; }
     </style>
 </head>
-<body>
+<body class="bg-grid relative">
 
-    <nav class="absolute top-0 w-full flex justify-end items-center p-6 z-50">
-        <a href="/login" class="text-xs font-mono text-gray-500 hover:text-green-500 transition border border-gray-800 hover:border-green-800 px-4 py-2 rounded">
-            <i class="fas fa-terminal mr-2"></i>COMMAND ACCESS
+    <canvas id="chaos-bg"></canvas>
+
+    <nav class="flex justify-between items-center p-6 max-w-7xl mx-auto z-10 relative">
+        <div class="flex items-center gap-3">
+            <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+            <span class="font-bold tracking-wider text-sm">A+ CHAOS CORE // V245</span>
+        </div>
+        <a href="/login" class="text-sm font-bold hover:text-green-400 transition border border-gray-800 px-4 py-2 rounded hover:border-green-500">
+            ACCESS TERMINAL →
         </a>
     </nav>
 
-    <section class="hero-section">
-        <div class="grid-overlay"></div>
+    <main class="max-w-5xl mx-auto mt-20 px-6 z-10 relative">
+        <h1 class="text-6xl md:text-8xl font-black leading-tight mb-8">
+            SECURITY THAT <br>
+            <span class="accent">BREATHES.</span>
+        </h1>
         
-        <div class="relative z-10 text-center max-w-4xl px-4">
-            
-            <h1 class="text-6xl md:text-8xl font-black tracking-tighter mb-6 leading-none">
-                ORDER FROM <br><span class="gradient-text">CHAOS.</span>
-            </h1>
-            
-            <p class="text-lg text-gray-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-                We replace passwords with physics, using biometric inertia and cryptographic calls.
-            </p>
+        <p class="text-xl text-gray-400 max-w-2xl mb-12 leading-relaxed">
+            Passwords are static. They die. <br>
+            <strong class="text-white">ChaosID</strong> creates a living identity from your unique biometric entropy. 
+            No database to hack. No password to forget. Just you.
+        </p>
 
-            <div class="flex flex-col md:flex-row gap-6 justify-center">
-                
-                <a href="/login" class="bg-blue-600 text-black font-bold px-10 py-5 rounded-lg hover:bg-blue-500 transition shadow-[0_0_25px_rgba(66,153,225,0.4)] flex items-center justify-center gap-3 text-lg transform hover:scale-105">
-                    <i class="fas fa-user-lock"></i> ENTER THE ABYSS (Login)
-                </a>
-                
-                <a href="/forge" class="border border-green-700 text-green-300 font-bold px-10 py-5 rounded-lg hover:bg-green-700/20 transition flex items-center justify-center gap-3 text-lg transform hover:scale-105">
-                    <i class="fas fa-magic"></i> CHAOS FORGE (Create Callsign)
-                </a>
+        <div class="flex flex-col md:flex-row gap-4 mb-24">
+            <a href="/forge" class="bg-white text-black font-bold px-8 py-4 rounded text-center hover:bg-gray-200 transition">
+                FORGE CALLSIGN
+            </a>
+            <a href="/sdk" class="border border-gray-700 text-gray-400 font-bold px-8 py-4 rounded text-center hover:text-white hover:border-white transition">
+                READ THE PROTOCOL
+            </a>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-24">
+            
+            <div class="border-l border-gray-800 pl-6 py-2">
+                <div class="mono text-xs text-gray-500 mb-2">01. ENTROPY</div>
+                <h3 class="text-xl font-bold mb-2">You Are The Seed</h3>
+                <p class="text-sm text-gray-400">We capture micro-movements, timing, and device static to generate a seed that only exists in this moment.</p>
+            </div>
+
+            <div class="border-l border-gray-800 pl-6 py-2">
+                <div class="mono text-xs text-gray-500 mb-2">02. FORGING</div>
+                <h3 class="text-xl font-bold mb-2">The Callsign</h3>
+                <p class="text-sm text-gray-400">This entropy is crystallized into a 3-word Callsign (e.g., <span class="mono text-green-500">VOID-RAZOR-ASH</span>). This is your public face.</p>
+            </div>
+
+            <div class="border-l border-gray-800 pl-6 py-2">
+                <div class="mono text-xs text-gray-500 mb-2">03. ZERO KNOWLEDGE</div>
+                <h3 class="text-xl font-bold mb-2">No Data Stored</h3>
+                <p class="text-sm text-gray-400">We store a mathematical proof, not your data. To login, you simply re-create the chaos. If you match, the door opens.</p>
+            </div>
+
+        </div>
+
+        <div class="border border-gray-800 bg-gray-900 bg-opacity-30 rounded-lg p-8 mb-24 relative overflow-hidden">
+            <div class="absolute top-0 right-0 p-4 mono text-xs text-green-500 opacity-50">LIVE_ENTROPY_STREAM</div>
+            <h2 class="text-2xl font-bold mb-4">See The Chaos</h2>
+            <p class="text-gray-400 mb-6">Move your mouse or touch the screen. Watch how the raw data converts into a unique hash instantly.</p>
+            
+            <div class="mono bg-black p-4 rounded text-green-400 text-xs break-all" id="entropy-display">
+                WAITING_FOR_INPUT...
             </div>
         </div>
 
-    </section>
+    </main>
 
-    <footer class="py-4 text-center text-gray-700 text-xs fixed bottom-0 w-full bg-black/50">
-        &copy; 2025 A+ OVERHEAD GARAGE DOORS, LLC
+    <footer class="border-t border-gray-900 py-12 text-center text-gray-600 text-sm mono">
+        <p>A+ OVERHEAD GARAGE DOORS // SECURE DIVISION</p>
+        <p class="mt-2">SYSTEM_STATUS: <span class="text-green-500">ONLINE</span></p>
     </footer>
 
+    <script>
+        const cvs = document.getElementById('chaos-bg');
+        const ctx = cvs.getContext('2d');
+        const entropyDisplay = document.getElementById('entropy-display');
+        
+        let width, height;
+        let points = [];
+        
+        function resize() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            cvs.width = width;
+            cvs.height = height;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        // Mouse Tracker
+        document.addEventListener('mousemove', (e) => {
+            // Add a point to the living background
+            if(Math.random() > 0.5) {
+                points.push({ x: e.clientX, y: e.clientY, life: 100 });
+            }
+            
+            // Update the "Live Entropy" box
+            const raw = e.clientX + "." + e.clientY + "." + Date.now();
+            const hash = CryptoJS.SHA256(raw).toString().substring(0, 64);
+            entropyDisplay.innerText = `INPUT: ${raw}\nHASH:  ${hash}`;
+        });
+
+        // Touch Tracker
+        document.addEventListener('touchmove', (e) => {
+             const t = e.touches[0];
+             if(Math.random() > 0.5) {
+                points.push({ x: t.clientX, y: t.clientY, life: 100 });
+            }
+            const raw = t.clientX + "." + t.clientY + "." + Date.now();
+            const hash = CryptoJS.SHA256(raw).toString().substring(0, 64);
+            entropyDisplay.innerText = `INPUT: ${raw}\nHASH:  ${hash}`;
+        });
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            
+            // Draw connecting lines between nearby chaos points
+            ctx.strokeStyle = 'rgba(0, 255, 65, 0.15)';
+            ctx.lineWidth = 1;
+            
+            for(let i = 0; i < points.length; i++) {
+                let p = points[i];
+                p.life--;
+                
+                // Draw point
+                ctx.fillStyle = `rgba(0, 255, 65, ${p.life / 100})`;
+                ctx.fillRect(p.x, p.y, 2, 2);
+
+                // Connect to neighbors
+                for(let j = i + 1; j < points.length; j++) {
+                    let p2 = points[j];
+                    let d = Math.hypot(p.x - p2.x, p.y - p2.y);
+                    if(d < 100) {
+                        ctx.beginPath();
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.stroke();
+                    }
+                }
+            }
+            
+            // Remove dead points
+            points = points.filter(p => p.life > 0);
+            
+            requestAnimationFrame(animate);
+        }
+        animate();
+    </script>
 </body>
 </html>
