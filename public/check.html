@@ -3,309 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A+ SANCTUARY | NEXUS</title>
+    <title>Sanctuary</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        /* CRITICAL: Force Black Background immediately */
-        html, body { background-color: #000000; color: #e5e5e5; font-family: 'Inter', sans-serif; overflow-x: hidden; }
-        .font-mono { font-family: 'JetBrains Mono', monospace; }
-
-        .sanctuary-bg {
-            position: fixed; inset: 0; z-index: -1;
-            background: radial-gradient(circle at 50% 50%, #0a1a0a 0%, #000 100%);
-        }
-        .grid-lines {
-            position: fixed; inset: 0; z-index: -1;
-            background-image: linear-gradient(rgba(0, 255, 65, 0.03) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0, 255, 65, 0.03) 1px, transparent 1px);
-            background-size: 40px 40px;
-            mask-image: radial-gradient(circle at center, black 60%, transparent 100%);
-        }
-
-        .dash-card {
-            background: rgba(15, 15, 15, 0.8); border: 1px solid #222; 
-            backdrop-filter: blur(10px); border-radius: 8px; padding: 1.2rem;
-            transition: all 0.2s; height: 100%; display: flex; flex-direction: column;
-        }
-
-        /* Loading Splash to cover async load time */
-        #loading-splash {
-             position: fixed; inset: 0; background: #000; z-index: 100;
-             display: flex; flex-direction: column; align-items: center; justify-content: center;
-             opacity: 1; transition: opacity 0.5s;
-        }
-        
-        .redacted { background: #000; color: #000; user-select: none; }
-    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="router.js"></script>
+    <style>body{background:#050505;color:#00ff41;font-family:monospace;}</style>
 </head>
-<body>
-
-    <div class="sanctuary-bg"></div>
-    <div class="grid-lines"></div>
-
-    <div id="loading-splash">
-        <i class="fas fa-fingerprint fa-spin text-4xl text-green-600 mb-4"></i>
-        <div class="text-xs tracking-widest text-green-500 font-mono">INITIALIZING CORE SYSTEMS...</div>
+<body class="p-6 max-w-2xl mx-auto">
+    <div class="flex justify-between items-center border-b border-green-900 pb-4 mb-6">
+        <h1 class="text-2xl font-bold tracking-widest">SANCTUARY</h1>
+        <div class="text-xs text-gray-500">SECURE_CONNECTION: TLS_1.3</div>
     </div>
 
-    <div id="dashboard" class="max-w-7xl mx-auto opacity-0 transition-opacity duration-1000">
+    <div class="bg-gray-900 bg-opacity-50 border border-green-800 p-4 rounded mb-6">
+        <div class="flex justify-between items-center mb-2">
+            <h3 class="text-green-400 font-bold">SESSION PULSE</h3>
+            <div id="pulse-dot" class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+        </div>
+        <p id="session-timer" class="text-3xl font-mono mb-4">00m 00s</p>
         
-        <header class="flex justify-between items-end mb-8 pb-4 border-b border-gray-900">
-            <div>
-                <h1 class="text-3xl font-bold text-white mb-1" id="callsign-header">...</h1>
-                <div class="text-[10px] text-green-500 font-mono tracking-widest uppercase">
-                    Secure Nexus • Active
-                </div>
-            </div>
-            <div class="text-right">
-                <div class="text-[10px] text-gray-600 uppercase">Trust Score</div>
-                <div id="trust-score" class="text-2xl font-bold text-white font-mono">0%</div>
-            </div>
-        </header>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-            <div class="md:col-span-1">
-                <div class="dash-card border-l-4 border-l-green-600">
-                    <div class="flex justify-between items-center mb-6">
-                        <h3 class="text-sm font-bold text-white tracking-widest uppercase"><i class="fas fa-link mr-2 text-green-500"></i> Chaos Attached</h3>
-                        <div class="animate-pulse h-2 w-2 bg-green-500 rounded-full"></div>
-                    </div>
-                    <p class="text-xs text-gray-500 mb-4">Your Callsign is active on these nodes.</p>
-                    <div class="space-y-3 flex-1">
-                        <div class="bg-green-900/10 p-3 rounded border border-green-500/30 flex justify-between items-center">
-                            <div class="flex items-center gap-3">
-                                <i class="fas fa-mobile-alt text-green-500 text-lg"></i>
-                                <div class="text-xs text-white font-bold">THIS DEVICE</div>
-                            </div>
-                            <i class="fas fa-check-circle text-green-500"></i>
-                        </div>
-                        <div class="bg-black/40 p-3 rounded border border-gray-800 flex justify-between items-center opacity-70">
-                            <div class="flex items-center gap-3">
-                                <i class="fas fa-warehouse text-gray-500 text-lg"></i>
-                                <div class="text-xs text-gray-300">A+ GARAGE HUB</div>
-                            </div>
-                            <div class="h-1.5 w-1.5 bg-yellow-500 rounded-full"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="space-y-6">
-                <div class="dash-card border-l-4 border-l-blue-600">
-                    <div class="flex justify-between items-center mb-4">
-                        <span class="text-xs font-bold text-blue-500"><i class="fas fa-dna mr-2"></i> BIO-AUDIT</span>
-                        <button onclick="startTraining()" class="text-[10px] bg-blue-900/20 text-blue-400 px-2 py-1 rounded hover:bg-blue-500 hover:text-black">TRAIN NEW</button>
-                    </div>
-                    <div class="text-center p-6 border border-gray-800 rounded">
-                        <i class="fas fa-fingerprint text-4xl text-gray-700 mb-2"></i>
-                        <p class="text-xs text-gray-400">
-                            The Adaptive Biometric Lab is functional.<br>
-                            Click **Train New** to launch the Forge.
-                        </p>
-                    </div>
-                </div>
-
-                <div class="dash-card">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="text-xs font-bold text-gray-400 uppercase">Master Key</h3>
-                        <button onclick="copyKey()" class="text-green-500 hover:text-white text-xs"><i class="fas fa-copy"></i></button>
-                    </div>
-                    <div class="bg-black p-3 rounded font-mono text-xs text-gray-500 truncate" id="api-key-display" onclick="revealKey()">
-                        •••••••••••••••••••••
-                    </div>
-                    <div class="mt-2 text-[10px] text-gray-600 flex justify-between">
-                        <span>API Access Token</span>
-                        <span class="cursor-pointer hover:text-white transition" onclick="revealKey()">REVEAL</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="dash-card md:col-span-1 border-l-4 border-l-red-600">
-                <div class="flex justify-between items-center mb-4">
-                    <span class="text-xs font-bold text-red-500"><i class="fas fa-box-open mr-2"></i> BLACK BOX</span>
-                    <button id="lock-btn" onclick="unlockBox()" class="text-xs text-gray-500 hover:text-white transition"><i class="fas fa-lock"></i> LOCKED</button>
-                </div>
-                <div class="relative flex-grow">
-                    <textarea id="secret-notes" class="w-full h-full min-h-[150px] bg-black border border-gray-800 rounded p-3 text-sm text-green-500 font-mono resize-none redacted" readonly></textarea>
-                    <div id="lock-overlay" class="absolute inset-0 bg-black/90 flex items-center justify-center flex-col">
-                        <div class="text-red-500 font-mono text-xs tracking-widest mb-2">[ SECURE CONTENT ]</div>
-                        <div class="text-[10px] text-gray-600">Manual Override Required</div>
-                    </div>
-                </div>
-                <button onclick="saveNotes()" class="mt-2 text-xs w-full bg-red-900/20 text-red-500 py-2 rounded hover:bg-red-500 hover:text-black transition">
-                    ENCRYPT & SAVE
-                </button>
-            </div>
-
+        <div class="flex gap-2">
+            <button onclick="extendSession()" class="bg-green-900 hover:bg-green-700 text-white px-4 py-1 rounded text-xs transition">EXTEND</button>
+            <a href="/logout" class="bg-red-900 hover:bg-red-700 text-white px-4 py-1 rounded text-xs transition">SEAL (LOGOUT)</a>
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <div class="grid grid-cols-2 gap-4">
+        <a href="/pair" class="block p-6 border border-gray-800 hover:border-green-500 hover:bg-gray-900 transition rounded text-center group">
+            <i class="fas fa-plug text-2xl mb-2 text-gray-600 group-hover:text-green-400"></i>
+            <h3 class="font-bold">BIND DEVICE</h3>
+            <p class="text-xs text-gray-500">Link Chaos Plug</p>
+        </a>
+
+        <a href="/search" class="block p-6 border border-gray-800 hover:border-green-500 hover:bg-gray-900 transition rounded text-center group">
+            <i class="fas fa-search text-2xl mb-2 text-gray-600 group-hover:text-green-400"></i>
+            <h3 class="font-bold">BLACK BOX</h3>
+            <p class="text-xs text-gray-500">Search Encrypted Notes</p>
+        </a>
+
+        <a href="/admin" class="block p-6 border border-gray-800 hover:border-green-500 hover:bg-gray-900 transition rounded text-center group">
+            <i class="fas fa-shield-alt text-2xl mb-2 text-gray-600 group-hover:text-green-400"></i>
+            <h3 class="font-bold">OVERWATCH</h3>
+            <p class="text-xs text-gray-500">Admin Tools</p>
+        </a>
+    </div>
+
     <script>
-        // --- CORE VARIABLES ---
-        let currentKey = localStorage.getItem('chaos_key_vault');
+        // Session Logic
+        let start = parseInt(localStorage.getItem('session_start') || Date.now());
         
-        // --- 1. ASYNC INITIALIZATION PATTERN (Grok's Fix) ---
-
-        // Helper to retrieve data from LocalStorage via API
-        async function resilientFallback(key) {
-            try {
-                const response = await fetch('/api/v1/sentinel/verify', {
-                    method: 'POST',
-                    headers: { 'x-api-key': key }
-                });
-
-                if (!response.ok) return false;
-                
-                const data = await response.json();
-                sessionStorage.setItem('verified_user_data', JSON.stringify(data)); // Cache for session
-                return data;
-            } catch (err) {
-                return false;
-            }
-        }
-
-        async function initCore() {
-            // Step 1: Try sessionStorage (volatile, fast, guaranteed fresh data from login)
-            let dataString = sessionStorage.getItem('verified_user_data');
-            let data = null;
-
-            if (dataString) {
-                try { data = JSON.parse(dataString); } catch (e) { }
-            }
-
-            // Step 2: Fallback to localStorage key for API check
-            if (!data) {
-                const key = localStorage.getItem('chaos_key_vault');
-                if (key) {
-                    data = await resilientFallback(key); // Attempt API Re-verification
-                }
-            }
-
-            // Step 3: Final Check & Render
-            if (data) {
-                renderDashboard(data);
-            } else {
-                // All sources failed - redirect safely
-                window.location.href = '/login'; 
-            }
-
-            // Step 4: Hide Splash after rendering logic
-            document.getElementById('loading-splash').style.opacity = '0';
-            setTimeout(() => {
-                document.getElementById('loading-splash').style.display = 'none';
-                document.getElementById('dashboard').classList.remove('opacity-0');
-            }, 500);
-        }
-
-        // Hook to onload with a micro-delay to prevent storage race condition
-        window.addEventListener('DOMContentLoaded', async () => {
-            if (!localStorage.getItem('chaos_key_vault')) {
-                // If no key exists, skip init and go straight to login (prevents error)
-                 window.location.href = '/login'; 
-                 return;
-            }
-            setTimeout(initCore, 100); 
-        });
-
-
-        // --- 2. CRASH-PROOF RENDERER (Grok's Fix) ---
-        function renderDashboard(data) {
-            const currentKey = localStorage.getItem('chaos_key_vault');
-
-            // Use Nullish Coalescing (??) and Optional Chaining (?.) for safety
-            document.getElementById('callsign-header').innerText = data?.project ?? 'UNKNOWN ENTITY';
-            document.getElementById('trust-score').innerText = (data?.trustScore ?? 0) + "%";
-            document.getElementById('rank-badge').innerText = data?.rank ?? "OFFLINE";
+        function updateTimer() {
+            const elapsed = Date.now() - start;
+            const min = Math.floor(elapsed / 60000);
+            const sec = Math.floor((elapsed % 60000) / 1000);
+            document.getElementById('session-timer').innerText = `${min}m ${sec}s`;
             
-            document.getElementById('api-key-display').innerText = currentKey ? currentKey.substring(0, 16) + "••••••••" : 'N/A';
-            
-            // Load Encrypted Notes
-            if(localStorage.getItem('black_box_notes')) {
-                document.getElementById('secret-notes').value = "Encrypted data loaded...";
-            }
-        }
-
-        // --- BLACK BOX LOGIC (Manual Override) ---
-        function unlockBox() {
-            const access = prompt("Enter 'chaos' to manually unlock the Black Box:");
-            if (access === 'chaos') { performUnlock(); } else { alert("Incorrect override code."); }
-        }
-
-        async function performUnlock() {
-            const area = document.getElementById('secret-notes');
-            const overlay = document.getElementById('lock-overlay');
-            const btn = document.getElementById('lock-btn');
-            
-            const saved = localStorage.getItem('black_box_notes');
-            const currentKey = localStorage.getItem('chaos_key_vault'); // Re-fetch key for crypto ops
-            
-            if (saved) {
-                try {
-                    const decrypted = await decryptData(saved, currentKey);
-                    area.value = decrypted;
-                } catch(e) { area.value = "Decryption Failed. Key or data corrupt."; }
-            } else { area.value = ""; }
-
-            area.readOnly = false;
-            area.classList.remove('redacted');
-            overlay.classList.add('hidden');
-            btn.innerHTML = '<i class="fas fa-unlock"></i> UNLOCKED';
-            btn.classList.add('text-green-500');
-        }
-
-        function saveNotes() {
-            if(document.getElementById('secret-notes').readOnly) return alert("Unlock Black Box first.");
-            
-            const text = document.getElementById('secret-notes').value;
-            const currentKey = localStorage.getItem('chaos_key_vault'); 
-            encryptData(text, currentKey).then(enc => {
-                localStorage.setItem('black_box_notes', enc);
-                alert("Notes saved and sealed.");
-                window.location.reload(); 
-            });
+            // Auto-logout after 30 mins
+            if(min >= 30) window.location.href = '/logout';
         }
         
-        // --- CRYPTO ENGINE (V202) ---
-        async function encryptData(data, keyString) {
-            const enc = new TextEncoder();
-            const keyMaterial = await window.crypto.subtle.importKey("raw", enc.encode(keyString.substring(0,32)), "AES-GCM", false, ["encrypt"]);
-            const iv = window.crypto.getRandomValues(new Uint8Array(12));
-            const encrypted = await window.crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, keyMaterial, enc.encode(data));
-            const ivArr = Array.from(iv);
-            const encArr = Array.from(new Uint8Array(encrypted));
-            return JSON.stringify({ iv: ivArr, data: encArr });
+        function extendSession() {
+            start = Date.now();
+            localStorage.setItem('session_start', start);
+            updateTimer();
         }
 
-        async function decryptData(jsonStr, keyString) {
-            try {
-                const bundle = JSON.parse(jsonStr);
-                const enc = new TextEncoder();
-                const keyMaterial = await window.crypto.subtle.importKey("raw", enc.encode(keyString.substring(0,32)), "AES-GCM", false, ["decrypt"]);
-                const decrypted = await window.crypto.subtle.decrypt({ name: "AES-GCM", iv: new Uint8Array(bundle.iv) }, keyMaterial, new Uint8Array(bundle.data));
-                return new TextDecoder().decode(decrypted);
-            } catch(e) { throw new Error("Decryption Error"); }
-        }
-
-        // --- UTILS ---
-        function revealKey() {
-            const key = localStorage.getItem('chaos_key_vault');
-            const el = document.getElementById('api-key-display');
-            if(el.innerText.includes('•')) el.innerText = key;
-            else el.innerText = key.substring(0, 16) + "••••••••";
-        }
-
-        function copyKey() {
-            const key = localStorage.getItem('chaos_key_vault');
-            navigator.clipboard.writeText(key);
-            alert("Key Copied");
-        }
-
-        function startTraining() {
-            window.location.href = '/abyss-forge.html';
-        }
+        setInterval(updateTimer, 1000);
+        updateTimer();
     </script>
 </body>
 </html>
