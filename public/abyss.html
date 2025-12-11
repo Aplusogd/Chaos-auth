@@ -3,140 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A+ CHAOS FORGE | CREATE CALLSIGN</title>
+    <title>Forge Your Callsign</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="router.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
-        body { background: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; height: 100vh; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        
-        .abyss-bg {
-            position: absolute; inset: 0; z-index: -1;
-            background: radial-gradient(circle at center, #0a1a0a 0%, #000000 100%);
+        body { background: #000; color: #00ff41; font-family: monospace; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .glitch { animation: glitch 1s linear infinite; }
+        @keyframes glitch {
+            2%, 64% { transform: translate(2px,0) skew(0deg); }
+            4%, 60% { transform: translate(-2px,0) skew(0deg); }
+            62% { transform: translate(0,0) skew(5deg); }
         }
-        .portal-card {
-            width: 100%; max-width: 600px; background: rgba(5,5,5,0.9);
-            border: 1px solid #222; padding: 40px; 
-            box-shadow: 0 0 80px rgba(0, 255, 65, 0.05);
-            backdrop-filter: blur(10px);
-        }
-
-        /* BUTTONS and WORD DISPLAY remain the same */
-        .btn-action { margin-top: 15px; width: 100%; padding: 16px; font-weight: bold; cursor: pointer; transition: all 0.3s; text-transform: uppercase; letter-spacing: 3px; font-size: 0.8rem; }
-        .btn-mint { background: #004400; color: #00ff41; border: 1px solid #004400; }
-        .btn-secondary { background: #111; color: #999; border: 1px solid #333; }
-        .btn-secondary:hover { background: #222; color: white; }
-        .word-pill { background: #000; border: 1px solid #333; padding: 10px 18px; color: #fff; text-transform: capitalize; font-size: 1rem; letter-spacing: 1px; min-width: 100px; }
+        .btn { border: 1px solid #00ff41; padding: 15px 30px; cursor: pointer; transition: all 0.2s; }
+        .btn:hover { background: #00ff41; color: #000; box-shadow: 0 0 15px #00ff41; }
     </style>
 </head>
 <body>
+    <div class="text-center w-full max-w-lg p-4">
+        <h1 class="text-4xl font-bold mb-2 tracking-widest glitch">CHAOS FORGE</h1>
+        <p class="text-gray-500 mb-8 text-sm">Mint your eternal identity.</p>
 
-    <div class="abyss-bg"></div>
+        <div id="output" class="text-2xl mb-8 min-h-[40px] text-green-300 font-bold border-b border-gray-800 pb-2"></div>
 
-    <div class="portal-card text-center">
-        <h1 class="text-3xl tracking-[0.4em] text-white font-bold uppercase mb-2">CHAOS FORGE</h1>
-        <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-8">Mint Your Eternal Callsign</p>
+        <button onclick="forge()" class="btn text-xl font-bold mb-4 w-full">
+            GENERATE CALLSIGN
+        </button>
         
-        <div id="hint-display" class="bg-gray-900 border border-gray-800 p-4 rounded mb-6 text-sm">
-            <p class="text-gray-400 mb-2">Pattern: <span class="text-red-400 font-bold">COLOR</span> - <span class="text-green-400 font-bold">TEXTURE</span> - <span class="text-blue-400 font-bold">FORCE</span></p>
-        </div>
-        
-        <div id="view-options">
-            <input type="text" id="aliasInput" class="input-line w-full bg-transparent border-b border-gray-700 text-white text-center p-3 text-sm focus:border-green-500 outline-none mb-6" placeholder="Enter Codename (Optional)">
+        <button onclick="accept()" id="accept-btn" class="hidden btn w-full border-gray-700 text-gray-500 hover:border-white hover:text-white hover:bg-transparent hover:shadow-none">
+            ACCEPT & BIND
+        </button>
 
-            <button onclick="manifestIdentity()" class="btn-action btn-mint">
-                <i class="fas fa-meteor mr-2"></i> MINT NEW CALLSIGN
-            </button>
-            <button onclick="window.location.href='/login';" class="btn-action btn-secondary">
-                <i class="fas fa-redo mr-2"></i> RECALL EXISTING KEY
-            </button>
-        </div>
-
-        <div id="view-success" class="hidden text-center mt-6">
-            <div class="text-green-500 text-sm mb-2 tracking-widest font-bold">IDENTITY FORGED</div>
-            <div class="text-[10px] text-gray-500 mb-6">SAVE THIS SEQUENCE. IT IS YOUR ONLY KEY.</div>
-            
-            <div class="flex items-center justify-center flex-wrap gap-2 mb-8" id="word-display">
-                </div>
-
-            <button onclick="enterPortal()" class="btn-action btn-mint text-white hover:bg-white hover:text-black">
-                <i class="fas fa-door-open mr-2"></i> VERIFY AND PROCEED
-            </button>
-        </div>
-        
-        <div class="mt-6 border-t border-gray-800 pt-4">
-            <a href="/" class="text-gray-600 hover:text-white text-xs">← Back to Landing Page</a>
+        <div class="mt-8 text-xs text-gray-600">
+            <a href="/" class="hover:text-white">← Return to Void</a>
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script>
-        // --- DICTIONARY (Mini-V185) ---
-        const DICT = {
-            COLOR: ["CRIMSON", "VOID", "OBSIDIAN", "PLASMA", "NEON", "ULTRAVIOLET", "ASH", "ONYX", "GHOST", "SPECTRE"],
-            TEXTURE: ["VELVET", "RAZOR", "LEATHER", "MERCURY", "SHATTER", "SILK", "GLASS", "ICE", "FIRE", "STONE"],
-            FORCE: ["THUNDER", "ABYSS", "ECLIPSE", "VORTEX", "RAGNAROK", "NOVA", "STORM", "QUAKE", "TSUNAMI", "FLOOD"]
-        };
+        const words = ["VOID", "RAZOR", "THUNDER", "CRIMSON", "ABYSS", "NOVA", "ASH", "ONYX", "GHOST", "ECHO", "SHADOW", "PULSE"];
+        let currentCallsign = "";
 
-        // --- MINTING LOGIC (Unchanged) ---
-        async function manifestIdentity() {
-            const alias = document.getElementById('aliasInput').value.trim() || "Anonymous Entity";
-
-            const c = DICT.COLOR[Math.floor(Math.random() * DICT.COLOR.length)];
-            const t = DICT.TEXTURE[Math.floor(Math.random() * DICT.TEXTURE.length)];
-            const f = DICT.FORCE[Math.floor(Math.random() * DICT.FORCE.length)];
+        function forge() {
+            // Chaos Generator Logic
+            const r1 = words[Math.floor(Math.random() * words.length)];
+            const r2 = words[Math.floor(Math.random() * words.length)];
+            const r3 = words[Math.floor(Math.random() * words.length)];
+            const suffix = Math.floor(Math.random() * 99);
             
-            const phrase = `${c}-${t}-${f}`;
-            const key = phraseToKey(phrase);
-
-            const success = await registerWithServer(key, alias, 1.0); 
-
-            if (success) {
-                const display = document.getElementById('word-display');
-                display.innerHTML = `
-                    <div class="word-pill border-b-2 border-red-900">${c}</div>
-                    <span class="glyph-sep text-gray-500 text-lg">-</span>
-                    <div class="word-pill border-b-2 border-green-900">${t}</div>
-                    <span class="glyph-sep text-gray-500 text-lg">-</span>
-                    <div class="word-pill border-b-2 border-blue-900">${f}</div>
-                `;
-
-                localStorage.setItem('chaos_key_vault', key);
-                localStorage.setItem('callsign_history', phrase); 
-                
-                document.getElementById('view-options').classList.add('hidden');
-                document.getElementById('view-success').classList.remove('hidden');
-                document.getElementById('hint-display').classList.add('hidden');
-            } else {
-                alert("Manifestation Failed. Check server connection.");
-            }
-        }
-        
-        // --- FINAL REDIRECT (FIXED: Send to Login for Verification) ---
-        function enterPortal() {
-            // New users MUST verify their new key via the Biometric Login page first.
-            window.location.href = '/login';
+            currentCallsign = `${r1}-${r2}-${r3}-${suffix}`;
+            
+            // Glitch Effect
+            const out = document.getElementById('output');
+            let i = 0;
+            const interval = setInterval(() => {
+                out.innerText = Math.random().toString(36).substring(7).toUpperCase();
+                i++;
+                if(i > 10) {
+                    clearInterval(interval);
+                    out.innerText = currentCallsign;
+                    out.classList.add('text-white');
+                    document.getElementById('accept-btn').classList.remove('hidden');
+                    document.getElementById('accept-btn').classList.add('block');
+                }
+            }, 50);
         }
 
-        // --- SHARED UTILS (Unchanged) ---
-        function phraseToKey(phrase) {
-            return "sk_ghost_" + CryptoJS.SHA256(phrase.toLowerCase() + "INFINITE_ABYSS_2025").toString().substring(0,32);
-        }
-
-        async function registerWithServer(key, alias, chaosMetric) {
-            try {
-                const res = await fetch('/api/auth/ghost-register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ alias: alias, chaos_metric: chaosMetric, provided_key: key })
-                });
-                const data = await res.json();
-                return data.success;
-            } catch (e) {
-                return false;
-            }
+        function accept() {
+            if(!currentCallsign) return;
+            // Save to Local Storage for the Login Page
+            localStorage.setItem('callsign_history', currentCallsign);
+            // Flash Success
+            document.body.style.background = "#001100";
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 500);
         }
     </script>
 </body>
