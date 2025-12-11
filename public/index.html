@@ -7,7 +7,8 @@
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
@@ -17,47 +18,33 @@
         .mono { font-family: 'JetBrains Mono', monospace; }
         
         /* The Living Background */
-        canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.3; pointer-events: none; }
+        canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.2; pointer-events: none; }
         
         /* Glass Header */
-        header { background: rgba(0,0,0,0.9); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.1); }
+        header { background: rgba(0,0,0,0.95); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.05); }
 
-        /* THE UNIVERSAL LINK BOX STYLE */
-        .link-box {
+        /* UNIVERSAL BUTTONS */
+        .btn-box {
             display: flex; align-items: center; justify-content: center;
-            padding: 16px 24px;
-            border-radius: 8px;
-            font-weight: 700;
-            text-decoration: none;
-            transition: all 0.2s ease;
-            cursor: pointer;
-            border: 1px solid rgba(255,255,255,0.1);
-            background: rgba(20,20,20,0.6);
-            color: #fff;
-            width: 100%; /* Full width on mobile default */
-            text-align: center;
+            width: 100%; padding: 20px;
+            font-weight: 800; font-size: 1rem; letter-spacing: 0.05em;
+            border-radius: 12px;
+            text-transform: uppercase;
+            text-decoration: none; transition: transform 0.2s;
         }
+        .btn-primary { background: #00ff41; color: #000; box-shadow: 0 10px 30px -10px rgba(0,255,65,0.3); }
+        .btn-primary:active { transform: scale(0.98); background: #00cc33; }
         
-        /* Primary (Green) Variation */
-        .link-box.primary {
-            background: #00ff41;
-            color: #000;
-            border-color: #00ff41;
-        }
-        .link-box.primary:active { transform: scale(0.98); background: #00cc33; }
+        .btn-secondary { background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); }
+        .btn-secondary:active { transform: scale(0.98); background: rgba(255,255,255,0.1); }
 
-        /* Secondary (Outline) Variation */
-        .link-box.secondary:hover {
-            background: rgba(255,255,255,0.1);
-            border-color: #fff;
-        }
-        .link-box.secondary:active { transform: scale(0.98); }
-
-        /* Small Variation */
-        .link-box.small {
-            padding: 10px 16px;
-            font-size: 0.85rem;
-            width: auto; /* Shrink to fit */
+        /* Card Style */
+        .glass-panel {
+            background: rgba(20,20,20,0.8);
+            border: 1px solid rgba(255,255,255,0.08);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 32px;
         }
     </style>
 </head>
@@ -65,113 +52,170 @@
 
     <canvas id="chaos-bg"></canvas>
 
-    <header class="fixed top-0 left-0 w-full z-50">
-        <div class="max-w-7xl mx-auto px-4 h-20 flex justify-between items-center">
-            
-            <a href="/" class="flex items-center gap-3 px-3 py-2 rounded hover:bg-white/5 transition">
-                <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_#00ff41]"></div>
-                <span class="font-bold tracking-wider text-white">A+ CHAOS</span>
+    <header class="fixed top-0 left-0 w-full z-50 h-20 flex items-center">
+        <div class="w-full max-w-6xl mx-auto px-6 flex justify-between items-center">
+            <a href="/" class="flex items-center gap-3">
+                <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_15px_#00ff41]"></div>
+                <span class="font-bold tracking-widest text-white text-sm">A+ CHAOS</span>
             </a>
-            
-            <a href="/login" class="link-box small secondary bg-white text-black border-white hover:bg-gray-200" style="background: white; color: black;">
+            <a href="/login" class="text-xs font-bold bg-white text-black px-5 py-2 rounded-full hover:bg-gray-200 transition">
                 LOG IN
             </a>
         </div>
     </header>
 
-    <main class="pt-32 px-6 pb-24 max-w-xl mx-auto md:max-w-5xl">
+    <main class="pt-32 pb-20 px-6 max-w-6xl mx-auto">
         
-        <div class="md:text-center mb-12">
-            <h1 class="text-5xl md:text-7xl font-black text-white leading-tight mb-6">
+        <div class="max-w-3xl mb-16">
+            <h1 class="text-5xl md:text-8xl font-black text-white leading-[1.1] mb-8">
                 SECURITY <br>
                 THAT <span class="text-green-500">LIVES.</span>
             </h1>
-            <p class="text-lg text-gray-400 leading-relaxed max-w-2xl mx-auto bg-black/60 p-6 rounded-xl border border-white/5 backdrop-blur-sm">
-                Passwords are dead. <strong class="text-white">ChaosID</strong> uses your unique movement entropy to create a living identity. No databases to hack.
+            <p class="text-xl text-gray-400 leading-relaxed max-w-xl">
+                Passwords are static targets. <strong class="text-white">ChaosID</strong> generates a temporary, living key from your unique biometrics. No database to hack. No key to steal.
             </p>
         </div>
 
-        <div class="flex flex-col md:flex-row gap-4 mb-16">
-            <a href="/abyss.html" class="link-box primary text-lg">
-                FORGE NEW CALLSIGN
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-lg mb-32">
+            <a href="/abyss.html" class="btn-box btn-primary">
+                FORGE CALLSIGN
             </a>
-            <a href="/login" class="link-box secondary text-lg">
-                I HAVE A CALLSIGN
+            <a href="/login" class="btn-box btn-secondary">
+                ACCESS NODE
             </a>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="bg-zinc-900/80 p-6 rounded-xl border border-white/5 backdrop-blur-md">
-                <div class="mono text-green-500 text-xs mb-2">STEP 01</div>
-                <h3 class="font-bold text-white text-xl mb-2">Entropy</h3>
-                <p class="text-gray-400 text-sm">We capture your device static and micro-movements to generate a seed.</p>
+        <div class="mb-32">
+            <div class="flex items-center gap-4 mb-12">
+                <div class="h-px bg-gray-800 flex-grow"></div>
+                <h2 class="text-sm font-bold tracking-widest text-gray-500">HOW IT WORKS</h2>
+                <div class="h-px bg-gray-800 flex-grow"></div>
             </div>
-            <div class="bg-zinc-900/80 p-6 rounded-xl border border-white/5 backdrop-blur-md">
-                <div class="mono text-green-500 text-xs mb-2">STEP 02</div>
-                <h3 class="font-bold text-white text-xl mb-2">The Sigil</h3>
-                <p class="text-gray-400 text-sm">You trace a secret shape. This "muscle memory" becomes your password.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="glass-panel">
+                    <div class="mono text-green-500 text-xs mb-4">01. ENTROPY</div>
+                    <i class="fas fa-fingerprint text-3xl text-white mb-6"></i>
+                    <h3 class="text-xl font-bold text-white mb-2">Capture Chaos</h3>
+                    <p class="text-gray-400 leading-relaxed text-sm">
+                        We capture the micro-jitters of your hand and device static. This creates a seed that can never be replicated.
+                    </p>
+                </div>
+
+                <div class="glass-panel">
+                    <div class="mono text-green-500 text-xs mb-4">02. SIGIL</div>
+                    <i class="fas fa-pen-nib text-3xl text-white mb-6"></i>
+                    <h3 class="text-xl font-bold text-white mb-2">Muscle Memory</h3>
+                    <p class="text-gray-400 leading-relaxed text-sm">
+                        You trace a secret shape. Your speed, pressure, and angle form a cryptographic key that lives in your nerves.
+                    </p>
+                </div>
+
+                <div class="glass-panel">
+                    <div class="mono text-green-500 text-xs mb-4">03. ZERO TRUST</div>
+                    <i class="fas fa-shield-alt text-3xl text-white mb-6"></i>
+                    <h3 class="text-xl font-bold text-white mb-2">Proof of Life</h3>
+                    <p class="text-gray-400 leading-relaxed text-sm">
+                        We verify the math, not the password. If the server is hacked, there is nothing to steal but empty math.
+                    </p>
+                </div>
             </div>
-            <div class="bg-zinc-900/80 p-6 rounded-xl border border-white/5 backdrop-blur-md">
-                <div class="mono text-green-500 text-xs mb-2">STEP 03</div>
-                <h3 class="font-bold text-white text-xl mb-2">Zero Knowledge</h3>
-                <p class="text-gray-400 text-sm">We don't know who you are. We only know you match the proof.</p>
+        </div>
+
+        <div class="mb-20">
+            <h2 class="text-3xl md:text-5xl font-black text-white mb-16 text-center">
+                HEALING THE <span class="text-gray-600">INTERNET.</span>
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <div class="glass-panel border-l-4 border-l-blue-500">
+                    <div class="flex items-start gap-4">
+                        <div class="bg-blue-900/20 p-3 rounded text-blue-400"><i class="fas fa-hospital"></i></div>
+                        <div>
+                            <h3 class="font-bold text-white text-lg mb-2">Healthcare Privacy</h3>
+                            <p class="text-sm text-gray-400">
+                                Patient data is vulnerable because doctors share passwords. ChaosID binds access to the physical person, making mass data leaks mathematically impossible.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-panel border-l-4 border-l-yellow-500">
+                    <div class="flex items-start gap-4">
+                        <div class="bg-yellow-900/20 p-3 rounded text-yellow-400"><i class="fas fa-bolt"></i></div>
+                        <div>
+                            <h3 class="font-bold text-white text-lg mb-2">Critical Infrastructure</h3>
+                            <p class="text-sm text-gray-400">
+                                Power grids and garages rely on old keys. Chaos Plugs introduce "rolling physical codes," so a stolen keycard works exactly zero times.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-panel border-l-4 border-l-purple-500">
+                    <div class="flex items-start gap-4">
+                        <div class="bg-purple-900/20 p-3 rounded text-purple-400"><i class="fas fa-building"></i></div>
+                        <div>
+                            <h3 class="font-bold text-white text-lg mb-2">Corporate Security</h3>
+                            <p class="text-sm text-gray-400">
+                                Phishing is dead. You cannot phish a ChaosID because the user doesn't know their own key—their subconscious muscle memory does.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-panel border-l-4 border-l-green-500">
+                    <div class="flex items-start gap-4">
+                        <div class="bg-green-900/20 p-3 rounded text-green-400"><i class="fas fa-user-shield"></i></div>
+                        <div>
+                            <h3 class="font-bold text-white text-lg mb-2">Personal Sovereignty</h3>
+                            <p class="text-sm text-gray-400">
+                                You own your identity. Your key is generated on your device, used once, and destroyed. No big tech company holds the master key.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
 
     </main>
 
-    <footer class="text-center text-gray-600 text-xs py-12 border-t border-white/5 bg-black">
-        <p class="mb-6">A+ OVERHEAD GARAGE DOORS // SECURE DIVISION</p>
-        
-        <div class="flex justify-center">
-            <a href="/sdk" class="link-box secondary small">
-                <i class="fas fa-book mr-2"></i> READ PROTOCOL DOCS
-            </a>
-        </div>
+    <footer class="border-t border-white/5 bg-black py-12 text-center">
+        <p class="text-xs text-gray-600 mb-6 font-bold tracking-widest">A+ OVERHEAD GARAGE DOORS</p>
+        <a href="/sdk" class="inline-block border border-gray-800 px-6 py-3 rounded text-xs text-gray-400 hover:border-white hover:text-white transition">
+            READ THE CHAOS PROTOCOL
+        </a>
     </footer>
 
     <script>
         const cvs = document.getElementById('chaos-bg');
         const ctx = cvs.getContext('2d');
-        let w, h;
-        let points = [];
+        let w, h, points = [];
 
-        function resize() { w = window.innerWidth; h = window.innerHeight; cvs.width = w; cvs.height = h; }
+        function resize() { w=window.innerWidth; h=window.innerHeight; cvs.width=w; cvs.height=h; }
         window.addEventListener('resize', resize);
         resize();
 
-        function addPoint(x, y) {
-            if(points.length > 50) points.shift();
-            points.push({x, y, age: 100});
-        }
-
-        document.addEventListener('mousemove', e => { if(Math.random()>0.5) addPoint(e.clientX, e.clientY); });
-        document.addEventListener('touchmove', e => { if(Math.random()>0.5) addPoint(e.touches[0].clientX, e.touches[0].clientY); });
+        function addPoint(x, y) { if(points.length>40) points.shift(); points.push({x,y,age:100}); }
+        document.addEventListener('mousemove', e=> { if(Math.random()>0.5) addPoint(e.clientX, e.clientY); });
+        document.addEventListener('touchmove', e=> { if(Math.random()>0.5) addPoint(e.touches[0].clientX, e.touches[0].clientY); });
 
         function animate() {
             ctx.clearRect(0,0,w,h);
-            ctx.strokeStyle = 'rgba(0, 255, 65, 0.2)';
-            ctx.lineWidth = 1;
-            
-            for(let i=0; i<points.length; i++) {
-                let p = points[i];
+            ctx.strokeStyle='rgba(0,255,65,0.1)'; ctx.lineWidth=1;
+            points.forEach((p,i) => {
                 p.age--;
-                ctx.fillStyle = `rgba(0,255,65,${p.age/100})`;
-                ctx.fillRect(p.x, p.y, 2, 2);
-                
-                // Connect nearby points
+                ctx.fillStyle=`rgba(0,255,65,${p.age/100})`; ctx.fillRect(p.x,p.y,2,2);
                 for(let j=i+1; j<points.length; j++) {
-                    let p2 = points[j];
-                    let d = Math.hypot(p.x-p2.x, p.y-p2.y);
-                    if(d < 100) {
-                        ctx.beginPath();
-                        ctx.moveTo(p.x, p.y);
-                        ctx.lineTo(p2.x, p2.y);
-                        ctx.stroke();
+                    let p2=points[j];
+                    if(Math.hypot(p.x-p2.x, p.y-p2.y) < 120) {
+                        ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(p2.x,p2.y); ctx.stroke();
                     }
                 }
-            }
-            points = points.filter(p => p.age > 0);
+            });
+            points=points.filter(p=>p.age>0);
             requestAnimationFrame(animate);
         }
         animate();
