@@ -1,30 +1,25 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Sealing the Abyss...</title>
-    <script src="chaos-sdk.js"></script> <style>body{background:#000;color:#00ff41;font-family:monospace;text-align:center;padding-top:20vh;}</style>
+    <title>Sealing...</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>body{background:#000;color:#00ff41;display:flex;align-items:center;justify-content:center;height:100vh;font-family:monospace;}</style>
 </head>
 <body>
-<h1>SEALING THE ABYSS</h1>
-<div id="wipe"></div>
-<script>
-    // Ensure the generator function is ready
-    if (typeof generateInfiniteChaosCode === 'undefined') {
-        document.getElementById('wipe').innerHTML = '<h2>ERROR: SDK missing.</h2>';
-    } else {
-        const words = generateInfiniteChaosCode("seal"+Date.now(),3);
-        document.getElementById('wipe').innerHTML = `<h2>${words.join('-')}</h2><p>All temporary traces erased.</p>`;
-    }
-    
-    setTimeout(() => {
-        // --- CRITICAL SECURITY FIX ---
-        // Only remove session-critical keys, preserving profile (callsign_history, zk_profile_commit).
-        sessionStorage.clear();
-        localStorage.removeItem('chaos_key_vault');
-        localStorage.removeItem('session_start');
-
-        window.location.href = '/';
-    }, 3000);
-</script>
+    <div class="text-center">
+        <h1 class="text-4xl mb-4">SEALING THE ABYSS</h1>
+        <p id="msg" class="text-gray-500">Erasing traces...</p>
+    </div>
+    <script>
+        setTimeout(() => {
+            // Remove ONLY security keys, keep callsign history for convenience
+            localStorage.removeItem('chaos_key_vault');
+            localStorage.removeItem('session_start');
+            sessionStorage.clear();
+            
+            document.getElementById('msg').textContent = "Complete.";
+            setTimeout(() => window.location.href = '/', 1000);
+        }, 1500);
+    </script>
 </body>
 </html>
