@@ -14,31 +14,18 @@
         }
         .native-input { width: 100%; height: 52px; background: #111; border: 1px solid #333; border-radius: 10px; padding: 0 16px; font-size: 16px; color: #fff; outline: none; }
         .native-input:focus { border-color: #00ff41; background: #080808; }
-        
-        .sigil-card { 
-            background: #0a0a0a; border: 1px solid #222; border-radius: 12px; 
-            width: 100%; aspect-ratio: 4/3; touch-action: none; position: relative; 
-            overflow: hidden;
-        }
-        
+        .sigil-card { background: #0a0a0a; border: 1px solid #222; border-radius: 12px; width: 100%; aspect-ratio: 4/3; touch-action: none; position: relative; overflow: hidden; }
         .btn-action { width: 100%; height: 56px; background: #fff; color: #000; font-weight: 700; font-size: 16px; border-radius: 12px; transition: all 0.2s; }
-        
-        /* Analysis Overlay */
-        #analysis-overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center;
-            flex-direction: column; opacity: 0; pointer-events: none; transition: opacity 0.3s;
-        }
+        #analysis-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; flex-direction: column; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
     </style>
 </head>
 <body class="px-6 justify-center">
 
     <div class="w-full max-w-sm mx-auto flex flex-col gap-6">
-        
         <div class="text-center mb-2">
             <h1 class="text-2xl font-bold text-white tracking-tight">Access Node</h1>
             <div class="flex justify-center items-center gap-2 text-[10px] font-mono mt-1">
-                <span class="text-gray-500">ADAPTIVE TRUST:</span>
+                <span class="text-gray-500">TRUST SCORE:</span>
                 <span id="trust-indicator" class="text-blue-400 font-bold">--</span>
             </div>
         </div>
@@ -52,61 +39,51 @@
             <label class="block text-gray-500 text-xs font-bold mb-2 ml-1">SIGIL TRACE</label>
             <div class="sigil-card">
                 <canvas id="canvas"></canvas>
+                <div id="status-display" class="absolute top-3 right-3 text-[10px] text-gray-600 font-mono tracking-widest font-bold">READY</div>
                 
-                <div id="status-display" class="absolute top-3 right-3 text-[10px] text-gray-600 font-mono tracking-widest font-bold">
-                    READY
-                </div>
-
                 <div id="analysis-overlay">
-                    <div class="text-green-500 font-bold text-xl mb-1">UPDATING CORE</div>
-                    <div class="text-gray-400 text-xs font-mono">LEARNING NEW PATTERN...</div>
+                    <div class="text-green-500 font-bold text-xl mb-1">ACCESS GRANTED</div>
+                    <div class="text-gray-400 text-[10px] font-mono mb-4 tracking-widest">ADAPTING PROFILE...</div>
+                    
+                    <div class="grid grid-cols-2 gap-2 text-[9px] font-mono text-gray-500 w-full px-8">
+                        <div class="bg-gray-800 p-2 rounded">TIMING: <span id="stat-time" class="text-white">OK</span></div>
+                        <div class="bg-gray-800 p-2 rounded">SHAPE: <span id="stat-shape" class="text-white">OK</span></div>
+                        <div class="bg-gray-800 p-2 rounded col-span-2 text-center text-green-400 font-bold">
+                            UPDATING TOUCH GEOMETRY
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <div class="mt-4">
-            <button onclick="verifyBiometrics()" id="btn" class="btn-action shadow-lg shadow-green-900/20">
-                Verify Access
-            </button>
-            <a href="/abyss.html" class="block text-center text-gray-600 text-sm mt-4 p-2 hover:text-white transition">
-                Recalibrate Identity?
-            </a>
+            <button onclick="verifyBiometrics()" id="btn" class="btn-action shadow-lg shadow-green-900/20">Verify Access</button>
         </div>
     </div>
 
     <script>
-        // --- 1. SETUP & UTILS ---
         if(localStorage.getItem('callsign_history')) document.getElementById('callsign').value = localStorage.getItem('callsign_history');
-        
-        // Load Trust Score (Default 50.0)
         let currentTrust = parseFloat(localStorage.getItem('chaos_trust_score') || '50.0');
         document.getElementById('trust-indicator').innerText = currentTrust.toFixed(1) + "%";
 
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const sigilType = localStorage.getItem('chaos_sigil_type') || 'TRIANGLE';
-        let loginPath = [];
-        let isDrawing = false;
+        let loginPath = []; let isDrawing = false;
 
-        function resizeCanvas() {
-            canvas.width = canvas.parentElement.clientWidth;
-            canvas.height = canvas.parentElement.clientHeight;
-            drawGuide();
-        }
+        function resizeCanvas() { canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight; drawGuide(); }
         window.addEventListener('resize', resizeCanvas);
 
         function drawGuide() {
             const w=canvas.width, h=canvas.height, cx=w/2, cy=h/2;
             ctx.strokeStyle='#1a1a1a'; ctx.lineWidth=6; ctx.lineCap='round'; ctx.beginPath();
-            
             if(sigilType==='TRIANGLE') { ctx.moveTo(cx, h*0.2); ctx.lineTo(w*0.8, h*0.8); ctx.lineTo(w*0.2, h*0.8); ctx.closePath(); }
             else if(sigilType==='CIRCLE') { ctx.arc(cx, cy, h*0.3, 0, 2*Math.PI); }
             else if(sigilType==='LIGHTNING') { ctx.moveTo(cx+20, h*0.15); ctx.lineTo(cx-20, cy); ctx.lineTo(cx+20, cy); ctx.lineTo(cx-20, h*0.85); }
             ctx.stroke();
         }
 
-        // --- 2. DRAWING ENGINE ---
-        function start(e) { e.preventDefault(); isDrawing=true; loginPath=[]; ctx.clearRect(0,0,canvas.width,canvas.height); drawGuide(); ctx.beginPath(); }
+        function start(e) { e.preventDefault(); isDrawing=true; loginPath=[]; ctx.clearRect(0,0,canvas.width,canvas.height); drawGuide(); }
         
         function move(e) {
             if(!isDrawing) return; e.preventDefault();
@@ -114,102 +91,89 @@
             const r = canvas.getBoundingClientRect();
             const x = t.clientX - r.left; const y = t.clientY - r.top;
             
-            ctx.lineTo(x, y); ctx.strokeStyle='#00ff41'; ctx.lineWidth=3; ctx.stroke();
-            loginPath.push({x, y, t: Date.now()});
+            // Capture Oval
+            const rx = t.radiusX || 15; const ry = t.radiusY || 15; const rot = t.rotationAngle || 0;
+
+            ctx.beginPath();
+            ctx.ellipse(x, y, rx, ry, rot * (Math.PI/180), 0, 2 * Math.PI);
+            ctx.fillStyle = `rgba(0, 255, 65, 0.4)`; ctx.fill();
+
+            loginPath.push({x, y, t: Date.now(), rx, ry, rot});
         }
         function end() { isDrawing=false; }
-
+        
         ['mousedown','touchstart'].forEach(e=>canvas.addEventListener(e, start));
         ['mousemove','touchmove'].forEach(e=>canvas.addEventListener(e, move));
         ['mouseup','touchend'].forEach(e=>canvas.addEventListener(e, end));
-        
         setTimeout(resizeCanvas, 50);
 
-        // --- 3. ADAPTIVE BIOMETRIC ENGINE ---
         function verifyBiometrics() {
             const masterJSON = localStorage.getItem('chaos_master_template');
-            if(!masterJSON) { alert("System Reset: Please Recalibrate."); window.location.href='/abyss-forge.html'; return; }
+            if(!masterJSON) { alert("Recalibrate."); window.location.href='/abyss-forge.html'; return; }
             
-            // "Master" is now a flexible object, not just an array
-            // If it's old format (array), we wrap it on the fly
             let masterData;
-            try {
-                const parsed = JSON.parse(masterJSON);
-                masterData = Array.isArray(parsed) ? { path: parsed, speedMod: 1.0, pointsMod: 1.0 } : parsed;
-            } catch(e) { masterData = { path: [], speedMod: 1, pointsMod: 1 }; }
+            try { 
+                const p = JSON.parse(masterJSON);
+                // Ensure format matches V255 structure
+                masterData = p.bio ? p : { path: [], speedMod: 1, bio: { rx:15, ry:15, rot:0 } }; 
+            } catch(e) { window.location.href='/abyss-forge.html'; return; }
 
             if(loginPath.length < 10) { alert("Trace too short."); return; }
 
-            // A. CALCULATE METRICS
-            // 1. Duration (Speed)
-            const masterTime = (masterData.path[masterData.path.length-1].t - masterData.path[0].t) * (masterData.speedMod || 1);
+            // 1. CALCULATE LOGIN AVGS
+            const avgRx = loginPath.reduce((a,b)=>a+b.rx,0)/loginPath.length;
+            const avgRy = loginPath.reduce((a,b)=>a+b.ry,0)/loginPath.length;
+
+            // 2. COMPARE VS MASTER
+            const diffRx = Math.abs(avgRx - masterData.bio.rx);
+            const diffRy = Math.abs(avgRy - masterData.bio.ry);
+            
+            // Allow 30% variance (Fingers squish differently)
+            const sizeScore = Math.max(0, 100 - (diffRx + diffRy)*2);
+
+            // 3. DURATION CHECK
+            const masterTime = (masterData.path[masterData.path.length-1].t - masterData.path[0].t) * masterData.speedMod;
             const loginTime = loginPath[loginPath.length-1].t - loginPath[0].t;
-            
-            // 2. Complexity (Point Count)
-            const masterPoints = masterData.path.length * (masterData.pointsMod || 1);
-            const loginPoints = loginPath.length;
+            const timeScore = Math.floor((Math.min(masterTime,loginTime)/Math.max(masterTime,loginTime)) * 100);
 
-            // B. SCORE CALCULATION
-            // We compare ratios. 1.0 is perfect.
-            const timeRatio = Math.min(masterTime, loginTime) / Math.max(masterTime, loginTime);
-            const pointRatio = Math.min(masterPoints, loginPoints) / Math.max(masterPoints, loginPoints);
+            // WEIGHTED SCORE
+            // Shape/Size (40%) + Speed (40%) + Length (20%)
+            const totalScore = Math.floor(sizeScore*0.4 + timeScore*0.4 + 20);
 
-            // Match Score (0-100)
-            let matchScore = Math.floor((timeRatio * 0.6 + pointRatio * 0.4) * 100);
-            
-            // Strictness Curve (Push high scores higher, low scores lower)
-            if(matchScore > 80) matchScore += 5;
-
-            // C. DECISION LOGIC
-            if(matchScore >= 70) {
-                // --- SUCCESS: ADAPTIVE LEARNING ---
+            if(totalScore > 65) {
+                // --- SUCCESS ---
                 
-                // 1. Evolve Trust Score (Weighted Moving Average)
-                // New Trust = (Old * 0.8) + (New * 0.2) -> Gradual improvement
-                const newTrust = (currentTrust * 0.8) + (matchScore * 0.2);
-                localStorage.setItem('chaos_trust_score', newTrust.toFixed(1));
-                localStorage.setItem('chaos_last_bio_score', matchScore);
-                localStorage.setItem('session_start', Date.now());
-
-                // 2. Evolve Master Template (The "Drift")
-                // If the user was slightly faster/slower, we update the Modifier
-                // This makes the "Perfect Score" chase the user's natural habits
-                const timeDrift = loginTime / masterTime; 
-                const pointDrift = loginPoints / masterPoints;
-                
-                // Gentle Nudge (Only 10% update)
-                masterData.speedMod = (masterData.speedMod || 1) * 0.9 + timeDrift * 0.1;
-                masterData.pointsMod = (masterData.pointsMod || 1) * 0.9 + pointDrift * 0.1;
+                // 1. ADAPTIVE LEARNING (The "Blobs Learn" Part)
+                const LEARNING_RATE = 0.1; // 10% shift
+                masterData.bio.rx = (masterData.bio.rx * (1-LEARNING_RATE)) + (avgRx * LEARNING_RATE);
+                masterData.bio.ry = (masterData.bio.ry * (1-LEARNING_RATE)) + (avgRy * LEARNING_RATE);
+                masterData.speedMod = (masterData.speedMod * 0.9) + ((loginTime/masterTime) * 0.1);
                 
                 localStorage.setItem('chaos_master_template', JSON.stringify(masterData));
 
+                // Trust Score Up
+                const newTrust = Math.min(100, currentTrust + 2);
+                localStorage.setItem('chaos_trust_score', newTrust.toFixed(1));
+                localStorage.setItem('chaos_last_bio_score', totalScore);
+                localStorage.setItem('session_start', Date.now());
+
                 // UI Feedback
                 document.getElementById('analysis-overlay').style.opacity = '1';
-                document.getElementById('status-display').innerText = `MATCH: ${matchScore}%`;
-                document.getElementById('btn').innerText = "UPDATING PROFILE...";
+                document.getElementById('stat-time').innerText = `${timeScore}%`;
+                document.getElementById('stat-shape').innerText = `${sizeScore}%`;
+                
                 document.getElementById('btn').style.background = "#00ff41";
-                
-                setTimeout(() => window.location.href = '/dashboard', 1200);
-                
+                document.getElementById('btn').innerText = "GRANTED";
+
+                setTimeout(() => window.location.href='/dashboard', 1500);
+
             } else {
-                // --- FAILURE ---
-                // Penalty is sharper than reward (Security First)
+                // FAIL
                 const newTrust = Math.max(0, currentTrust - 5);
                 localStorage.setItem('chaos_trust_score', newTrust.toFixed(1));
                 document.getElementById('trust-indicator').innerText = newTrust.toFixed(1) + "%";
-                
-                document.getElementById('status-display').innerText = `FAIL: ${matchScore}%`;
-                document.getElementById('status-display').classList.add('text-red-500');
-                
-                // Shake Button
-                const btn = document.getElementById('btn');
-                btn.style.transform = "translateX(10px)";
-                btn.style.background = "#ff3333";
-                setTimeout(() => btn.style.transform = "translateX(0)", 100);
-                
-                alert(`Biometric Mismatch (${matchScore}%).\nYour speed or rhythm was off.`);
+                alert(`Mismatch (${totalScore}%).\nFinger shape or speed invalid.`);
                 ctx.clearRect(0,0,canvas.width,canvas.height); drawGuide();
-                document.getElementById('btn').style.background = "#fff";
             }
         }
     </script>
