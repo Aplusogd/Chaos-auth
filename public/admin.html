@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
     <title>OVERWATCH // ABYSS</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="router.js"></script>
     <style>
         body { background: #000; color: #ff003c; font-family: 'Courier New', monospace; padding-bottom: 80px; }
         .grid-line { border-bottom: 1px solid #333; }
-        .stat-box { border: 1px solid #333; padding: 10px; }
+        .stat-box { border: 1px solid #333; padding: 12px; }
         .live-dot { height: 8px; width: 8px; background: #ff003c; border-radius: 50%; display: inline-block; animation: blink 1s infinite; }
         @keyframes blink { 50% { opacity: 0; } }
     </style>
@@ -16,54 +16,55 @@
 <body class="p-4">
     
     <div class="flex justify-between items-center mb-6 border-b border-red-900 pb-2">
-        <h1 class="text-xl font-bold tracking-widest">OVERWATCH <span class="text-xs align-top">V245</span></h1>
-        <div class="text-xs text-red-500"><span class="live-dot mr-2"></span>LIVE</div>
+        <h1 class="text-lg font-bold tracking-widest">OVERWATCH <span class="text-[10px] align-top">V251</span></h1>
+        <div class="text-[10px] text-red-500 font-bold"><span class="live-dot mr-2"></span>LIVE</div>
     </div>
 
-    <div class="grid grid-cols-2 gap-2 mb-6">
-        <div class="stat-box bg-red-900/10">
-            <div class="text-xs text-gray-500">MEMORY</div>
-            <div class="text-2xl font-bold" id="mem">--</div>
+    <div class="grid grid-cols-2 gap-3 mb-6">
+        <div class="stat-box bg-red-900/10 rounded">
+            <div class="text-[10px] text-gray-500 mb-1">MEMORY</div>
+            <div class="text-xl font-bold" id="mem">--</div>
         </div>
-        <div class="stat-box bg-red-900/10">
-            <div class="text-xs text-gray-500">CONN</div>
-            <div class="text-2xl font-bold">SECURE</div>
+        <div class="stat-box bg-red-900/10 rounded">
+            <div class="text-[10px] text-gray-500 mb-1">CONN</div>
+            <div class="text-xl font-bold">SECURE</div>
         </div>
-        <div class="stat-box bg-red-900/10 col-span-2">
-            <div class="text-xs text-gray-500">LAST SYNC</div>
-            <div class="text-lg" id="time">--:--:--</div>
+        <div class="stat-box bg-red-900/10 col-span-2 rounded">
+            <div class="text-[10px] text-gray-500 mb-1">LAST SYNC</div>
+            <div class="text-xl font-bold" id="time">--:--:--</div>
         </div>
     </div>
 
-    <h2 class="text-xs text-gray-500 mb-2">EVENT LOG</h2>
-    <div id="console" class="bg-gray-900 p-2 h-64 overflow-y-auto text-xs text-gray-300 font-mono border border-gray-800 mb-6">
-        <div class="text-red-500">>> SYSTEM INITIALIZED</div>
+    <h2 class="text-[10px] text-gray-500 mb-2 font-bold tracking-widest">EVENT LOG</h2>
+    <div id="console" class="bg-gray-900 p-3 h-64 overflow-y-auto text-[11px] text-gray-300 font-mono border border-gray-800 mb-6 rounded break-all shadow-inner shadow-black">
+        <div class="text-red-500 mb-1">>> SYSTEM INITIALIZED...</div>
     </div>
 
-    <a href="/dashboard" class="block w-full text-center border border-gray-700 py-3 text-gray-400 hover:text-white hover:border-white transition uppercase text-sm">
-        << EXIT ABYSS (Return Home)
+    <a href="/dashboard" class="block w-full text-center border border-gray-800 bg-gray-900 py-4 text-gray-400 hover:text-white hover:border-gray-600 transition uppercase text-xs font-bold rounded">
+        << RETURN TO SANCTUARY
     </a>
 
     <script>
         document.getElementById('mem').innerText = (navigator.deviceMemory || 4) + "GB";
         
-        // Time Sync
         setInterval(() => {
             const now = new Date();
             document.getElementById('time').innerText = now.toLocaleTimeString();
         }, 1000);
 
-        // Fake Logs
         const logs = document.getElementById('console');
-        const msgs = ["Handshake ACK", "Packet 0x4F received", "Entropy pool refreshed", "Heartbeat OK", "Zero-Knowledge Check passed"];
+        const msgs = ["Handshake ACK", "Packet 0x4F verified", "Entropy pool refreshed", "Heartbeat OK", "Zero-Knowledge Check passed", "Buffer cleared"];
         
         setInterval(() => {
             const msg = msgs[Math.floor(Math.random() * msgs.length)];
+            const time = new Date().toLocaleTimeString().split(' ')[0];
             const div = document.createElement('div');
-            div.className = "mb-1 border-b border-gray-800 pb-1";
-            div.innerText = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            div.className = "mb-1 border-b border-gray-800/50 pb-1";
+            div.innerText = `[${time}] ${msg}`;
             logs.prepend(div);
-        }, 2500);
+            // Limit logs
+            if(logs.children.length > 20) logs.lastChild.remove();
+        }, 2000);
     </script>
 </body>
 </html>
