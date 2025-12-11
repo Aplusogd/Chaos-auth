@@ -9,25 +9,18 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body { background: #0f172a; color: #fff; font-family: sans-serif; padding-bottom: 100px; }
-        
-        /* Bigger, bolder cards */
-        .card-btn {
-            display: flex; align-items: center; justify-content: space-between;
-            background: #1e293b; border: 1px solid #334155;
-            padding: 28px 24px; border-radius: 16px; margin-bottom: 16px;
-            transition: transform 0.1s;
-        }
+        .card-btn { display: flex; align-items: center; justify-content: space-between; background: #1e293b; border: 1px solid #334155; padding: 24px; border-radius: 16px; margin-bottom: 16px; transition: transform 0.1s; }
         .card-btn:active { transform: scale(0.98); background: #334155; }
+        .icon-box { width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
         
-        .icon-box {
-            width: 60px; height: 60px; border-radius: 14px;
-            display: flex; align-items: center; justify-content: center; font-size: 28px;
-        }
+        /* Score Bars */
+        .bar-bg { width: 100%; height: 8px; background: #334155; border-radius: 4px; overflow: hidden; margin-top: 6px; }
+        .bar-fill { height: 100%; transition: width 1s ease-out; }
     </style>
 </head>
 <body class="p-6">
 
-    <div class="flex justify-between items-center mb-8 mt-2">
+    <div class="flex justify-between items-center mb-6 mt-2">
         <div>
             <div class="text-xs text-slate-400 font-bold tracking-widest uppercase">Operator</div>
             <div class="text-3xl font-black tracking-tight" id="user-id">UNKNOWN</div>
@@ -37,61 +30,91 @@
         </div>
     </div>
 
+    <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 mb-8">
+        <h3 class="text-xs font-bold text-slate-400 mb-4 tracking-widest">BIOMETRIC PROFILE</h3>
+        
+        <div class="mb-4">
+            <div class="flex justify-between text-xs font-bold mb-1">
+                <span class="text-blue-400">TRUST LEVEL</span>
+                <span class="text-white" id="trust-val">0%</span>
+            </div>
+            <div class="bar-bg"><div id="trust-bar" class="bar-fill bg-blue-500" style="width: 0%"></div></div>
+        </div>
+
+        <div>
+            <div class="flex justify-between text-xs font-bold mb-1">
+                <span class="text-green-400">FINGERPRINT MATCH</span>
+                <span class="text-white" id="bio-val">0%</span>
+            </div>
+            <div class="bar-bg"><div id="bio-bar" class="bar-fill bg-green-500" style="width: 0%"></div></div>
+        </div>
+    </div>
+
     <h2 class="text-xs text-slate-500 mb-4 ml-1 font-bold">COMMAND DECK</h2>
     
     <a href="/pair" class="card-btn group">
         <div class="flex items-center gap-5">
             <div class="icon-box bg-purple-500/20 text-purple-400"><i class="fas fa-plug"></i></div>
             <div>
-                <div class="font-black text-xl text-white">Bind Device</div>
-                <div class="text-slate-400 text-sm font-medium">Sync Hardware Plug</div>
+                <div class="font-bold text-xl text-white">Bind Device</div>
+                <div class="text-slate-400 text-sm">Sync Hardware Plug</div>
             </div>
         </div>
-        <i class="fas fa-chevron-right text-slate-600 text-xl"></i>
+        <i class="fas fa-chevron-right text-slate-600"></i>
     </a>
-
+    
     <a href="/search" class="card-btn group">
         <div class="flex items-center gap-5">
             <div class="icon-box bg-blue-500/20 text-blue-400"><i class="fas fa-search"></i></div>
             <div>
-                <div class="font-black text-xl text-white">Black Box</div>
-                <div class="text-slate-400 text-sm font-medium">Search Archives</div>
+                <div class="font-bold text-xl text-white">Black Box</div>
+                <div class="text-slate-400 text-sm">Search Archives</div>
             </div>
         </div>
-        <i class="fas fa-chevron-right text-slate-600 text-xl"></i>
+        <i class="fas fa-chevron-right text-slate-600"></i>
     </a>
 
     <a href="/sdk" class="card-btn group">
         <div class="flex items-center gap-5">
             <div class="icon-box bg-teal-500/20 text-teal-400"><i class="fas fa-book"></i></div>
             <div>
-                <div class="font-black text-xl text-white">Protocols</div>
-                <div class="text-slate-400 text-sm font-medium">Documentation</div>
+                <div class="font-bold text-xl text-white">Protocols</div>
+                <div class="text-slate-400 text-sm">Documentation</div>
             </div>
         </div>
-        <i class="fas fa-chevron-right text-slate-600 text-xl"></i>
+        <i class="fas fa-chevron-right text-slate-600"></i>
     </a>
 
     <h2 class="text-xs text-red-900/60 mb-4 ml-1 mt-8 font-bold">RESTRICTED</h2>
-    
     <a href="/admin" class="card-btn border-red-900/30 bg-red-900/10">
         <div class="flex items-center gap-5">
             <div class="icon-box bg-red-500/20 text-red-500"><i class="fas fa-shield-alt"></i></div>
             <div>
-                <div class="font-black text-xl text-red-100">The Abyss</div>
-                <div class="text-red-400/60 text-sm font-medium">Overwatch System</div>
+                <div class="font-bold text-xl text-red-100">The Abyss</div>
+                <div class="text-red-400/60 text-sm">Overwatch System</div>
             </div>
         </div>
     </a>
 
     <div class="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-slate-900 to-transparent">
-        <a href="/logout" class="block w-full bg-slate-800 text-red-400 text-center font-bold py-4 rounded-xl border border-slate-700 hover:bg-slate-700 transition text-lg">
-            SEAL SESSION
-        </a>
+        <a href="/logout" class="block w-full bg-slate-800 text-red-400 text-center font-bold py-4 rounded-xl border border-slate-700 hover:bg-slate-700 transition">SEAL SESSION</a>
     </div>
 
     <script>
         document.getElementById('user-id').innerText = localStorage.getItem('callsign_history') || 'OPERATOR';
+        
+        // Load Scores
+        const trust = localStorage.getItem('chaos_trust_score') || '50';
+        const bio = localStorage.getItem('chaos_last_bio_score') || '0';
+
+        // Animate Bars
+        setTimeout(() => {
+            document.getElementById('trust-bar').style.width = trust + '%';
+            document.getElementById('trust-val').innerText = trust + '%';
+            
+            document.getElementById('bio-bar').style.width = bio + '%';
+            document.getElementById('bio-val').innerText = bio + '%';
+        }, 300);
     </script>
 </body>
 </html>
