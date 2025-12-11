@@ -1,33 +1,72 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Black Box Search</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="chaos-sdk.js"></script>
-    <style>body{background:#000;color:#fff;font-family:monospace;padding:20px;}</style>
+    <style>
+        body { background: #000; color: #fff; font-family: monospace; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .result-card { border-left: 2px solid #00ff41; padding-left: 15px; margin-bottom: 20px; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
 </head>
 <body>
-<h1>LOCAL BLACK BOX SEARCH</h1>
-<input id="search-input" placeholder="Search your Black Box notes..." 
-       oninput="chaosSearch(this.value)" 
-       style="background:#111;border:1px solid #00ff41;padding:10px;color:#fff;width:100%;margin-bottom:20px;">
-<div id="results" style="color:#00ff41;"></div>
-<script>
-    async function chaosSearch(q) {
-        // Use the simplified mock decryption from the SDK
-        const notes = await decryptNotes('encrypted_data_stub'); 
-        
-        const hits = notes.split('\n').filter(line => line.toLowerCase().includes(q.toLowerCase()));
-        
-        const resultsEl = document.getElementById('results');
-        if (hits.length > 0) {
-            resultsEl.innerHTML = hits.map(h=>`<p class="border-b border-gray-800 pb-1">${h}</p>`).join('');
-        } else if (q.length > 0) {
-             resultsEl.innerHTML = `<p>No matching chaos patterns found.</p>`;
-        } else {
-             resultsEl.innerHTML = `<p>Type to search your locally encrypted data.</p>`;
+    <h1 class="text-2xl text-green-500 mb-6 font-bold border-b border-gray-800 pb-4">
+        <i class="fas fa-search mr-2"></i>BLACK BOX SEARCH
+    </h1>
+
+    <input id="search-input" type="text" 
+           placeholder="Query your encrypted notes..." 
+           oninput="chaosSearch(this.value)" 
+           class="w-full bg-gray-900 text-white border border-gray-700 p-4 rounded mb-8 focus:border-green-500 focus:outline-none text-lg">
+
+    <div id="results" class="text-gray-300"></div>
+
+    <div class="mt-12 text-center">
+        <a href="/dashboard" class="text-xs text-gray-600 hover:text-green-500">← Return to Sanctuary</a>
+    </div>
+
+    <script>
+        // Ensure SDK is loaded
+        if (typeof window.decryptNotes === 'undefined') {
+            document.getElementById('results').innerHTML = '<p class="text-red-500">ERROR: chaos-sdk.js missing.</p>';
         }
-    }
-</script>
+
+        async function chaosSearch(q) {
+            const resultsEl = document.getElementById('results');
+            if(q.length < 2) {
+                resultsEl.innerHTML = '<p class="text-gray-600 italic">Listening for query...</p>';
+                return;
+            }
+
+            // 1. Mock Encrypted Data (In real life, get from localStorage)
+            // This simulates what decryptNotes() would return
+            const rawData = [
+                "2025-08-25: Update garage door logic for A+ Overhead.",
+                "2025-11-25: Competitor analysis complete. Weakness found in sector 7.",
+                "2025-12-02: Reminder: Business runs 24/7. Never stop.",
+                "System: Chaos Plug #001 firmware flash pending.",
+                "Note: Callsign CRIMSON-RAZOR assigned to admin."
+            ];
+
+            // 2. Filter Logic (Client-Side Only - Zero Knowledge Server)
+            const hits = rawData.filter(line => line.toLowerCase().includes(q.toLowerCase()));
+            
+            // 3. Render
+            if (hits.length > 0) {
+                resultsEl.innerHTML = hits.map(h => 
+                    `<div class="result-card">
+                        <p class="text-green-400 text-xs mb-1">MATCH FOUND</p>
+                        <p>${h.replace(new RegExp(q, "gi"), (match) => `<span class="bg-green-900 text-white px-1">${match}</span>`)}</p>
+                    </div>`
+                ).join('');
+            } else {
+                resultsEl.innerHTML = `<p class="text-gray-600">No traces found for "${q}".</p>`;
+            }
+        }
+    </script>
 </body>
 </html>
-
