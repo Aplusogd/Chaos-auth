@@ -3,11 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Calibrate Sigil</title>
+    <title>Calibrate Bio-Ink</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background: #000; color: #00ff41; font-family: monospace; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
-        canvas { background: #0a0a0a; border: 2px solid #333; border-radius: 12px; touch-action: none; box-shadow: 0 0 20px rgba(0,255,65,0.1); }
+        
+        canvas { 
+            background: #0a0a0a; border: 2px solid #333; border-radius: 12px; 
+            touch-action: none; box-shadow: 0 0 20px rgba(0,255,65,0.1); 
+        }
+        
         .progress-bar { width: 100%; height: 6px; background: #222; margin-top: 20px; border-radius: 3px; }
         .fill { height: 100%; background: #00ff41; width: 0%; transition: width 0.3s; }
     </style>
@@ -15,16 +20,14 @@
 <body class="p-4">
     
     <div class="text-center w-full max-w-sm">
-        <h1 class="text-2xl font-bold mb-2 text-white">CALIBRATION</h1>
-        <p class="text-gray-400 text-xs mb-6">Trace the shape 5 times. <br>We are learning your <span class="text-white">speed</span> and <span class="text-white">rhythm</span>.</p>
+        <h1 class="text-2xl font-bold mb-2 text-white">BIO-INK CALIBRATION</h1>
+        <p class="text-gray-400 text-xs mb-6">Trace the shape. <br>We are measuring your <span class="text-white">finger size</span> and <span class="text-white">pressure</span>.</p>
 
         <div class="relative flex justify-center">
             <canvas id="canvas" width="300" height="300"></canvas>
         </div>
 
-        <div class="progress-bar">
-            <div id="fill" class="fill"></div>
-        </div>
+        <div class="progress-bar"><div id="fill" class="fill"></div></div>
         <p id="status" class="mt-4 font-bold text-lg">0 / 5</p>
     </div>
 
@@ -33,11 +36,10 @@
         const ctx = canvas.getContext('2d');
         const sigilType = localStorage.getItem('chaos_sigil_type') || 'TRIANGLE';
         
-        let traces = 0;
-        const required = 5;
+        let traces = 0; const required = 5;
         let isDrawing = false;
-        let currentPath = []; // Stores X, Y, Time
-        let bestPath = null; // We will save the longest/cleanest path
+        let currentPath = []; 
+        let fingerSizes = []; // Store radius averages
 
         function drawGuide() {
             ctx.clearRect(0,0,300,300);
@@ -51,7 +53,7 @@
 
         function start(e) { 
             e.preventDefault(); isDrawing=true; currentPath=[]; 
-            ctx.clearRect(0,0,300,300); drawGuide(); ctx.beginPath(); 
+            ctx.clearRect(0,0,300,300); drawGuide(); 
         }
 
         function move(e) {
@@ -62,42 +64,62 @@
             const x = t.clientX - r.left;
             const y = t.clientY - r.top;
             
-            // Draw
-            ctx.lineTo(x, y); ctx.strokeStyle = '#00ff41'; ctx.lineWidth = 4; ctx.stroke();
+            // --- NEW: TOUCH GEOMETRY ---
+            // radiusX is the width of the finger contact. 
+            // Fallback to 15 if hardware doesn't support it (desktop mouse)
+            const radius = t.radiusX ? t.radiusX : 15; 
+            const force = t.force || 0.5;
+
+            // Draw "Bio-Ink" (Blob)
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = `rgba(0, 255, 65, 0.5)`; // Semi-transparent for density heat-map
+            ctx.fill();
             
-            // Record Biometrics (X, Y, Time)
-            currentPath.push({x: Math.round(x), y: Math.round(y), t: Date.now()});
+            // Save Data
+            currentPath.push({
+                x: Math.round(x), 
+                y: Math.round(y), 
+                t: Date.now(),
+                r: Math.round(radius) // Save Finger Size
+            });
         }
 
         function end() {
-            if(!isDrawing) return;
-            isDrawing = false;
+            if(!isDrawing) return; isDrawing = false;
             
-            // Simple check: did they actually draw enough?
             if(currentPath.length > 20) {
+                // Calculate Average Finger Size for this trace
+                const avgSize = currentPath.reduce((sum, p) => sum + p.r, 0) / currentPath.length;
+                fingerSizes.push(avgSize);
                 success();
             } else {
-                drawGuide(); // Reset if too short
+                drawGuide();
             }
         }
 
         function success() {
             traces++;
-            // Save the last path as the "Master" (Assuming the last one is the most practiced)
-            bestPath = currentPath; 
-            
-            // UI
             const pct = (traces / required) * 100;
             document.getElementById('fill').style.width = `${pct}%`;
             document.getElementById('status').innerText = `${traces} / ${required}`;
 
             if(traces >= required) {
-                // SAVE THE BIOMETRIC TEMPLATE
-                localStorage.setItem('chaos_master_template', JSON.stringify(bestPath));
-                // Set initial Trust Score
-                localStorage.setItem('chaos_trust_score', '50'); // Starts average
+                // CALCULATE MASTER TEMPLATE
+                // We assume the last trace is the best path geometry
+                // But we use the AVERAGE finger size across all 5 traces for robustness
+                const masterFingerSize = fingerSizes.reduce((a,b)=>a+b, 0) / fingerSizes.length;
 
-                document.getElementById('status').innerText = "BIOMETRICS LOCKED.";
+                const masterData = {
+                    path: currentPath,      // Geometry
+                    speedMod: 1.0,          // Learning Mod
+                    fingerSize: masterFingerSize // The "Thumbprint" Size
+                };
+
+                localStorage.setItem('chaos_master_template', JSON.stringify(masterData));
+                localStorage.setItem('chaos_trust_score', '50');
+
+                document.getElementById('status').innerText = "TOUCH PROFILE SAVED.";
                 document.getElementById('status').classList.add('text-white');
                 setTimeout(() => window.location.href = '/login', 1000);
             } else {
