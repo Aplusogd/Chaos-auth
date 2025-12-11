@@ -2,80 +2,83 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forge Your Callsign</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Forge Identity</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <style>
-        body { background: #000; color: #00ff41; font-family: monospace; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .glitch { animation: glitch 1s linear infinite; }
-        @keyframes glitch {
-            2%, 64% { transform: translate(2px,0) skew(0deg); }
-            4%, 60% { transform: translate(-2px,0) skew(0deg); }
-            62% { transform: translate(0,0) skew(5deg); }
-        }
-        .btn { border: 1px solid #00ff41; padding: 15px 30px; cursor: pointer; transition: all 0.2s; }
-        .btn:hover { background: #00ff41; color: #000; box-shadow: 0 0 15px #00ff41; }
+        body { background: #000; color: #00ff41; font-family: monospace; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
+        .sigil-opt { border: 2px solid #333; padding: 15px; border-radius: 8px; cursor: pointer; text-align: center; transition: all 0.2s; }
+        .sigil-opt.selected { border-color: #00ff41; background: #002200; box-shadow: 0 0 15px #00ff41; }
+        /* Prevent accidental zooming on mobile inputs */
+        input, select, textarea { font-size: 16px; } 
     </style>
 </head>
-<body>
-    <div class="text-center w-full max-w-lg p-4">
-        <h1 class="text-4xl font-bold mb-2 tracking-widest glitch">CHAOS FORGE</h1>
-        <p class="text-gray-500 mb-8 text-sm">Mint your eternal identity.</p>
-
-        <div id="output" class="text-2xl mb-8 min-h-[40px] text-green-300 font-bold border-b border-gray-800 pb-2"></div>
-
-        <button onclick="forge()" class="btn text-xl font-bold mb-4 w-full">
-            GENERATE CALLSIGN
-        </button>
+<body class="p-4">
+    <div class="w-full max-w-md flex flex-col gap-6">
         
-        <button onclick="accept()" id="accept-btn" class="hidden btn w-full border-gray-700 text-gray-500 hover:border-white hover:text-white hover:bg-transparent hover:shadow-none">
-            ACCEPT & BIND
+        <div class="text-center">
+            <h1 class="text-3xl font-black tracking-widest text-white mb-2">IDENTITY FORGE</h1>
+            <p class="text-gray-500 text-sm">Step 1: Generate Callsign</p>
+        </div>
+
+        <div id="callsign-display" class="bg-gray-900 border-2 border-green-900 p-6 rounded text-center text-3xl font-mono text-green-400 font-bold min-h-[80px] flex items-center justify-center">
+            VOID-USER
+        </div>
+
+        <button onclick="generate()" class="w-full bg-green-900 text-white font-bold py-4 rounded text-lg border border-green-700 hover:bg-green-700 active:scale-95 transition">
+            GENERATE NEW CALLSIGN
         </button>
 
-        <div class="mt-8 text-xs text-gray-600">
-            <a href="/" class="hover:text-white">← Return to Void</a>
+        <div id="sigil-section" class="hidden opacity-0 transition-opacity duration-500">
+            <p class="text-center text-gray-500 text-sm mb-3">Step 2: Choose Your Key Shape</p>
+            <div class="grid grid-cols-3 gap-3 mb-6">
+                <div class="sigil-opt" onclick="selectSigil('TRIANGLE')">▲<br><span class="text-xs">TRIANGLE</span></div>
+                <div class="sigil-opt" onclick="selectSigil('LIGHTNING')">⚡<br><span class="text-xs">BOLT</span></div>
+                <div class="sigil-opt" onclick="selectSigil('CIRCLE')">⭕<br><span class="text-xs">CIRCLE</span></div>
+            </div>
+
+            <button onclick="confirm()" class="w-full bg-white text-black font-black py-4 rounded text-xl shadow-lg hover:bg-gray-200 active:scale-95 transition">
+                BEGIN CALIBRATION →
+            </button>
         </div>
+
     </div>
 
     <script>
-        const words = ["VOID", "RAZOR", "THUNDER", "CRIMSON", "ABYSS", "NOVA", "ASH", "ONYX", "GHOST", "ECHO", "SHADOW", "PULSE"];
-        let currentCallsign = "";
+        const words = ["ONYX", "IRON", "NEON", "WOLF", "ECHO", "DATA", "ZERO", "FLUX", "CORE", "GATE"];
+        let selectedCallsign = "";
+        let selectedSigil = "";
 
-        function forge() {
-            // Chaos Generator Logic
-            const r1 = words[Math.floor(Math.random() * words.length)];
-            const r2 = words[Math.floor(Math.random() * words.length)];
-            const r3 = words[Math.floor(Math.random() * words.length)];
-            const suffix = Math.floor(Math.random() * 99);
+        function generate() {
+            const r1 = words[Math.floor(Math.random()*words.length)];
+            const r2 = words[Math.floor(Math.random()*words.length)];
+            const num = Math.floor(Math.random()*99).toString().padStart(2,'0');
+            selectedCallsign = `${r1}-${r2}-${num}`;
             
-            currentCallsign = `${r1}-${r2}-${r3}-${suffix}`;
+            document.getElementById('callsign-display').innerText = selectedCallsign;
+            document.getElementById('callsign-display').classList.add('text-white', 'border-green-500');
             
-            // Glitch Effect
-            const out = document.getElementById('output');
-            let i = 0;
-            const interval = setInterval(() => {
-                out.innerText = Math.random().toString(36).substring(7).toUpperCase();
-                i++;
-                if(i > 10) {
-                    clearInterval(interval);
-                    out.innerText = currentCallsign;
-                    out.classList.add('text-white');
-                    document.getElementById('accept-btn').classList.remove('hidden');
-                    document.getElementById('accept-btn').classList.add('block');
-                }
-            }, 50);
+            // Show Step 2
+            const sec = document.getElementById('sigil-section');
+            sec.classList.remove('hidden');
+            setTimeout(() => sec.classList.remove('opacity-0'), 100);
         }
 
-        function accept() {
-            if(!currentCallsign) return;
-            // Save to Local Storage for the Login Page
-            localStorage.setItem('callsign_history', currentCallsign);
-            // Flash Success
-            document.body.style.background = "#001100";
-            setTimeout(() => {
-                window.location.href = '/login';
-            }, 500);
+        function selectSigil(type) {
+            selectedSigil = type;
+            document.querySelectorAll('.sigil-opt').forEach(el => el.classList.remove('selected'));
+            event.currentTarget.classList.add('selected');
+        }
+
+        function confirm() {
+            if(!selectedSigil) return alert("SELECT A SHAPE TO CONTINUE");
+            
+            // Save Data
+            localStorage.setItem('callsign_history', selectedCallsign);
+            localStorage.setItem('chaos_sigil_type', selectedSigil);
+            
+            // Go to Calibration
+            window.location.href = '/abyss-forge.html';
         }
     </script>
 </body>
