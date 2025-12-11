@@ -1,47 +1,169 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Chaos SDK</title>
+    <title>Chaos SDK // Protocol</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="chaos-sdk.js"></script>
-    <style>body{background:#0a0a0a;color:#ccc;font-family:sans-serif;}</style>
+    <style>
+        body { background: #0a0a0a; color: #ccc; font-family: sans-serif; padding-bottom: 80px; }
+        
+        /* Code Block Styling */
+        pre { background: #111; border: 1px solid #333; padding: 15px; border-radius: 8px; overflow-x: auto; color: #00ff41; font-family: monospace; font-size: 12px; }
+        
+        /* The Demo Canvas */
+        .demo-card {
+            background: #000; border: 1px solid #333; border-radius: 12px;
+            padding: 20px; margin-bottom: 40px; text-align: center;
+        }
+        canvas { 
+            background: #050505; border: 1px solid #222; border-radius: 8px; 
+            margin: 0 auto; touch-action: none; 
+            box-shadow: 0 0 20px rgba(0,255,65,0.05);
+        }
+    </style>
 </head>
-<body class="max-w-3xl mx-auto p-8">
+<body class="p-6 max-w-2xl mx-auto">
     
-    <div class="mb-12 text-center">
-        <h1 class="text-4xl font-bold text-white mb-2 font-mono">CHAOS SDK</h1>
-        <p class="text-green-500 font-mono text-sm" id="live-entropy">Move mouse to generate entropy...</p>
+    <div class="mb-10 text-center">
+        <h1 class="text-3xl font-black text-white mb-2 tracking-tighter">CHAOS PROTOCOL</h1>
+        <p class="text-green-500 font-mono text-xs tracking-widest">V252 // LIVE DOCUMENTATION</p>
     </div>
 
-    <div class="prose prose-invert">
-        <h2 class="text-white border-b border-gray-700 pb-2">1. The Philosophy</h2>
-        <p>The Chaos SDK is built on the principle of <strong>Zero-Knowledge Presence</strong>. We do not store passwords. We store mathematical proofs of your chaotic biometric signature.</p>
+    <div class="demo-card">
+        <h2 class="text-white font-bold mb-2">Live Entropy Demo</h2>
+        <p class="text-xs text-gray-500 mb-6">Trace the shape below. Watch how your unique speed and jitter generate a cryptographic seed in real-time.</p>
 
-        <h2 class="text-white border-b border-gray-700 pb-2 mt-8">2. Integration</h2>
-        <p>Include the SDK in your project:</p>
-        <pre class="bg-black p-4 rounded text-green-400 font-mono text-sm">&lt;script src="/chaos-sdk.js"&gt;&lt;/script&gt;</pre>
+        <div class="relative inline-block">
+            <canvas id="demo-canvas" width="280" height="280"></canvas>
+            <div class="absolute bottom-2 right-2 text-[10px] text-gray-700 font-mono">SENSOR_ACTIVE</div>
+        </div>
 
-        <h2 class="text-white border-b border-gray-700 pb-2 mt-8">3. Methods</h2>
-        <ul class="list-disc pl-5 space-y-2">
-            <li><code class="text-green-400">generateInfiniteChaosCode(seed, count)</code>: Returns deterministic chaos words.</li>
-            <li><code class="text-green-400">decryptNotes(data)</code>: Client-side decryption of Black Box data.</li>
+        <div class="mt-4 text-left bg-gray-900 p-3 rounded border border-gray-800 font-mono text-[10px]">
+            <div class="flex justify-between mb-1">
+                <span class="text-gray-500">SHAPE:</span>
+                <span id="shape-name" class="text-white font-bold">LOADING...</span>
+            </div>
+            <div class="flex justify-between mb-1">
+                <span class="text-gray-500">POINTS:</span>
+                <span id="point-count" class="text-blue-400">0</span>
+            </div>
+            <div class="mt-2 border-t border-gray-800 pt-2">
+                <span class="text-gray-500 block mb-1">GENERATED SEED (SHA-256):</span>
+                <span id="live-hash" class="text-green-500 break-all">WAITING_FOR_INPUT...</span>
+            </div>
+        </div>
+        
+        <button onclick="resetDemo()" class="mt-4 text-xs text-gray-500 hover:text-white underline">
+            Generate New Shape
+        </button>
+    </div>
+
+    <div class="prose prose-invert prose-sm mx-auto">
+        <h3 class="text-white font-bold border-b border-gray-800 pb-2 mb-4">1. The Philosophy</h3>
+        <p class="mb-6">
+            The Chaos Protocol relies on <strong>Biometric Entropy</strong>. Unlike a fingerprint (which is static), a Sigil Trace captures <em>how</em> you move—speed, hesitation, and pressure. This creates a "Living Key" that cannot be stolen, only re-performed.
+        </p>
+
+        <h3 class="text-white font-bold border-b border-gray-800 pb-2 mb-4">2. Integration</h3>
+        <p class="mb-4">Include the SDK core in your secure pages:</p>
+        <pre>&lt;script src="/chaos-sdk.js"&gt;&lt;/script&gt;</pre>
+
+        <h3 class="text-white font-bold border-b border-gray-800 pb-2 mt-8 mb-4">3. Core Methods</h3>
+        <ul class="list-disc pl-5 space-y-2 text-gray-400">
+            <li><code class="text-green-400">generateInfiniteChaosCode(seed)</code>: Converts biometric data into human-readable words.</li>
+            <li><code class="text-green-400">decryptNotes(data)</code>: Client-side Zero Knowledge decryption.</li>
         </ul>
     </div>
 
     <div class="mt-12 pt-8 border-t border-gray-800 text-center">
-        <a href="/" class="text-green-500 hover:underline">Return Home</a>
+        <a href="/dashboard" class="text-xs font-bold bg-white text-black px-6 py-3 rounded-full hover:bg-gray-200 transition">
+            Return to Dashboard
+        </a>
     </div>
 
     <script>
-        // Live Entropy Demo
-        document.addEventListener('mousemove', (e) => {
-            if(Math.random() > 0.8 && window.generateInfiniteChaosCode) {
-                const seed = "SDK" + e.clientX + e.clientY;
-                const codes = generateInfiniteChaosCode(seed, 3);
-                document.getElementById('live-entropy').innerText = `LIVE: ${codes.join(' - ')}`;
+        const canvas = document.getElementById('demo-canvas');
+        const ctx = canvas.getContext('2d');
+        const hashDisplay = document.getElementById('live-hash');
+        const pointDisplay = document.getElementById('point-count');
+        const shapeNameDisplay = document.getElementById('shape-name');
+
+        let currentShape = 'TRIANGLE';
+        let points = [];
+        let isDrawing = false;
+
+        function pickRandomShape() {
+            const shapes = ['TRIANGLE', 'CIRCLE', 'LIGHTNING'];
+            currentShape = shapes[Math.floor(Math.random() * shapes.length)];
+            shapeNameDisplay.innerText = currentShape;
+            drawGuide();
+        }
+
+        function drawGuide() {
+            ctx.clearRect(0,0,280,280);
+            const cx = 140; const cy = 140;
+
+            ctx.strokeStyle = '#1a1a1a'; // Faint guide
+            ctx.lineWidth = 10;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.beginPath();
+
+            if(currentShape === 'TRIANGLE') {
+                ctx.moveTo(cx, 40); ctx.lineTo(240, 220); ctx.lineTo(40, 220); ctx.closePath();
+            } else if(currentShape === 'CIRCLE') {
+                ctx.arc(cx, cy, 100, 0, 2 * Math.PI);
+            } else if(currentShape === 'LIGHTNING') {
+                ctx.moveTo(cx+20, 30); ctx.lineTo(cx-30, 140); ctx.lineTo(cx+30, 140); ctx.lineTo(cx-20, 250);
             }
-        });
+            ctx.stroke();
+        }
+
+        // Interaction Logic
+        function start(e) { e.preventDefault(); isDrawing=true; points=[]; ctx.clearRect(0,0,280,280); drawGuide(); ctx.beginPath(); }
+        
+        function move(e) {
+            if(!isDrawing) return;
+            e.preventDefault();
+            const t = e.touches ? e.touches[0] : e;
+            const r = canvas.getBoundingClientRect();
+            
+            // Draw
+            const x = t.clientX - r.left;
+            const y = t.clientY - r.top;
+            ctx.lineTo(x, y);
+            ctx.strokeStyle = '#00ff41'; ctx.lineWidth = 3; ctx.stroke();
+            
+            // Collect Data for Live Hash
+            points.push({x, y, t: Date.now()});
+            pointDisplay.innerText = points.length;
+
+            // Generate Live Chaos Hash
+            // We use the raw coordinates + timestamp to show sensitivity
+            if(points.length % 3 === 0) { // Update every 3 points to save CPU
+                const rawData = points.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join('|');
+                const hash = CryptoJS.SHA256(rawData).toString();
+                hashDisplay.innerText = hash.substring(0, 32) + "...";
+            }
+        }
+
+        function end() { isDrawing=false; }
+
+        function resetDemo() {
+            pickRandomShape();
+            hashDisplay.innerText = "WAITING_FOR_INPUT...";
+            pointDisplay.innerText = "0";
+            points = [];
+        }
+
+        // Init
+        ['mousedown','touchstart'].forEach(e=>canvas.addEventListener(e, start));
+        ['mousemove','touchmove'].forEach(e=>canvas.addEventListener(e, move));
+        ['mouseup','touchend'].forEach(e=>canvas.addEventListener(e, end));
+        
+        pickRandomShape();
     </script>
 </body>
 </html>
