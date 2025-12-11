@@ -2,72 +2,101 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A+ VERIFY</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Chaos Access</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="router.js"></script>
     <style>
-        body { background: #000; color: #00ff41; font-family: monospace; height: 100vh; display: flex; align-items: center; justify-content: center; }
-        canvas { border: 1px solid #005500; background: #050505; cursor: crosshair; }
+        body { background: #000; color: #e5e5e5; font-family: monospace; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+        canvas { background: #080808; border: 2px solid #333; border-radius: 8px; touch-action: none; margin-bottom: 20px; }
+        input { -webkit-appearance: none; border-radius: 0; }
     </style>
 </head>
-<body>
-    <div class="text-center w-full max-w-md p-6">
-        <h1 class="text-2xl font-bold mb-4 tracking-widest">ENTER ABYSS</h1>
-        
-        <input id="callsign" type="text" placeholder="ENTER CALLSIGN" 
-               class="w-full bg-gray-900 border border-green-900 p-3 text-center text-white mb-6 focus:outline-none focus:border-green-500 rounded">
-        
-        <canvas id="canvas" width="300" height="200" class="mx-auto mb-4 rounded"></canvas>
-        <p id="status" class="text-xs text-gray-500 mb-6">Draw your sigil to verify presence.</p>
-        
-        <button onclick="login()" id="btn" class="w-full bg-green-900 hover:bg-green-700 text-white font-bold py-3 px-4 rounded transition">
-            VERIFY IDENTITY
+<body class="p-6">
+    
+    <div class="w-full max-w-md">
+        <h1 class="text-3xl font-black text-white mb-6 text-center tracking-tighter">ACCESS_NODE</h1>
+
+        <div class="mb-6">
+            <label class="block text-gray-500 text-xs mb-2">CALLSIGN IDENTITY</label>
+            <input id="callsign" type="text" placeholder="XXX-XXX-00" 
+                   class="w-full bg-gray-900 border border-gray-700 text-white text-xl p-4 font-mono focus:border-green-500 focus:outline-none rounded">
+        </div>
+
+        <div class="mb-6 text-center">
+            <label class="block text-gray-500 text-xs mb-2 text-left">TRACE SIGIL KEY</label>
+            <div class="relative inline-block">
+                <canvas id="canvas" width="320" height="240"></canvas>
+                <div class="absolute top-2 right-2 text-xs text-gray-600">SECURE</div>
+            </div>
+        </div>
+
+        <button onclick="login()" id="btn" class="w-full bg-white text-black font-black text-xl py-4 rounded shadow hover:bg-gray-200 transition">
+            VERIFY ACCESS
         </button>
+        
+        <div class="mt-6 text-center">
+            <a href="/abyss.html" class="text-sm text-gray-600 underline">Lost? Re-Forge Identity</a>
+        </div>
     </div>
 
     <script>
-        // Auto-fill from history
+        // Pre-fill
         if(localStorage.getItem('callsign_history')) {
             document.getElementById('callsign').value = localStorage.getItem('callsign_history');
         }
 
-        // Drawing Logic
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-        let drawing = false;
+        const sigilType = localStorage.getItem('chaos_sigil_type') || 'TRIANGLE';
+
+        let isDrawing = false;
         let points = 0;
 
-        function start(e) { e.preventDefault(); drawing = true; points=0; ctx.clearRect(0,0,300,200); }
+        function drawGuide() {
+            ctx.strokeStyle = '#111'; // Very faint guide
+            ctx.lineWidth = 8;
+            ctx.beginPath();
+            if(sigilType === 'TRIANGLE') {
+                ctx.moveTo(160, 40); ctx.lineTo(260, 200); ctx.lineTo(60, 200); ctx.closePath();
+            } else if(sigilType === 'CIRCLE') {
+                ctx.arc(160, 120, 80, 0, 2 * Math.PI);
+            } else if(sigilType === 'LIGHTNING') {
+                ctx.moveTo(180, 40); ctx.lineTo(130, 120); ctx.lineTo(210, 120); ctx.lineTo(110, 200);
+            }
+            ctx.stroke();
+        }
+
+        function start(e) { e.preventDefault(); isDrawing = true; points=0; ctx.clearRect(0,0,320,240); drawGuide(); ctx.beginPath(); }
         function move(e) {
-            if(!drawing) return;
+            if(!isDrawing) return;
             e.preventDefault();
-            const x = (e.touches ? e.touches[0].clientX : e.clientX) - canvas.getBoundingClientRect().left;
-            const y = (e.touches ? e.touches[0].clientY : e.clientY) - canvas.getBoundingClientRect().top;
-            ctx.lineTo(x,y); ctx.strokeStyle='#00ff41'; ctx.lineWidth=2; ctx.stroke();
+            const t = e.touches ? e.touches[0] : e;
+            const r = canvas.getBoundingClientRect();
+            ctx.lineTo(t.clientX - r.left, t.clientY - r.top);
+            ctx.strokeStyle = '#00ff41'; ctx.lineWidth = 3; ctx.stroke();
             points++;
         }
-        function end() { drawing = false; ctx.beginPath(); }
+        function end() { isDrawing = false; }
 
+        drawGuide();
         ['mousedown','touchstart'].forEach(e=>canvas.addEventListener(e, start));
         ['mousemove','touchmove'].forEach(e=>canvas.addEventListener(e, move));
         ['mouseup','touchend'].forEach(e=>canvas.addEventListener(e, end));
 
-        // Login Logic
         function login() {
-            const callsign = document.getElementById('callsign').value.toUpperCase();
-            if(!callsign) return alert("Callsign required.");
-            if(points < 20) return alert("Trace your sigil properly.");
+            const val = document.getElementById('callsign').value;
+            // Simple validation: Needs text + >30 draw points
+            if(!val || points < 30) {
+                alert("Identity Mismatch. Trace the key properly.");
+                return;
+            }
 
-            // Success Ritual
-            localStorage.setItem('chaos_key_vault', 'sk_live_' + Date.now());
+            // Success
+            localStorage.setItem('chaos_key_vault', 'valid');
             localStorage.setItem('session_start', Date.now());
-            localStorage.setItem('callsign_history', callsign);
-            
-            document.getElementById('btn').textContent = "ACCESS GRANTED";
-            document.getElementById('btn').classList.replace('bg-green-900', 'bg-green-500');
-            
+            document.getElementById('btn').textContent = "UNLOCKING...";
+            document.getElementById('btn').classList.add('bg-green-500');
             setTimeout(() => window.location.href = '/dashboard', 800);
         }
     </script>
