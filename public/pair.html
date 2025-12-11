@@ -1,68 +1,92 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Chaos Pair</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chaos Sync</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="router.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background: #000; color: #fff; font-family: monospace; height: 100vh; display: flex; flex-direction: column; }
+        
+        .step-card {
+            background: #111; border: 1px solid #333; padding: 20px; border-radius: 12px;
+            margin-bottom: 20px; text-align: center;
+        }
+        
+        /* The Glitch QR Container */
+        #qr-container {
+            width: 260px; height: 260px; margin: 0 auto;
+            background: #fff; padding: 10px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 0 30px rgba(0,255,65,0.2);
+        }
+    </style>
 </head>
-<body class="bg-black text-green-500 flex flex-col items-center justify-center min-h-screen font-mono p-4">
-    <div class="border border-green-900 bg-gray-900 bg-opacity-50 p-6 rounded-lg max-w-sm w-full text-center">
-        <h1 class="text-xl font-bold mb-2">BIND DEVICE</h1>
-        <p class="text-xs text-gray-400 mb-6">Draw sigil to sign the challenge.</p>
+<body class="p-6">
 
-        <div class="bg-black border border-green-800 p-3 mb-4 rounded">
-            <span class="text-xs text-gray-500 block">CHALLENGE:</span>
-            <span id="challenge" class="text-lg font-bold tracking-widest text-white">LOADING...</span>
+    <div class="flex items-center gap-4 mb-8">
+        <a href="/dashboard" class="text-gray-500 hover:text-white text-xl"><i class="fas fa-arrow-left"></i></a>
+        <h1 class="text-xl font-bold tracking-widest text-green-500">HARDWARE SYNC</h1>
+    </div>
+
+    <div id="step-1" class="flex-grow flex flex-col justify-center">
+        <div class="text-center mb-8">
+            <i class="fas fa-wifi text-6xl text-gray-800 mb-4"></i>
+            <h2 class="text-2xl font-bold mb-2">Connect to Plug</h2>
+            <p class="text-gray-500 text-sm px-4">Ensure your Chaos Plug is powered on and the green light is pulsing.</p>
+        </div>
+        <button onclick="generateSync()" class="w-full bg-green-600 text-white font-bold py-4 rounded-xl text-lg shadow-lg hover:bg-green-500">
+            GENERATE SYNC KEY
+        </button>
+    </div>
+
+    <div id="step-2" class="hidden flex-grow flex flex-col items-center justify-center">
+        <div class="mb-6 text-center">
+            <p class="text-green-400 font-bold text-sm tracking-widest animate-pulse">TRANSMITTING...</p>
         </div>
 
-        <canvas id="canvas" width="280" height="200" class="border border-green-700 bg-black mx-auto mb-4 cursor-crosshair touch-none"></canvas>
+        <div id="qr-container">
+            <div id="qr"></div>
+        </div>
 
-        <div id="qr" class="hidden bg-white p-2 mx-auto mb-4 w-[200px] h-[200px]"></div>
-        <p id="status" class="text-xs">Waiting for signature...</p>
+        <p class="text-center text-gray-500 text-xs mt-8 max-w-xs">
+            Show this code to the Chaos Plug camera<br>OR<br>Connect Plug to WiFi "Chaos-Node"
+        </p>
+
+        <button onclick="finish()" class="mt-8 border border-gray-700 text-gray-400 px-6 py-2 rounded-full text-sm">
+            Done
+        </button>
     </div>
 
     <script>
-        // 1. Generate Fake Challenge (In real life, get this from the Plug)
-        const words = ["VOID","ASH","SKY","RED"];
-        const challengeText = words.sort(()=>0.5-Math.random()).slice(0,3).join('-');
-        document.getElementById('challenge').textContent = challengeText;
+        function generateSync() {
+            // UI Switch
+            document.getElementById('step-1').classList.add('hidden');
+            document.getElementById('step-2').classList.remove('hidden');
+            document.getElementById('step-2').classList.add('flex');
 
-        // 2. Drawing Logic
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        let points = 0;
-        
-        canvas.addEventListener('touchmove', e => {
-            e.preventDefault();
-            const t = e.touches[0];
-            const r = canvas.getBoundingClientRect();
-            ctx.fillStyle = '#00ff41';
-            ctx.fillRect(t.clientX - r.left, t.clientY - r.top, 3, 3);
-            points++;
-        });
+            // Generate Chaos Payload
+            const callsign = localStorage.getItem('callsign_history') || 'UNKNOWN';
+            const payload = `CHAOS_BIND::${callsign}::${Date.now()}::SIG_VALID`;
+            
+            // Render QR
+            const qrBox = document.getElementById('qr');
+            qrBox.innerHTML = '';
+            new QRCode(qrBox, {
+                text: payload,
+                width: 240,
+                height: 240,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        }
 
-        canvas.addEventListener('touchend', () => {
-            if(points > 50) {
-                // 3. Generate QR Code on Success
-                const signature = CryptoJS.SHA256(challengeText + localStorage.getItem('callsign_history')).toString().substring(0,16);
-                const qrData = `CHAOS-BIND:${signature}`;
-                
-                document.getElementById('canvas').classList.add('hidden');
-                document.getElementById('qr').classList.remove('hidden');
-                document.getElementById('qr').innerHTML = ""; 
-                
-                new QRCode(document.getElementById('qr'), {
-                    text: qrData,
-                    width: 180,
-                    height: 180
-                });
-                document.getElementById('status').textContent = "SCAN THIS WITH PLUG CAMERA";
-                document.getElementById('status').classList.add('text-white', 'font-bold');
-            }
-        });
+        function finish() {
+            window.location.href = '/dashboard';
+        }
     </script>
 </body>
 </html>
