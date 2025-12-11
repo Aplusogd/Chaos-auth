@@ -1,4 +1,4 @@
-#ifndef CHAOS_SDK_H
+#define CHAOS_SDK_H
 #define CHAOS_SDK_H
 #include <Arduino.h>
 #include <SPIFFS.h>
