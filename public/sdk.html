@@ -1,26 +1,47 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Chaos SDK Codex</title>
+    <title>Chaos SDK</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     <script src="chaos-sdk.js"></script>
-    <style>
-        body { background: #000; color: #00ff41; font-family: monospace; text-align: center; padding: 50px; }
-        #live { height: 200px; font-size: 2.5em; text-align: center; margin-top: 50px; border: 1px solid #222; padding: 20px; }
-    </style>
+    <style>body{background:#0a0a0a;color:#ccc;font-family:sans-serif;}</style>
 </head>
-<body>
-<h1>CHAOS SDK CODEX</h1>
-<p>Mouse movement generates live, unique callsigns based on entropy.</p>
-<div id="live"></div>
-<script>
-    document.addEventListener('mousemove', () => {
-        if (typeof generateInfiniteChaosCode !== 'undefined') {
-            const entropy = performance.now() + event.clientX + event.clientY;
-            document.getElementById('live').textContent = generateInfiniteChaosCode("mouse"+entropy, 3).join('-');
-        } else {
-             document.getElementById('live').textContent = 'SDK Engine Offline.';
-        }
-    });
-</script>
+<body class="max-w-3xl mx-auto p-8">
+    
+    <div class="mb-12 text-center">
+        <h1 class="text-4xl font-bold text-white mb-2 font-mono">CHAOS SDK</h1>
+        <p class="text-green-500 font-mono text-sm" id="live-entropy">Move mouse to generate entropy...</p>
+    </div>
+
+    <div class="prose prose-invert">
+        <h2 class="text-white border-b border-gray-700 pb-2">1. The Philosophy</h2>
+        <p>The Chaos SDK is built on the principle of <strong>Zero-Knowledge Presence</strong>. We do not store passwords. We store mathematical proofs of your chaotic biometric signature.</p>
+
+        <h2 class="text-white border-b border-gray-700 pb-2 mt-8">2. Integration</h2>
+        <p>Include the SDK in your project:</p>
+        <pre class="bg-black p-4 rounded text-green-400 font-mono text-sm">&lt;script src="/chaos-sdk.js"&gt;&lt;/script&gt;</pre>
+
+        <h2 class="text-white border-b border-gray-700 pb-2 mt-8">3. Methods</h2>
+        <ul class="list-disc pl-5 space-y-2">
+            <li><code class="text-green-400">generateInfiniteChaosCode(seed, count)</code>: Returns deterministic chaos words.</li>
+            <li><code class="text-green-400">decryptNotes(data)</code>: Client-side decryption of Black Box data.</li>
+        </ul>
+    </div>
+
+    <div class="mt-12 pt-8 border-t border-gray-800 text-center">
+        <a href="/" class="text-green-500 hover:underline">Return Home</a>
+    </div>
+
+    <script>
+        // Live Entropy Demo
+        document.addEventListener('mousemove', (e) => {
+            if(Math.random() > 0.8 && window.generateInfiniteChaosCode) {
+                const seed = "SDK" + e.clientX + e.clientY;
+                const codes = generateInfiniteChaosCode(seed, 3);
+                document.getElementById('live-entropy').innerText = `LIVE: ${codes.join(' - ')}`;
+            }
+        });
+    </script>
 </body>
 </html>
