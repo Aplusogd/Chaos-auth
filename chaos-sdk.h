@@ -1,6 +1,3 @@
-// chaos-sdk.h - CHAOS PLUG #001 ZK/UTILITY HEADER (V1)
-// Contains ZK Verification, Callsign Generator, and Persistence Logic
-
 #ifndef CHAOS_SDK_H
 #define CHAOS_SDK_H
 
