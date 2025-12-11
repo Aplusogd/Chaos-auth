@@ -3,16 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Calibrate Bio-Ink</title>
+    <title>Calibrate Bio-Geometry</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background: #000; color: #00ff41; font-family: monospace; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
-        
-        canvas { 
-            background: #0a0a0a; border: 2px solid #333; border-radius: 12px; 
-            touch-action: none; box-shadow: 0 0 20px rgba(0,255,65,0.1); 
-        }
-        
+        canvas { background: #0a0a0a; border: 2px solid #333; border-radius: 12px; touch-action: none; box-shadow: 0 0 20px rgba(0,255,65,0.1); }
         .progress-bar { width: 100%; height: 6px; background: #222; margin-top: 20px; border-radius: 3px; }
         .fill { height: 100%; background: #00ff41; width: 0%; transition: width 0.3s; }
     </style>
@@ -20,8 +15,8 @@
 <body class="p-4">
     
     <div class="text-center w-full max-w-sm">
-        <h1 class="text-2xl font-bold mb-2 text-white">BIO-INK CALIBRATION</h1>
-        <p class="text-gray-400 text-xs mb-6">Trace the shape. <br>We are measuring your <span class="text-white">finger size</span> and <span class="text-white">pressure</span>.</p>
+        <h1 class="text-xl font-bold mb-2 text-white">TOUCH GEOMETRY</h1>
+        <p class="text-gray-400 text-[10px] mb-6">Trace the shape. <br>Mapping <span class="text-white">finger rotation</span> and <span class="text-white">contact oval</span>.</p>
 
         <div class="relative flex justify-center">
             <canvas id="canvas" width="300" height="300"></canvas>
@@ -39,7 +34,7 @@
         let traces = 0; const required = 5;
         let isDrawing = false;
         let currentPath = []; 
-        let fingerSizes = []; // Store radius averages
+        let bioStats = []; // Stores {avgRx, avgRy, avgRot} for each trace
 
         function drawGuide() {
             ctx.clearRect(0,0,300,300);
@@ -57,69 +52,62 @@
         }
 
         function move(e) {
-            if(!isDrawing) return;
-            e.preventDefault();
+            if(!isDrawing) return; e.preventDefault();
             const t = e.touches ? e.touches[0] : e;
             const r = canvas.getBoundingClientRect();
-            const x = t.clientX - r.left;
-            const y = t.clientY - r.top;
+            const x = t.clientX - r.left; const y = t.clientY - r.top;
             
-            // --- NEW: TOUCH GEOMETRY ---
-            // radiusX is the width of the finger contact. 
-            // Fallback to 15 if hardware doesn't support it (desktop mouse)
-            const radius = t.radiusX ? t.radiusX : 15; 
-            const force = t.force || 0.5;
+            // --- CAPTURE OVAL GEOMETRY ---
+            // Fallbacks for desktops/older phones
+            const rx = t.radiusX || 15;
+            const ry = t.radiusY || 15;
+            const rot = t.rotationAngle || 0;
 
-            // Draw "Bio-Ink" (Blob)
+            // Draw The Real "Fingerprint" Oval
             ctx.beginPath();
-            ctx.arc(x, y, radius, 0, 2 * Math.PI);
-            ctx.fillStyle = `rgba(0, 255, 65, 0.5)`; // Semi-transparent for density heat-map
+            ctx.ellipse(x, y, rx, ry, rot * (Math.PI/180), 0, 2 * Math.PI);
+            ctx.fillStyle = `rgba(0, 255, 65, 0.3)`; // Heatmap effect
             ctx.fill();
             
-            // Save Data
-            currentPath.push({
-                x: Math.round(x), 
-                y: Math.round(y), 
-                t: Date.now(),
-                r: Math.round(radius) // Save Finger Size
-            });
+            currentPath.push({ x: Math.round(x), y: Math.round(y), t: Date.now(), rx, ry, rot });
         }
 
         function end() {
             if(!isDrawing) return; isDrawing = false;
             
             if(currentPath.length > 20) {
-                // Calculate Average Finger Size for this trace
-                const avgSize = currentPath.reduce((sum, p) => sum + p.r, 0) / currentPath.length;
-                fingerSizes.push(avgSize);
+                // Calculate Averages for this single trace
+                const avgRx = currentPath.reduce((a,b)=>a+b.rx,0) / currentPath.length;
+                const avgRy = currentPath.reduce((a,b)=>a+b.ry,0) / currentPath.length;
+                const avgRot = currentPath.reduce((a,b)=>a+b.rot,0) / currentPath.length;
+                
+                bioStats.push({avgRx, avgRy, avgRot});
                 success();
-            } else {
-                drawGuide();
-            }
+            } else { drawGuide(); }
         }
 
         function success() {
             traces++;
-            const pct = (traces / required) * 100;
-            document.getElementById('fill').style.width = `${pct}%`;
+            document.getElementById('fill').style.width = `${(traces/required)*100}%`;
             document.getElementById('status').innerText = `${traces} / ${required}`;
 
             if(traces >= required) {
-                // CALCULATE MASTER TEMPLATE
-                // We assume the last trace is the best path geometry
-                // But we use the AVERAGE finger size across all 5 traces for robustness
-                const masterFingerSize = fingerSizes.reduce((a,b)=>a+b, 0) / fingerSizes.length;
+                // CREATE MASTER TEMPLATE
+                // Average the 5 traces to find the "Perfect Thumb" profile
+                const masterRx = bioStats.reduce((a,b)=>a+b.avgRx,0)/5;
+                const masterRy = bioStats.reduce((a,b)=>a+b.avgRy,0)/5;
+                const masterRot = bioStats.reduce((a,b)=>a+b.avgRot,0)/5;
 
                 const masterData = {
-                    path: currentPath,      // Geometry
-                    speedMod: 1.0,          // Learning Mod
-                    fingerSize: masterFingerSize // The "Thumbprint" Size
+                    path: currentPath,      // Geometry of last best trace
+                    speedMod: 1.0,          // Speed learning
+                    bio: { rx: masterRx, ry: masterRy, rot: masterRot } // The Thumbprint
                 };
 
                 localStorage.setItem('chaos_master_template', JSON.stringify(masterData));
                 localStorage.setItem('chaos_trust_score', '50');
 
-                document.getElementById('status').innerText = "TOUCH PROFILE SAVED.";
+                document.getElementById('status').innerText = "GEOMETRY MAPPED.";
                 document.getElementById('status').classList.add('text-white');
                 setTimeout(() => window.location.href = '/login', 1000);
             } else {
