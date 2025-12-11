@@ -2,63 +2,91 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Chaos Access</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="router.js"></script>
     <style>
-        body { background: #000; color: #e5e5e5; font-family: monospace; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        canvas { background: #080808; border: 2px solid #333; border-radius: 12px; touch-action: none; width: 100%; height: 100%; }
-        input { -webkit-appearance: none; border-radius: 0; }
-        
-        /* Universal Box Link */
-        .box-btn {
-            display: flex; align-items: center; justify-content: center;
-            width: 100%; padding: 18px;
-            font-weight: 800; font-size: 1.1rem;
-            border-radius: 12px;
-            transition: transform 0.1s;
+        /* Modern Reset */
+        body { 
+            background: #000; color: #e5e5e5; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            min-height: 100vh; display: flex; flex-direction: column;
+            /* Respect the Notch and Home Bar */
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
         }
-        .box-primary { background: #fff; color: #000; border: none; }
-        .box-primary:active { background: #ccc; transform: scale(0.98); }
+
+        /* Native Input Feel */
+        .native-input {
+            width: 100%; height: 52px; 
+            background: #111; border: 1px solid #333; 
+            border-radius: 10px; padding: 0 16px;
+            font-size: 16px; color: #fff; font-family: monospace;
+            outline: none; transition: border-color 0.2s;
+            -webkit-appearance: none;
+        }
+        .native-input:focus { border-color: #00ff41; background: #080808; }
+
+        /* The Canvas Card */
+        .sigil-card {
+            background: #0a0a0a; border: 1px solid #222; 
+            border-radius: 12px; overflow: hidden;
+            position: relative; width: 100%; aspect-ratio: 4/3;
+            touch-action: none; /* Critical for drawing */
+        }
+
+        /* Native Button */
+        .btn-action {
+            width: 100%; height: 56px;
+            background: #fff; color: #000;
+            font-weight: 700; font-size: 16px;
+            border-radius: 12px; border: none;
+            display: flex; align-items: center; justify-content: center;
+            active: scale(0.98); transition: transform 0.1s;
+        }
         
-        .box-secondary { background: rgba(255,255,255,0.05); color: #888; border: 1px solid rgba(255,255,255,0.1); font-size: 0.9rem; }
-        .box-secondary:active { background: rgba(255,255,255,0.1); color: #fff; border-color: #fff; transform: scale(0.98); }
+        .btn-link {
+            text-align: center; color: #666; font-size: 14px; 
+            padding: 15px; display: block; text-decoration: none;
+        }
     </style>
 </head>
-<body class="p-6 justify-between">
-    
-    <div class="text-center mt-4">
-        <h1 class="text-3xl font-black text-white tracking-tighter">ACCESS_NODE</h1>
-        <p class="text-xs text-gray-500">SECURE LOGIN V248</p>
-    </div>
+<body class="px-6 justify-center">
 
-    <div class="flex-grow flex flex-col justify-center gap-4 w-full max-w-md mx-auto">
+    <div class="w-full max-w-sm mx-auto flex flex-col gap-6">
         
+        <div class="text-center mb-2">
+            <h1 class="text-2xl font-bold text-white tracking-tight">Access Node</h1>
+            <p class="text-gray-500 text-sm">Verify Identity</p>
+        </div>
+
         <div>
-            <label class="block text-gray-500 text-[10px] mb-1 tracking-widest">IDENTITY</label>
-            <input id="callsign" type="text" placeholder="XXX-XXX-00" 
-                   class="w-full bg-gray-900 border border-gray-700 text-white text-xl p-4 font-mono focus:border-green-500 focus:outline-none rounded-lg text-center">
+            <label class="block text-gray-500 text-xs font-bold mb-2 ml-1">CALLSIGN</label>
+            <input id="callsign" type="text" placeholder="Enter Callsign" class="native-input" autocomplete="off">
         </div>
 
-        <div class="h-48 relative">
-            <canvas id="canvas" width="300" height="200"></canvas>
-            <div class="absolute bottom-2 right-2 text-[10px] text-gray-600">TRACE SIGIL</div>
+        <div>
+            <label class="block text-gray-500 text-xs font-bold mb-2 ml-1">SIGIL TRACE</label>
+            <div class="sigil-card">
+                <canvas id="canvas"></canvas>
+                <div class="absolute top-3 right-3 text-[10px] text-gray-600 font-mono tracking-widest">SECURE_CANVAS</div>
+            </div>
         </div>
-    </div>
 
-    <div class="w-full max-w-md mx-auto flex flex-col gap-3 mb-4">
-        <button onclick="login()" id="btn" class="box-btn box-primary">
-            VERIFY ACCESS
-        </button>
-        
-        <a href="/abyss.html" class="box-btn box-secondary">
-            LOST? RE-FORGE IDENTITY
-        </a>
+        <div class="mt-4">
+            <button onclick="login()" id="btn" class="btn-action shadow-lg shadow-green-900/20">
+                Verify Access
+            </button>
+            
+            <a href="/abyss.html" class="btn-link">
+                Lost your Callsign?
+            </a>
+        </div>
+
     </div>
 
     <script>
-        // ... (Drawing Logic preserved from V247, just resizing logic adjusted) ...
+        // Auto-Fill
         if(localStorage.getItem('callsign_history')) {
             document.getElementById('callsign').value = localStorage.getItem('callsign_history');
         }
@@ -67,37 +95,38 @@
         const ctx = canvas.getContext('2d');
         const sigilType = localStorage.getItem('chaos_sigil_type') || 'TRIANGLE';
 
-        // Make canvas internal resolution match display size for crisp lines
         function resizeCanvas() {
-            const rect = canvas.getBoundingClientRect();
-            canvas.width = rect.width;
-            canvas.height = rect.height;
+            const parent = canvas.parentElement;
+            canvas.width = parent.clientWidth;
+            canvas.height = parent.clientHeight;
             drawGuide();
         }
         window.addEventListener('resize', resizeCanvas);
-        
-        // Guide Logic
+
         function drawGuide() {
             const w = canvas.width;
             const h = canvas.height;
-            const cx = w/2;
+            const cx = w/2; 
             const cy = h/2;
-            
-            ctx.strokeStyle = '#1a1a1a'; // Faint guide
-            ctx.lineWidth = 10;
+
+            ctx.clearRect(0,0,w,h);
+            ctx.strokeStyle = '#1a1a1a';
+            ctx.lineWidth = 6;
             ctx.lineCap = 'round';
             ctx.beginPath();
 
+            // Responsive Guide Logic
             if(sigilType === 'TRIANGLE') {
                 ctx.moveTo(cx, h*0.2); ctx.lineTo(w*0.8, h*0.8); ctx.lineTo(w*0.2, h*0.8); ctx.closePath();
             } else if(sigilType === 'CIRCLE') {
-                ctx.arc(cx, cy, h*0.35, 0, 2 * Math.PI);
+                ctx.arc(cx, cy, h*0.3, 0, 2 * Math.PI);
             } else if(sigilType === 'LIGHTNING') {
-                ctx.moveTo(cx+20, h*0.1); ctx.lineTo(cx-30, cy); ctx.lineTo(cx+30, cy); ctx.lineTo(cx-20, h*0.9);
+                ctx.moveTo(cx+20, h*0.15); ctx.lineTo(cx-20, cy); ctx.lineTo(cx+20, cy); ctx.lineTo(cx-20, h*0.85);
             }
             ctx.stroke();
         }
 
+        // Drawing Logic
         let isDrawing = false;
         let points = 0;
 
@@ -108,7 +137,7 @@
             const t = e.touches ? e.touches[0] : e;
             const r = canvas.getBoundingClientRect();
             ctx.lineTo(t.clientX - r.left, t.clientY - r.top);
-            ctx.strokeStyle = '#00ff41'; ctx.lineWidth = 4; ctx.stroke();
+            ctx.strokeStyle = '#00ff41'; ctx.lineWidth = 3; ctx.stroke();
             points++;
         }
         function end() { isDrawing=false; }
@@ -116,18 +145,22 @@
         ['mousedown','touchstart'].forEach(e=>canvas.addEventListener(e, start));
         ['mousemove','touchmove'].forEach(e=>canvas.addEventListener(e, move));
         ['mouseup','touchend'].forEach(e=>canvas.addEventListener(e, end));
-        
-        // Initial setup
-        setTimeout(resizeCanvas, 100);
+
+        // Init
+        setTimeout(resizeCanvas, 50);
 
         function login() {
             const val = document.getElementById('callsign').value;
-            if(!val || points < 20) { alert("Identity Mismatch. Trace properly."); return; }
+            if(!val || points < 20) { alert("Please trace the shape correctly."); return; }
+            
             localStorage.setItem('chaos_key_vault', 'valid');
             localStorage.setItem('session_start', Date.now());
-            document.getElementById('btn').innerText = "UNLOCKING...";
-            document.getElementById('btn').style.background = "#00ff41";
-            setTimeout(() => window.location.href = '/dashboard', 800);
+            
+            const btn = document.getElementById('btn');
+            btn.innerText = "Access Granted";
+            btn.style.background = "#00ff41";
+            
+            setTimeout(() => window.location.href = '/dashboard', 600);
         }
     </script>
 </body>
