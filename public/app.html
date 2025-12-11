@@ -9,20 +9,38 @@
     <style>
         body { 
             background: #000; color: #e5e5e5; font-family: -apple-system, monospace;
-            min-height: 100vh; display: flex; flex-direction: column; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
+            min-height: 100vh; display: flex; flex-direction: column; 
+            padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
         }
         .native-input { width: 100%; height: 52px; background: #111; border: 1px solid #333; border-radius: 10px; padding: 0 16px; font-size: 16px; color: #fff; outline: none; }
         .native-input:focus { border-color: #00ff41; background: #080808; }
-        .sigil-card { background: #0a0a0a; border: 1px solid #222; border-radius: 12px; width: 100%; aspect-ratio: 4/3; touch-action: none; position: relative; }
-        .btn-action { width: 100%; height: 56px; background: #fff; color: #000; font-weight: 700; font-size: 16px; border-radius: 12px; }
+        
+        .sigil-card { 
+            background: #0a0a0a; border: 1px solid #222; border-radius: 12px; 
+            width: 100%; aspect-ratio: 4/3; touch-action: none; position: relative; 
+            overflow: hidden;
+        }
+        
+        .btn-action { width: 100%; height: 56px; background: #fff; color: #000; font-weight: 700; font-size: 16px; border-radius: 12px; transition: all 0.2s; }
+        
+        /* Analysis Overlay */
+        #analysis-overlay {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center;
+            flex-direction: column; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
     </style>
 </head>
 <body class="px-6 justify-center">
 
     <div class="w-full max-w-sm mx-auto flex flex-col gap-6">
+        
         <div class="text-center mb-2">
             <h1 class="text-2xl font-bold text-white tracking-tight">Access Node</h1>
-            <div id="trust-indicator" class="text-xs text-gray-500 font-mono">TRUST SCORE: CALCULATING...</div>
+            <div class="flex justify-center items-center gap-2 text-[10px] font-mono mt-1">
+                <span class="text-gray-500">ADAPTIVE TRUST:</span>
+                <span id="trust-indicator" class="text-blue-400 font-bold">--</span>
+            </div>
         </div>
 
         <div>
@@ -34,21 +52,35 @@
             <label class="block text-gray-500 text-xs font-bold mb-2 ml-1">SIGIL TRACE</label>
             <div class="sigil-card">
                 <canvas id="canvas"></canvas>
-                <div id="match-display" class="absolute top-3 right-3 text-[10px] text-gray-600 font-mono tracking-widest font-bold">READY</div>
+                
+                <div id="status-display" class="absolute top-3 right-3 text-[10px] text-gray-600 font-mono tracking-widest font-bold">
+                    READY
+                </div>
+
+                <div id="analysis-overlay">
+                    <div class="text-green-500 font-bold text-xl mb-1">UPDATING CORE</div>
+                    <div class="text-gray-400 text-xs font-mono">LEARNING NEW PATTERN...</div>
+                </div>
             </div>
         </div>
 
         <div class="mt-4">
-            <button onclick="verifyBiometrics()" id="btn" class="btn-action shadow-lg shadow-green-900/20">Verify Access</button>
-            <a href="/abyss.html" class="block text-center text-gray-600 text-sm mt-4 p-2">Lost Callsign?</a>
+            <button onclick="verifyBiometrics()" id="btn" class="btn-action shadow-lg shadow-green-900/20">
+                Verify Access
+            </button>
+            <a href="/abyss.html" class="block text-center text-gray-600 text-sm mt-4 p-2 hover:text-white transition">
+                Recalibrate Identity?
+            </a>
         </div>
     </div>
 
     <script>
-        // Load History
+        // --- 1. SETUP & UTILS ---
         if(localStorage.getItem('callsign_history')) document.getElementById('callsign').value = localStorage.getItem('callsign_history');
-        const currentTrust = parseInt(localStorage.getItem('chaos_trust_score') || '50');
-        document.getElementById('trust-indicator').innerText = `TRUST SCORE: ${currentTrust}/100`;
+        
+        // Load Trust Score (Default 50.0)
+        let currentTrust = parseFloat(localStorage.getItem('chaos_trust_score') || '50.0');
+        document.getElementById('trust-indicator').innerText = currentTrust.toFixed(1) + "%";
 
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -66,18 +98,22 @@
         function drawGuide() {
             const w=canvas.width, h=canvas.height, cx=w/2, cy=h/2;
             ctx.strokeStyle='#1a1a1a'; ctx.lineWidth=6; ctx.lineCap='round'; ctx.beginPath();
+            
             if(sigilType==='TRIANGLE') { ctx.moveTo(cx, h*0.2); ctx.lineTo(w*0.8, h*0.8); ctx.lineTo(w*0.2, h*0.8); ctx.closePath(); }
             else if(sigilType==='CIRCLE') { ctx.arc(cx, cy, h*0.3, 0, 2*Math.PI); }
             else if(sigilType==='LIGHTNING') { ctx.moveTo(cx+20, h*0.15); ctx.lineTo(cx-20, cy); ctx.lineTo(cx+20, cy); ctx.lineTo(cx-20, h*0.85); }
             ctx.stroke();
         }
 
+        // --- 2. DRAWING ENGINE ---
         function start(e) { e.preventDefault(); isDrawing=true; loginPath=[]; ctx.clearRect(0,0,canvas.width,canvas.height); drawGuide(); ctx.beginPath(); }
+        
         function move(e) {
             if(!isDrawing) return; e.preventDefault();
             const t = e.touches ? e.touches[0] : e;
             const r = canvas.getBoundingClientRect();
             const x = t.clientX - r.left; const y = t.clientY - r.top;
+            
             ctx.lineTo(x, y); ctx.strokeStyle='#00ff41'; ctx.lineWidth=3; ctx.stroke();
             loginPath.push({x, y, t: Date.now()});
         }
@@ -86,58 +122,94 @@
         ['mousedown','touchstart'].forEach(e=>canvas.addEventListener(e, start));
         ['mousemove','touchmove'].forEach(e=>canvas.addEventListener(e, move));
         ['mouseup','touchend'].forEach(e=>canvas.addEventListener(e, end));
+        
         setTimeout(resizeCanvas, 50);
 
-        // --- BIOMETRIC ENGINE ---
+        // --- 3. ADAPTIVE BIOMETRIC ENGINE ---
         function verifyBiometrics() {
             const masterJSON = localStorage.getItem('chaos_master_template');
-            if(!masterJSON) { alert("Please calibrate your Sigil first."); window.location.href='/abyss-forge.html'; return; }
+            if(!masterJSON) { alert("System Reset: Please Recalibrate."); window.location.href='/abyss-forge.html'; return; }
             
-            const masterPath = JSON.parse(masterJSON);
+            // "Master" is now a flexible object, not just an array
+            // If it's old format (array), we wrap it on the fly
+            let masterData;
+            try {
+                const parsed = JSON.parse(masterJSON);
+                masterData = Array.isArray(parsed) ? { path: parsed, speedMod: 1.0, pointsMod: 1.0 } : parsed;
+            } catch(e) { masterData = { path: [], speedMod: 1, pointsMod: 1 }; }
+
             if(loginPath.length < 10) { alert("Trace too short."); return; }
 
-            // 1. Calculate Duration Difference
-            const masterTime = masterPath[masterPath.length-1].t - masterPath[0].t;
+            // A. CALCULATE METRICS
+            // 1. Duration (Speed)
+            const masterTime = (masterData.path[masterData.path.length-1].t - masterData.path[0].t) * (masterData.speedMod || 1);
             const loginTime = loginPath[loginPath.length-1].t - loginPath[0].t;
-            const timeRatio = Math.min(masterTime, loginTime) / Math.max(masterTime, loginTime);
             
-            // 2. Point Count (Rough complexity check)
-            const pointRatio = Math.min(masterPath.length, loginPath.length) / Math.max(masterPath.length, loginPath.length);
+            // 2. Complexity (Point Count)
+            const masterPoints = masterData.path.length * (masterData.pointsMod || 1);
+            const loginPoints = loginPath.length;
 
-            // 3. Simple Biometric Score Formula
-            // We heavily weight timing (muscle memory) and complexity.
-            // A perfect match is 100.
+            // B. SCORE CALCULATION
+            // We compare ratios. 1.0 is perfect.
+            const timeRatio = Math.min(masterTime, loginTime) / Math.max(masterTime, loginTime);
+            const pointRatio = Math.min(masterPoints, loginPoints) / Math.max(masterPoints, loginPoints);
+
+            // Match Score (0-100)
             let matchScore = Math.floor((timeRatio * 0.6 + pointRatio * 0.4) * 100);
             
-            // Artificial Strictness Boost (to make it feel "99% Right" for the user if they are close)
-            if(matchScore > 60) matchScore += 15; 
-            if(matchScore > 100) matchScore = 99;
+            // Strictness Curve (Push high scores higher, low scores lower)
+            if(matchScore > 80) matchScore += 5;
 
-            // Decision
+            // C. DECISION LOGIC
             if(matchScore >= 70) {
-                // SUCCESS
-                const newTrust = Math.min(100, currentTrust + 5);
-                localStorage.setItem('chaos_trust_score', newTrust);
+                // --- SUCCESS: ADAPTIVE LEARNING ---
+                
+                // 1. Evolve Trust Score (Weighted Moving Average)
+                // New Trust = (Old * 0.8) + (New * 0.2) -> Gradual improvement
+                const newTrust = (currentTrust * 0.8) + (matchScore * 0.2);
+                localStorage.setItem('chaos_trust_score', newTrust.toFixed(1));
                 localStorage.setItem('chaos_last_bio_score', matchScore);
                 localStorage.setItem('session_start', Date.now());
+
+                // 2. Evolve Master Template (The "Drift")
+                // If the user was slightly faster/slower, we update the Modifier
+                // This makes the "Perfect Score" chase the user's natural habits
+                const timeDrift = loginTime / masterTime; 
+                const pointDrift = loginPoints / masterPoints;
                 
-                document.getElementById('match-display').innerText = `MATCH: ${matchScore}%`;
-                document.getElementById('match-display').classList.add('text-green-500');
-                document.getElementById('btn').innerText = "ACCESS GRANTED";
+                // Gentle Nudge (Only 10% update)
+                masterData.speedMod = (masterData.speedMod || 1) * 0.9 + timeDrift * 0.1;
+                masterData.pointsMod = (masterData.pointsMod || 1) * 0.9 + pointDrift * 0.1;
+                
+                localStorage.setItem('chaos_master_template', JSON.stringify(masterData));
+
+                // UI Feedback
+                document.getElementById('analysis-overlay').style.opacity = '1';
+                document.getElementById('status-display').innerText = `MATCH: ${matchScore}%`;
+                document.getElementById('btn').innerText = "UPDATING PROFILE...";
                 document.getElementById('btn').style.background = "#00ff41";
-                setTimeout(() => window.location.href = '/dashboard', 800);
+                
+                setTimeout(() => window.location.href = '/dashboard', 1200);
+                
             } else {
-                // FAILURE
-                const newTrust = Math.max(0, currentTrust - 10);
-                localStorage.setItem('chaos_trust_score', newTrust);
-                document.getElementById('trust-indicator').innerText = `TRUST SCORE: ${newTrust}/100`;
+                // --- FAILURE ---
+                // Penalty is sharper than reward (Security First)
+                const newTrust = Math.max(0, currentTrust - 5);
+                localStorage.setItem('chaos_trust_score', newTrust.toFixed(1));
+                document.getElementById('trust-indicator').innerText = newTrust.toFixed(1) + "%";
                 
-                document.getElementById('match-display').innerText = `FAIL: ${matchScore}%`;
-                document.getElementById('match-display').classList.add('text-red-500');
-                alert(`Biometric Mismatch (${matchScore}%). Speed or shape incorrect.`);
+                document.getElementById('status-display').innerText = `FAIL: ${matchScore}%`;
+                document.getElementById('status-display').classList.add('text-red-500');
                 
-                // Clear canvas to force retry
+                // Shake Button
+                const btn = document.getElementById('btn');
+                btn.style.transform = "translateX(10px)";
+                btn.style.background = "#ff3333";
+                setTimeout(() => btn.style.transform = "translateX(0)", 100);
+                
+                alert(`Biometric Mismatch (${matchScore}%).\nYour speed or rhythm was off.`);
                 ctx.clearRect(0,0,canvas.width,canvas.height); drawGuide();
+                document.getElementById('btn').style.background = "#fff";
             }
         }
     </script>
