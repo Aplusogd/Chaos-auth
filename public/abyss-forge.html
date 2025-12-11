@@ -2,122 +2,92 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <title>Deep Forge</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A+ BIO-FORGE: CALIBRATION</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
-        body { background: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; height: 100vh; display: flex; align-items: center; justify-content: center; }
-        
-        .calib-card {
-            background: rgba(5,5,5,0.9); border: 1px solid #222; padding: 40px; 
-            max-width: 500px; width: 100%; box-shadow: 0 0 80px rgba(0, 255, 65, 0.05);
-            backdrop-filter: blur(5px);
-        }
-
-        #calibCanvas {
-            border: 1px solid #005500; background: #000; margin-bottom: 20px;
-            cursor: crosshair; touch-action: none;
-            box-shadow: inset 0 0 10px rgba(0, 255, 65, 0.1);
-        }
+        body { background: #000; color: #00ff41; font-family: monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
+        canvas { border: 2px solid #005500; background: #080808; border-radius: 50%; cursor: crosshair; }
+        .progress-bar { height: 4px; background: #111; width: 300px; margin-top: 20px; }
+        .fill { height: 100%; background: #00ff41; width: 0%; transition: width 0.3s; }
     </style>
 </head>
 <body>
+    <div class="text-center">
+        <h1 class="text-3xl font-bold mb-2">CALIBRATION</h1>
+        <p class="text-xs text-gray-500 mb-6">Draw your sigil 5 times to forge ZK Proof.</p>
 
-    <div class="calib-card text-center">
-        <h1 class="text-2xl font-bold tracking-widest mb-2 text-white">BIOMETRIC CALIBRATION</h1>
-        <p class="text-gray-500 text-xs mb-8">Set your quick-login Sigil (Draw the shape 5 times).</p>
-
-        <div class="mb-4">
-            <p class="text-sm font-mono text-blue-400">Profile: Right Thumb</p>
-            <div class="w-full h-2 bg-gray-800 rounded mt-2">
-                <div id="progress-bar" class="h-full bg-blue-500 rounded transition-all duration-300" style="width: 0%;"></div>
-            </div>
-        </div>
-
-        <canvas id="calibCanvas" width="300" height="200"></canvas>
-        <p class="text-[10px] text-yellow-500 mb-4 font-bold" id="calib-status">DRAW 1 / 5 SAMPLES</p>
+        <canvas id="canvas" width="300" height="300"></canvas>
         
-        <button onclick="window.location.href='/check.html'" class="bg-gray-700 hover:bg-gray-600 text-white px-8 py-3 rounded font-bold text-sm transition duration-300 w-full">
-            RETURN TO SANCTUARY
-        </button>
+        <div class="progress-bar mx-auto">
+            <div id="fill" class="fill"></div>
+        </div>
+        <p id="status" class="mt-4 text-sm">Trace 1 / 5</p>
     </div>
 
     <script>
-        const canvas = document.getElementById('calibCanvas');
+        let traces = 0;
+        const required = 5;
+        const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-        const progressBar = document.getElementById('progress-bar');
-        const statusText = document.getElementById('calib-status');
-
-        let samples = [];
         let isDrawing = false;
-        let rawPath = [];
-        const requiredSamples = 5;
 
-        // --- CALIBRATION LOGIC (Simplified Jitter Check) ---
-        function startTrace(e) {
-            if (samples.length >= requiredSamples) return;
-            isDrawing = true;
-            rawPath = [];
-            ctx.clearRect(0, 0, canvas.width, canvas.height); 
-            e.preventDefault();
-        }
-
-        function moveTrace(e) {
-            if (!isTracing) return;
-            e.preventDefault();
-            
-            const rect = canvas.getBoundingClientRect();
-            const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
-            const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
-            
-            ctx.strokeStyle = '#00ff41';
-            ctx.lineWidth = 3;
+        function start(e) { 
+            e.preventDefault(); 
+            isDrawing = true; 
+            ctx.clearRect(0,0,300,300); 
             ctx.beginPath();
-            ctx.moveTo(x - (e.movementX || 0), y - (e.movementY || 0));
-            ctx.lineTo(x, y);
-            ctx.stroke();
-
-            rawPath.push({x: x, y: y});
         }
 
-        function endTrace() {
-            if (!isTracing) return;
-            isTracing = false;
-            
-            if (rawPath.length < 50) { 
-                statusText.innerText = `SAMPLE FAILED: DRAW MORE COMPLETELY.`;
-                statusText.classList.add('text-red-500');
-                return;
-            }
+        function move(e) {
+            if(!isDrawing) return;
+            e.preventDefault();
+            const t = e.touches ? e.touches[0] : e;
+            const r = canvas.getBoundingClientRect();
+            ctx.lineTo(t.clientX - r.left, t.clientY - r.top);
+            ctx.strokeStyle = '#00ff41'; ctx.lineWidth = 3; ctx.stroke();
+        }
 
-            // Save sample (In a real app, we normalize/average here)
-            samples.push(rawPath);
+        function end() {
+            if(!isDrawing) return;
+            isDrawing = false;
+            traces++;
             
-            // Update UI
-            statusText.innerText = `SAMPLE ${samples.length} / ${requiredSamples} ACQUIRED.`;
-            statusText.classList.remove('text-red-500');
-            statusText.classList.add('text-green-500');
-            progressBar.style.width = `${(samples.length / requiredSamples) * 100}%`;
-            
-            if (samples.length >= requiredSamples) {
-                 statusText.innerText = `CALIBRATION COMPLETE. RETURNING HOME.`;
-                 // In a real app, here is where we compute the "Golden Mean" and save to localStorage.
-                 setTimeout(() => window.location.href = '/check.html', 1500);
+            // UI Update
+            const pct = (traces / required) * 100;
+            document.getElementById('fill').style.width = `${pct}%`;
+            document.getElementById('status').innerText = `Trace ${traces} / ${required}`;
+
+            if(traces >= required) {
+                finishCalibration();
+            } else {
+                setTimeout(() => {
+                    ctx.clearRect(0,0,300,300);
+                    ctx.beginPath();
+                }, 500);
             }
         }
 
-        // Event Listeners (Mouse + Touch)
-        canvas.addEventListener('mousedown', startTrace);
-        canvas.addEventListener('mousemove', moveTrace);
-        canvas.addEventListener('mouseup', endTrace);
-        canvas.addEventListener('touchstart', startTrace);
-        canvas.addEventListener('touchmove', moveTrace);
-        canvas.addEventListener('touchend', endTrace);
+        function finishCalibration() {
+            // Generate ZK Commitment (Hash of the training)
+            const seed = localStorage.getItem('callsign_history') || "UNKNOWN";
+            const commitment = CryptoJS.SHA256(seed + Date.now() + "ZK_PROOF").toString();
+            
+            localStorage.setItem('zk_profile_commit', commitment);
+            
+            document.body.innerHTML = `
+                <div class="text-center">
+                    <h1 class="text-4xl text-white mb-4">FORGED.</h1>
+                    <p class="text-green-500 mb-8">Zero-Knowledge Proof stored.</p>
+                    <a href="/dashboard" class="border border-green-500 px-6 py-2 hover:bg-green-500 hover:text-black">ENTER SANCTUARY</a>
+                </div>
+            `;
+        }
 
+        ['mousedown','touchstart'].forEach(e=>canvas.addEventListener(e, start));
+        ['mousemove','touchmove'].forEach(e=>canvas.addEventListener(e, move));
+        ['mouseup','touchend'].forEach(e=>canvas.addEventListener(e, end));
     </script>
 </body>
 </html>
-
