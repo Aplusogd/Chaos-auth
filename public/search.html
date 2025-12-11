@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Black Box Search</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="chaos-sdk.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-slate-200 font-[Inter] p-6">
+    
+    <div class="flex items-center gap-4 mb-8">
+        <a href="/dashboard" class="w-10 h-10 flex items-center justify-center bg-slate-800 rounded-lg hover:bg-slate-700 transition text-white">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <h1 class="text-xl font-bold text-white">BLACK BOX ARCHIVES</h1>
+    </div>
+
+    <div class="relative mb-8">
+        <i class="fas fa-search absolute left-4 top-4 text-slate-500"></i>
+        <input type="text" oninput="chaosSearch(this.value)" placeholder="Search encrypted notes..." 
+               class="w-full bg-slate-800 border border-slate-700 rounded-xl py-3 pl-12 pr-4 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition shadow-lg">
+    </div>
+
+    <div id="results" class="space-y-4">
+        <div class="text-center text-slate-500 mt-12">
+            <i class="fas fa-hdd text-4xl mb-4 opacity-30"></i>
+            <p>Enter query to decrypt...</p>
+        </div>
+    </div>
+
+    <script>
+        async function chaosSearch(q) {
+            const el = document.getElementById('results');
+            if(q.length < 2) return;
+
+            // Mock Data
+            const data = [
+                { date: "2025-08-25", title: "Garage Door Logic Update", type: "SYSTEM" },
+                { date: "2025-11-25", title: "Sector 7 Competitor Analysis", type: "INTEL" },
+                { date: "2025-12-02", title: "24/7 Operation Reminder", type: "MEMO" },
+                { date: "2025-12-10", title: "Chaos Plug #001 Firmware Flash", type: "HARDWARE" }
+            ];
+
+            const hits = data.filter(i => i.title.toLowerCase().includes(q.toLowerCase()));
+
+            if(hits.length > 0) {
+                el.innerHTML = hits.map(h => `
+                    <div class="bg-slate-800 p-4 rounded-xl border border-slate-700/50">
+                        <div class="flex justify-between mb-1">
+                            <span class="text-xs font-bold text-blue-400">${h.type}</span>
+                            <span class="text-xs text-slate-500">${h.date}</span>
+                        </div>
+                        <h3 class="font-bold text-white">${h.title}</h3>
+                    </div>
+                `).join('');
+            } else {
+                el.innerHTML = `<div class="text-center text-slate-600 p-4">No traces found.</div>`;
+            }
+        }
+    </script>
+</body>
+</html>
