@@ -20,21 +20,44 @@
         canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.3; pointer-events: none; }
         
         /* Glass Header */
-        header { background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.1); }
+        header { background: rgba(0,0,0,0.9); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.1); }
 
-        /* Mobile-Friendly Buttons */
-        .btn-primary { 
-            background: #00ff41; color: #000; font-weight: 800; 
-            padding: 16px 32px; border-radius: 8px; 
-            text-align: center; display: block; width: 100%;
-            transition: transform 0.1s;
+        /* THE UNIVERSAL LINK BOX STYLE */
+        .link-box {
+            display: flex; align-items: center; justify-content: center;
+            padding: 16px 24px;
+            border-radius: 8px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(20,20,20,0.6);
+            color: #fff;
+            width: 100%; /* Full width on mobile default */
+            text-align: center;
         }
-        .btn-primary:active { transform: scale(0.98); background: #00cc33; }
+        
+        /* Primary (Green) Variation */
+        .link-box.primary {
+            background: #00ff41;
+            color: #000;
+            border-color: #00ff41;
+        }
+        .link-box.primary:active { transform: scale(0.98); background: #00cc33; }
 
-        .btn-secondary {
-            background: rgba(255,255,255,0.1); color: #fff; font-weight: 600;
-            padding: 16px 32px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2);
-            text-align: center; display: block; width: 100%;
+        /* Secondary (Outline) Variation */
+        .link-box.secondary:hover {
+            background: rgba(255,255,255,0.1);
+            border-color: #fff;
+        }
+        .link-box.secondary:active { transform: scale(0.98); }
+
+        /* Small Variation */
+        .link-box.small {
+            padding: 10px 16px;
+            font-size: 0.85rem;
+            width: auto; /* Shrink to fit */
         }
     </style>
 </head>
@@ -43,13 +66,14 @@
     <canvas id="chaos-bg"></canvas>
 
     <header class="fixed top-0 left-0 w-full z-50">
-        <div class="max-w-7xl mx-auto px-6 h-20 flex justify-between items-center">
-            <div class="flex items-center gap-3">
+        <div class="max-w-7xl mx-auto px-4 h-20 flex justify-between items-center">
+            
+            <a href="/" class="flex items-center gap-3 px-3 py-2 rounded hover:bg-white/5 transition">
                 <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_#00ff41]"></div>
                 <span class="font-bold tracking-wider text-white">A+ CHAOS</span>
-            </div>
+            </a>
             
-            <a href="/login" class="bg-white text-black font-black px-6 py-3 rounded hover:bg-gray-200 transition text-sm tracking-wide">
+            <a href="/login" class="link-box small secondary bg-white text-black border-white hover:bg-gray-200" style="background: white; color: black;">
                 LOG IN
             </a>
         </div>
@@ -62,47 +86,48 @@
                 SECURITY <br>
                 THAT <span class="text-green-500">LIVES.</span>
             </h1>
-            <p class="text-lg text-gray-400 leading-relaxed max-w-2xl mx-auto bg-black/50 p-4 rounded-lg backdrop-blur-sm">
+            <p class="text-lg text-gray-400 leading-relaxed max-w-2xl mx-auto bg-black/60 p-6 rounded-xl border border-white/5 backdrop-blur-sm">
                 Passwords are dead. <strong class="text-white">ChaosID</strong> uses your unique movement entropy to create a living identity. No databases to hack.
             </p>
         </div>
 
         <div class="flex flex-col md:flex-row gap-4 mb-16">
-            <a href="/abyss.html" class="btn-primary">
+            <a href="/abyss.html" class="link-box primary text-lg">
                 FORGE NEW CALLSIGN
             </a>
-            <a href="/login" class="btn-secondary">
+            <a href="/login" class="link-box secondary text-lg">
                 I HAVE A CALLSIGN
             </a>
         </div>
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            
             <div class="bg-zinc-900/80 p-6 rounded-xl border border-white/5 backdrop-blur-md">
                 <div class="mono text-green-500 text-xs mb-2">STEP 01</div>
                 <h3 class="font-bold text-white text-xl mb-2">Entropy</h3>
                 <p class="text-gray-400 text-sm">We capture your device static and micro-movements to generate a seed.</p>
             </div>
-
             <div class="bg-zinc-900/80 p-6 rounded-xl border border-white/5 backdrop-blur-md">
                 <div class="mono text-green-500 text-xs mb-2">STEP 02</div>
                 <h3 class="font-bold text-white text-xl mb-2">The Sigil</h3>
                 <p class="text-gray-400 text-sm">You trace a secret shape. This "muscle memory" becomes your password.</p>
             </div>
-
             <div class="bg-zinc-900/80 p-6 rounded-xl border border-white/5 backdrop-blur-md">
                 <div class="mono text-green-500 text-xs mb-2">STEP 03</div>
                 <h3 class="font-bold text-white text-xl mb-2">Zero Knowledge</h3>
                 <p class="text-gray-400 text-sm">We don't know who you are. We only know you match the proof.</p>
             </div>
-
         </div>
 
     </main>
 
-    <footer class="text-center text-gray-600 text-xs py-8 border-t border-white/5">
-        <p>A+ OVERHEAD GARAGE DOORS // SECURE DIVISION</p>
-        <a href="/sdk" class="underline mt-2 inline-block hover:text-white">Read Protocol Docs</a>
+    <footer class="text-center text-gray-600 text-xs py-12 border-t border-white/5 bg-black">
+        <p class="mb-6">A+ OVERHEAD GARAGE DOORS // SECURE DIVISION</p>
+        
+        <div class="flex justify-center">
+            <a href="/sdk" class="link-box secondary small">
+                <i class="fas fa-book mr-2"></i> READ PROTOCOL DOCS
+            </a>
+        </div>
     </footer>
 
     <script>
