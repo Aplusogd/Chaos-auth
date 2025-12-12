@@ -15,14 +15,7 @@
         }
         .native-input { width: 100%; height: 52px; background: #111; border: 1px solid #333; border-radius: 10px; padding: 0 16px; font-size: 16px; color: #fff; outline: none; }
         .native-input:focus { border-color: #00ff41; background: #080808; }
-        
-        /* FORCE SQUARE CANVAS TO MATCH FORGE */
-        .sigil-card { 
-            background: #0a0a0a; border: 1px solid #222; border-radius: 12px; 
-            width: 100%; aspect-ratio: 1/1; /* KEY FIX */
-            touch-action: none; position: relative; overflow: hidden; 
-        }
-        
+        .sigil-card { background: #0a0a0a; border: 1px solid #222; border-radius: 12px; width: 100%; aspect-ratio: 1/1; touch-action: none; position: relative; overflow: hidden; }
         .btn-action { width: 100%; height: 56px; background: #fff; color: #000; font-weight: 700; font-size: 16px; border-radius: 12px; transition: all 0.2s; cursor: pointer; }
         #analysis-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; align-items: center; justify-content: center; flex-direction: column; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
     </style>
@@ -51,12 +44,13 @@
             <div class="sigil-card">
                 <canvas id="canvas"></canvas>
                 <div id="status-display" class="absolute top-3 right-3 text-[10px] text-gray-600 font-mono tracking-widest font-bold">READY</div>
+                
                 <div id="analysis-overlay">
                     <div class="text-green-500 font-bold text-xl mb-1">ACCESS GRANTED</div>
                     <div class="text-gray-400 text-[10px] font-mono mb-4 tracking-widest">BIOMETRICS VERIFIED</div>
                     <div class="grid grid-cols-2 gap-2 text-[9px] font-mono text-gray-500 w-full px-8">
                         <div class="bg-gray-800 p-2 rounded">MATCH: <span id="stat-match" class="text-white">--</span></div>
-                        <div class="bg-gray-800 p-2 rounded">MODE: <span id="stat-mode" class="text-yellow-400">--</span></div>
+                        <div class="bg-gray-800 p-2 rounded">GAIN: <span id="stat-gain" class="text-green-400">+0.40</span></div>
                     </div>
                 </div>
             </div>
@@ -69,6 +63,7 @@
     </div>
 
     <script>
+        // --- 1. BIO ENGINE ---
         const Bio = {
             extractDNA: function(path) {
                 if (!path || path.length < 10) return { direction: 0 };
@@ -92,25 +87,22 @@
             }
         };
 
-        // --- 1. DETERMINE CORRECT SHAPE ---
+        // --- 2. INIT ---
+        let currentTrust = 50.00;
         let sigilType = 'TRIANGLE';
-        let currentTrust = 50.0;
 
         try {
             if(localStorage.getItem('callsign_history')) document.getElementById('callsign').value = localStorage.getItem('callsign_history');
-            currentTrust = parseFloat(localStorage.getItem('chaos_trust_score') || '50.0');
-            document.getElementById('trust-indicator').innerText = currentTrust.toFixed(1) + "%";
+            currentTrust = parseFloat(localStorage.getItem('chaos_trust_score') || '50.00');
+            document.getElementById('trust-indicator').innerText = currentTrust.toFixed(2) + "%";
 
             const masterJSON = localStorage.getItem('chaos_master_template');
             if(masterJSON) {
                 const master = JSON.parse(masterJSON);
                 if(master.sigilType) sigilType = master.sigilType;
-            } else {
-                sigilType = localStorage.getItem('chaos_sigil_type') || 'TRIANGLE';
             }
             document.getElementById('target-shape').innerText = sigilType;
-
-        } catch(e) { console.log("Init Error", e); }
+        } catch(e) {}
 
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -119,9 +111,8 @@
 
         function resizeCanvas() { 
             if(canvas.parentElement) {
-                const rect = canvas.parentElement.getBoundingClientRect();
-                canvas.width = rect.width;
-                canvas.height = rect.height;
+                canvas.width = canvas.parentElement.clientWidth; 
+                canvas.height = canvas.parentElement.clientHeight; 
                 drawGuide(); 
             }
         }
@@ -130,7 +121,6 @@
         function drawGuide() {
             const w=canvas.width, h=canvas.height, cx=w/2, cy=h/2;
             ctx.strokeStyle='#1a1a1a'; ctx.lineWidth=6; ctx.lineCap='round'; ctx.beginPath();
-            
             if(sigilType==='TRIANGLE') { ctx.moveTo(cx, h*0.15); ctx.lineTo(w*0.85, h*0.85); ctx.lineTo(w*0.15, h*0.85); ctx.closePath(); }
             else if(sigilType==='CIRCLE') { ctx.arc(cx, cy, w*0.35, 0, 2*Math.PI); }
             else if(sigilType==='LIGHTNING') { ctx.moveTo(cx+20, h*0.15); ctx.lineTo(cx-30, cy); ctx.lineTo(cx+30, cy); ctx.lineTo(cx-20, h*0.85); }
@@ -155,6 +145,7 @@
         ['mouseup','touchend'].forEach(e=>canvas.addEventListener(e, end));
         setTimeout(resizeCanvas, 100);
 
+        // --- 3. THE PRESTIGE FORMULA ---
         function verifyBiometrics() {
             try {
                 const masterJSON = localStorage.getItem('chaos_master_template');
@@ -164,11 +155,7 @@
 
                 if(loginPath.length < 10) { alert("Trace too short."); return; }
 
-                let difficulty = 0.0;
-                if(currentTrust >= 90) difficulty = 1.0; 
-                else if(currentTrust >= 50) difficulty = 0.5;
-                else difficulty = 0.2; 
-
+                // --- CALCULATE SCORE ---
                 const normA = Bio.normalizePath(masterData.path);
                 const normB = Bio.normalizePath(loginPath);
                 let err = 0;
@@ -177,51 +164,65 @@
                     const dy = normA[i].y - normB[i].y;
                     err += Math.sqrt(dx*dx + dy*dy);
                 }
+                
+                // Base Score
+                let shapeScore = Math.max(0, 100 - (err * 200));
 
-                const penaltyWeight = 150 + (250 * difficulty); 
-                let shapeScore = Math.max(0, 100 - (err * penaltyWeight));
-
+                // Direction Bonus (+20)
                 const loginDNA = Bio.extractDNA(loginPath);
-                if(masterData.dnaProfile.direction !== loginDNA.direction) {
-                    failLogin("WRONG DIRECTION");
-                    return;
+                if(masterData.dnaProfile.direction === loginDNA.direction) {
+                    shapeScore += 20; 
+                } else {
+                    shapeScore -= 20; // Wrong direction is bad
                 }
-                shapeScore += 15; 
 
-                const passThreshold = 55 + (20 * difficulty);
-                const finalScore = Math.min(100, Math.floor(shapeScore));
+                let finalScore = Math.min(100, Math.floor(shapeScore));
 
-                if(finalScore >= passThreshold) {
-                    document.getElementById('analysis-overlay').style.opacity = '1';
-                    document.getElementById('stat-match').innerText = `${finalScore}%`;
-                    document.getElementById('stat-mode').innerText = difficulty < 0.5 ? "LEARNING" : "SECURE";
-                    document.getElementById('btn').style.background = "#00ff41";
-                    document.getElementById('btn').innerText = "GRANTED";
+                // --- TIER LOGIC ---
+                let requiredScore = 65; // Default (Trust < 85)
+                
+                if(currentTrust >= 85) {
+                    requiredScore = 80; // Elite Tier (Harder)
+                }
 
-                    let trust = parseFloat(localStorage.getItem('chaos_trust_score') || '50');
-                    localStorage.setItem('chaos_trust_score', Math.min(100, trust + 3).toFixed(1));
+                if(finalScore >= requiredScore) {
+                    // SUCCESS
+                    
+                    // SLOW BUILD REWARD: +0.40 Points
+                    // Takes ~90 logins to go from 50 -> 85
+                    let newTrust = Math.min(100, currentTrust + 0.40);
+                    
+                    // Save
+                    localStorage.setItem('chaos_trust_score', newTrust.toFixed(2));
                     localStorage.setItem('chaos_last_bio_score', finalScore);
                     localStorage.setItem('session_start', Date.now());
 
-                    if(finalScore > passThreshold + 10) {
-                        masterData.path = loginPath; 
+                    // UI
+                    document.getElementById('analysis-overlay').style.opacity = '1';
+                    document.getElementById('stat-match').innerText = `${finalScore}%`;
+                    document.getElementById('stat-gain').innerText = `+0.40`;
+                    document.getElementById('btn').style.background = "#00ff41";
+                    document.getElementById('btn').innerText = "GRANTED";
+
+                    // Adaptive (Only if score > 90)
+                    if(finalScore > 90) {
+                        masterData.path = loginPath;
                         localStorage.setItem('chaos_master_template', JSON.stringify(masterData));
                     }
 
                     setTimeout(() => window.location.href='/dashboard', 1200);
                 } else {
-                    failLogin(`MISMATCH (${finalScore}%)`);
+                    failLogin(`Score: ${finalScore}% / Need: ${requiredScore}%`);
                 }
             } catch(e) {
                 console.error(e);
-                alert("Data Error. Please Recalibrate.");
-                window.location.href='/abyss-forge.html';
+                alert("Error. Recalibrate.");
             }
         }
 
         function failLogin(reason) {
-            let trust = parseFloat(localStorage.getItem('chaos_trust_score') || '50');
-            localStorage.setItem('chaos_trust_score', Math.max(0, trust - 5).toFixed(1));
+            // NO PUNISHMENT (As requested)
+            // Score stays the same. Access just denied.
             
             document.getElementById('status-display').innerText = "FAIL";
             document.getElementById('status-display').classList.add('text-red-500');
@@ -230,7 +231,7 @@
             btn.style.background = "#ff3333";
             setTimeout(() => btn.style.background = "#fff", 300);
             
-            alert(`ACCESS DENIED\n${reason}`);
+            alert(`ACCESS DENIED\n${reason}\n(No Trust Lost)`);
             ctx.clearRect(0,0,canvas.width,canvas.height); drawGuide();
         }
     </script>
