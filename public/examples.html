@@ -6,11 +6,18 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="chaos-sdk.js"></script>
     <style>
         body { background: #0b1120; color: #fff; font-family: 'Inter', sans-serif; padding-bottom: 80px; }
         .mono { font-family: 'JetBrains Mono', monospace; }
         
+        /* Toolkit Panel */
+        .toolkit-panel {
+            background: #1e293b; border: 1px solid #eab308; /* Yellow border */
+            border-radius: 12px; padding: 20px; margin-bottom: 32px;
+            box-shadow: 0 4px 20px rgba(234, 179, 8, 0.1);
+        }
+
         /* Code Block Styling */
         .code-card {
             background: #1e293b; border: 1px solid #334155;
@@ -35,20 +42,49 @@
         .copy-btn:active { background: #00ff41; color: #000; transform: scale(0.95); }
     </style>
 </head>
-<body class="p-6 max-w-2xl mx-auto">
+<body class="p-6 max-w-3xl mx-auto">
 
-    <div class="flex items-center gap-4 mb-8">
+    <div class="flex items-center gap-4 mb-6">
         <a href="/dashboard" class="w-10 h-10 flex items-center justify-center bg-slate-800 rounded-lg text-slate-400 hover:text-white transition">
             <i class="fas fa-arrow-left"></i>
         </a>
         <div>
             <h1 class="text-xl font-bold">CHAOS CODE VAULT</h1>
-            <p class="text-xs text-slate-500">Copy-Paste Ready Snippets</p>
+            <p class="text-xs text-slate-500">Developer Resources</p>
         </div>
     </div>
 
-    <p class="text-sm text-slate-400 mb-8 leading-relaxed">
-        These snippets use standard cryptographic libraries. You can drop them into any JavaScript project to add a layer of Chaos Security.
+    <div class="toolkit-panel">
+        <div class="flex justify-between items-start mb-4">
+            <div>
+                <h2 class="text-sm font-bold text-yellow-400 tracking-widest uppercase mb-1">Active Environment</h2>
+                <div class="text-[10px] text-slate-400 font-mono">TIER: <span id="tier-display" class="text-white">LOADING...</span></div>
+            </div>
+            <div class="bg-yellow-500/10 text-yellow-400 px-3 py-1 rounded text-[10px] font-bold border border-yellow-500/20">
+                LIVE
+            </div>
+        </div>
+
+        <div class="bg-black/40 p-3 rounded font-mono text-sm flex justify-between items-center mb-3 border border-slate-700/50">
+            <div>
+                <span class="text-[10px] text-slate-500 block mb-1">YOUR API KEY</span>
+                <span id="api-key" class="text-gray-400">sk_chaos_••••••••</span>
+            </div>
+            <button onclick="revealKey()" class="text-xs text-blue-400 hover:text-white uppercase font-bold px-2 py-1">Show</button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+            <a href="/chaos-sdk.js" download class="bg-slate-700 text-white text-xs font-bold py-3 rounded text-center hover:bg-slate-600 transition flex items-center justify-center gap-2">
+                <i class="fas fa-download"></i> DOWNLOAD SDK
+            </a>
+            <button onclick="copyScriptTag()" class="bg-slate-800 border border-slate-700 text-slate-300 text-xs font-bold py-3 rounded text-center hover:text-white transition flex items-center justify-center gap-2">
+                <i class="fas fa-link"></i> COPY SCRIPT TAG
+            </button>
+        </div>
+    </div>
+
+    <p class="text-xs text-slate-500 mb-6 uppercase tracking-widest font-bold ml-1">
+        Implementation Examples
     </p>
 
     <div class="code-card">
@@ -56,7 +92,7 @@
             <span class="text-xs font-bold text-green-400">01. TRUE RANDOMNESS</span>
             <button class="copy-btn" onclick="copyCode('c1')">Copy</button>
         </div>
-        <pre id="c1" class="mono">// Generate a True Random Number (0-255)
+        <pre id="c1" class="mono">// Generate a True Random Number (0-255) using Hardware Entropy
 function getTrueRandom() {
     const array = new Uint8Array(1);
     window.crypto.getRandomValues(array);
@@ -69,7 +105,7 @@ function getTrueRandom() {
             <span class="text-xs font-bold text-blue-400">02. GENERATE TOKEN</span>
             <button class="copy-btn" onclick="copyCode('c2')">Copy</button>
         </div>
-        <pre id="c2" class="mono">// Create a Secure Session Key
+        <pre id="c2" class="mono">// Create a Secure Session Key (Hex format)
 function generateKey() {
     return 'sk_live_' + Array.from(
         window.crypto.getRandomValues(new Uint8Array(16)),
@@ -80,48 +116,50 @@ function generateKey() {
 
     <div class="code-card">
         <div class="code-header">
-            <span class="text-xs font-bold text-purple-400">03. CHAOS DECISION</span>
+            <span class="text-xs font-bold text-yellow-400">03. INITIALIZE SDK</span>
             <button class="copy-btn" onclick="copyCode('c3')">Copy</button>
         </div>
-        <pre id="c3" class="mono">// 50/50 Choice based on Entropy
-function chaosFlip() {
-    const r = new Uint8Array(1);
-    window.crypto.getRandomValues(r);
-    return r[0] % 2 === 0 ? "ACTION_A" : "ACTION_B";
-}</pre>
-    </div>
+        <pre id="c3" class="mono">// How to start the Chaos Engine
+const chaos = new ChaosSDK('YOUR_API_KEY_HERE');
 
-    <div class="code-card">
-        <div class="code-header">
-            <span class="text-xs font-bold text-red-400">04. GLITCH TEXT EFFECT</span>
-            <button class="copy-btn" onclick="copyCode('c4')">Copy</button>
-        </div>
-        <pre id="c4" class="mono">// Corrupt text visually
-function glitchText(text) {
-    const chars = "!@#$%^&*<>?/";
-    return text.split('').map(c => 
-        Math.random() > 0.9 ? chars[Math.floor(Math.random()*chars.length)] : c
-    ).join('');
-}</pre>
-    </div>
-
-    <div class="code-card">
-        <div class="code-header">
-            <span class="text-xs font-bold text-yellow-400">05. SHA-256 HASH</span>
-            <button class="copy-btn" onclick="copyCode('c5')">Copy</button>
-        </div>
-        <pre id="c5" class="mono">// Hash data (Requires CryptoJS)
-function secureHash(input) {
-    return CryptoJS.SHA256(input).toString();
-}</pre>
+// Generate Identity from a seed (e.g., mouse movement)
+const identity = chaos.generateIdentity("mouse_x_992_mouse_y_112");
+console.log(identity); // ["VOID", "ASH", "CRIMSON"]</pre>
     </div>
 
     <script>
+        // Init User Data
+        const trust = parseInt(localStorage.getItem('chaos_trust_score') || '50');
+        let tier = "GUEST";
+        if (trust > 80) tier = "PRO";
+        else if (trust > 50) tier = "STANDARD";
+        document.getElementById('tier-display').innerText = tier;
+
+        function revealKey() {
+            const callsign = localStorage.getItem('callsign_history') || 'UNKNOWN';
+            // Generate a fake but consistent key based on callsign
+            const keyFragment = btoa(callsign).substring(0, 12);
+            const key = "sk_chaos_" + keyFragment;
+            
+            const el = document.getElementById('api-key');
+            
+            if(el.innerText.includes('•')) {
+                el.innerText = key;
+                el.classList.add('text-white');
+            } else {
+                el.innerText = "sk_chaos_••••••••";
+                el.classList.remove('text-white');
+            }
+        }
+
         function copyCode(id) {
             const text = document.getElementById(id).innerText;
-            navigator.clipboard.writeText(text).then(() => {
-                alert("CODE COPIED TO CLIPBOARD");
-            });
+            navigator.clipboard.writeText(text).then(() => alert("COPIED SNIPPET"));
+        }
+
+        function copyScriptTag() {
+            const tag = `<script src="https://aplus-chaos.onrender.com/chaos-sdk.js"><\/script>`;
+            navigator.clipboard.writeText(tag).then(() => alert("COPIED SCRIPT TAG"));
         }
     </script>
 </body>
