@@ -1,31 +1,62 @@
-// public/chaos-sdk.js - THE HEART OF CHAOS (V238)
+/**
+ * A+ CHAOS SDK (V255)
+ * The Zero-Knowledge Biometric Protocol
+ * * Usage:
+ * <script src="chaos-sdk.js"></script>
+ * const chaos = new ChaosSDK('YOUR_API_KEY');
+ */
 
-// --- FUNCTION DEFINITIONS (Must be defined globally for other files to use) ---
-window.generateInfiniteChaosCode = function(seed, words = 3) {
-    if (typeof CryptoJS === 'undefined') return ['SDK_ERROR'];
-    
-    // Dictionary and entropy generation logic (as previously provided)
-    const DICT = ["VOID", "RAZOR", "THUNDER", "CRIMSON", "ABYSS", "NOVA", "ASH", "ONYX", "MERCURY", "ECLIPSE", "GHOST", "PULSE", "SHATTER", "VELVET", "FLOOD", "QUAKE"];
-
-    // Use SHA512 hash of entropy sources to select words
-    const entropy = CryptoJS.SHA512(
-        seed + 
-        performance.now() + 
-        (window.screen ? screen.width : 0) + 
-        (navigator.deviceMemory || 0)
-    ).toString();
-
-    const result = [];
-    let hashIndex = 0;
-    for (let i = 0; i < words; i++) {
-        const hashSegment = parseInt(entropy.substring(hashIndex, hashIndex + 2), 16);
-        result.push(DICT[hashSegment % DICT.length]);
-        hashIndex = (hashIndex + 2) % (entropy.length - 2); 
+class ChaosSDK {
+    constructor(apiKey) {
+        this.apiKey = apiKey;
+        this.sessionStart = Date.now();
+        console.log("🌑 CHAOS SDK INITIALIZED");
     }
-    return result;
-};
 
-// Placeholder for decryption needed by abyss-search.html
-window.decryptNotes = async function(encryptedData) {
-    return "Decrypted Notes: Line 1. Line 2 (Mock Decryption Success).";
-};
+    /**
+     * Generates a deterministic Chaos Callsign from entropy.
+     * @param {string} seed - Random input (mouse movement, time, etc)
+     * @returns {string} - The 3-word callsign (e.g. "VOID-RAZOR-ASH")
+     */
+    generateIdentity(seed) {
+        const words = ["VOID", "RAZOR", "THUNDER", "CRIMSON", "ABYSS", "NOVA", "ASH", "ONYX", "GHOST", "ECHO", "SHADOW", "PULSE", "IRON", "NEON", "FLUX", "ZERO"];
+        
+        // Simple hashing (In prod, use crypto.subtle)
+        let hash = 0;
+        const str = seed + this.apiKey;
+        for (let i = 0; i < str.length; i++) {
+            hash = ((hash << 5) - hash) + str.charCodeAt(i);
+            hash |= 0; 
+        }
+        
+        const i1 = Math.abs(hash) % words.length;
+        const i2 = Math.abs(hash >> 8) % words.length;
+        const i3 = Math.abs(hash >> 16) % words.length;
+        
+        return `${words[i1]}-${words[i2]}-${words[i3]}`;
+    }
+
+    /**
+     * Mocks a secure decryption of Black Box data.
+     * Requires a valid API Key.
+     */
+    async decrypt(encryptedData) {
+        if(!this.apiKey.startsWith('sk_chaos_')) {
+            throw new Error("INVALID_KEY: Access Denied.");
+        }
+        // Simulation delay
+        await new Promise(r => setTimeout(r, 500));
+        return `DECRYPTED: ${encryptedData}`;
+    }
+
+    /**
+     * Returns the current device fingerprint score.
+     * (Mocked for external use)
+     */
+    getTrustScore() {
+        return Math.floor(Math.random() * 20) + 80; // Returns 80-100
+    }
+}
+
+// Attach to window for easy use
+window.ChaosSDK = ChaosSDK;
