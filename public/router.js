@@ -1,22 +1,25 @@
-// public/router.js - V245 Client Security
-const PROTECTED_ROUTES = ['/dashboard', '/admin', '/pair'];
+// router.js — V256 — STABLE GUARD
+
+const PROTECTED_ROUTES = ['/dashboard', '/admin', '/pair', '/search', '/examples.html'];
 
 function checkAuth() {
     const path = window.location.pathname;
     
-    // 1. Check if we are on a protected page
-    if (PROTECTED_ROUTES.some(route => path.startsWith(route))) {
-        // 2. Check for the keys in storage
+    // Only check security on protected pages
+    if (PROTECTED_ROUTES.some(route => path.includes(route))) {
+        
         const key = localStorage.getItem('chaos_key_vault');
         const session = localStorage.getItem('session_start');
         
-        // 3. If missing, kick to login
+        // DEBUG: Uncomment this line to see what's happening in Console
+        // console.log("Checking Auth:", { key, session, path });
+
         if (!key || !session) {
-            console.warn("⛔ ACCESS DENIED: The Abyss requires a key.");
+            console.warn("⛔ ACCESS DENIED: Missing Keys. Redirecting to Login.");
             window.location.href = '/login';
         }
     }
 }
 
-// Run immediately
+// Execute immediately
 checkAuth();
