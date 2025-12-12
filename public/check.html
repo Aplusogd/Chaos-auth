@@ -8,13 +8,29 @@
     <script src="router.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { background: #0f172a; color: #fff; font-family: sans-serif; padding-bottom: 100px; }
-        .card-btn { display: flex; align-items: center; justify-content: space-between; background: #1e293b; border: 1px solid #334155; padding: 24px; border-radius: 16px; margin-bottom: 16px; transition: transform 0.1s; }
-        .card-btn:active { transform: scale(0.98); background: #334155; }
-        .icon-box { width: 50px; height: 50px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+        body { background: #0f172a; color: #fff; font-family: sans-serif; padding-bottom: 120px; }
         
-        /* Score Bars */
-        .bar-bg { width: 100%; height: 8px; background: #334155; border-radius: 4px; overflow: hidden; margin-top: 6px; }
+        /* Card Styling */
+        .glass-panel {
+            background: #1e293b; border: 1px solid #334155;
+            border-radius: 16px; padding: 20px; margin-bottom: 16px;
+        }
+        
+        .card-btn {
+            display: flex; align-items: center; justify-content: space-between;
+            background: #1e293b; border: 1px solid #334155;
+            padding: 24px; border-radius: 16px; margin-bottom: 16px;
+            transition: transform 0.1s;
+        }
+        .card-btn:active { transform: scale(0.98); background: #334155; }
+        
+        .icon-box {
+            width: 50px; height: 50px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center; font-size: 24px;
+        }
+
+        /* Progress Bars */
+        .bar-bg { width: 100%; height: 6px; background: #0f172a; border-radius: 3px; margin-top: 8px; overflow: hidden; }
         .bar-fill { height: 100%; transition: width 1s ease-out; }
     </style>
 </head>
@@ -30,20 +46,52 @@
         </div>
     </div>
 
-    <div class="bg-slate-800/50 p-4 rounded-xl border border-slate-700/50 mb-8">
-        <h3 class="text-xs font-bold text-slate-400 mb-4 tracking-widest">BIOMETRIC PROFILE</h3>
-        
+    <div class="glass-panel border-l-4 border-l-yellow-500">
+        <div class="flex justify-between items-start mb-4">
+            <h3 class="text-xs font-bold text-yellow-500 tracking-widest">DEVELOPER KEYS</h3>
+            <span id="plan-badge" class="text-[10px] bg-slate-800 px-2 py-1 rounded text-gray-400">LOADING...</span>
+        </div>
+
+        <div class="bg-black/50 p-3 rounded font-mono text-sm flex justify-between items-center mb-4 border border-slate-700">
+            <span id="api-key" class="text-gray-400">sk_chaos_••••••••</span>
+            <button onclick="revealKey()" class="text-xs text-blue-400 hover:text-white uppercase font-bold">Show</button>
+        </div>
+
+        <div class="mb-4">
+            <div class="flex justify-between text-xs mb-1">
+                <span class="text-gray-400">DAILY QUOTA (Based on Trust Score)</span>
+                <span id="quota-text" class="text-white font-bold">0 / 0</span>
+            </div>
+            <div class="bar-bg">
+                <div id="quota-bar" class="bar-fill bg-yellow-500" style="width: 0%"></div>
+            </div>
+            <p id="quota-msg" class="text-[10px] text-gray-500 mt-2 italic">
+                Log in consistently to increase your Trust Score and unlock more API calls.
+            </p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+            <a href="/chaos-sdk.js" download class="bg-slate-700 text-white text-xs font-bold py-3 rounded text-center hover:bg-slate-600 transition">
+                <i class="fas fa-download mr-1"></i> GET SDK
+            </a>
+            <button onclick="upgrade()" class="bg-gradient-to-r from-yellow-600 to-yellow-500 text-black text-xs font-bold py-3 rounded text-center hover:opacity-90">
+                UNLOCK UNLIMITED
+            </button>
+        </div>
+    </div>
+
+    <div class="glass-panel">
+        <h3 class="text-xs font-bold text-slate-400 mb-4 tracking-widest">TRUST METRICS</h3>
         <div class="mb-4">
             <div class="flex justify-between text-xs font-bold mb-1">
-                <span class="text-blue-400">TRUST LEVEL</span>
+                <span class="text-blue-400">TRUST SCORE</span>
                 <span class="text-white" id="trust-val">0%</span>
             </div>
             <div class="bar-bg"><div id="trust-bar" class="bar-fill bg-blue-500" style="width: 0%"></div></div>
         </div>
-
         <div>
             <div class="flex justify-between text-xs font-bold mb-1">
-                <span class="text-green-400">FINGERPRINT MATCH</span>
+                <span class="text-green-400">LAST BIO-MATCH</span>
                 <span class="text-white" id="bio-val">0%</span>
             </div>
             <div class="bar-bg"><div id="bio-bar" class="bar-fill bg-green-500" style="width: 0%"></div></div>
@@ -55,10 +103,7 @@
     <a href="/pair" class="card-btn group">
         <div class="flex items-center gap-5">
             <div class="icon-box bg-purple-500/20 text-purple-400"><i class="fas fa-plug"></i></div>
-            <div>
-                <div class="font-bold text-xl text-white">Bind Device</div>
-                <div class="text-slate-400 text-sm">Sync Hardware Plug</div>
-            </div>
+            <div><div class="font-bold text-xl">Bind Device</div><div class="text-slate-400 text-sm">Sync Hardware</div></div>
         </div>
         <i class="fas fa-chevron-right text-slate-600"></i>
     </a>
@@ -66,21 +111,7 @@
     <a href="/search" class="card-btn group">
         <div class="flex items-center gap-5">
             <div class="icon-box bg-blue-500/20 text-blue-400"><i class="fas fa-search"></i></div>
-            <div>
-                <div class="font-bold text-xl text-white">Black Box</div>
-                <div class="text-slate-400 text-sm">Search Archives</div>
-            </div>
-        </div>
-        <i class="fas fa-chevron-right text-slate-600"></i>
-    </a>
-
-    <a href="/sdk" class="card-btn group">
-        <div class="flex items-center gap-5">
-            <div class="icon-box bg-teal-500/20 text-teal-400"><i class="fas fa-book"></i></div>
-            <div>
-                <div class="font-bold text-xl text-white">Protocols</div>
-                <div class="text-slate-400 text-sm">Documentation</div>
-            </div>
+            <div><div class="font-bold text-xl">Black Box</div><div class="text-slate-400 text-sm">Archives</div></div>
         </div>
         <i class="fas fa-chevron-right text-slate-600"></i>
     </a>
@@ -89,10 +120,7 @@
     <a href="/admin" class="card-btn border-red-900/30 bg-red-900/10">
         <div class="flex items-center gap-5">
             <div class="icon-box bg-red-500/20 text-red-500"><i class="fas fa-shield-alt"></i></div>
-            <div>
-                <div class="font-bold text-xl text-red-100">The Abyss</div>
-                <div class="text-red-400/60 text-sm">Overwatch System</div>
-            </div>
+            <div><div class="font-bold text-xl text-red-100">The Abyss</div><div class="text-red-400/60 text-sm">Overwatch</div></div>
         </div>
     </a>
 
@@ -101,20 +129,61 @@
     </div>
 
     <script>
+        // Init User
         document.getElementById('user-id').innerText = localStorage.getItem('callsign_history') || 'OPERATOR';
         
-        // Load Scores
-        const trust = localStorage.getItem('chaos_trust_score') || '50';
-        const bio = localStorage.getItem('chaos_last_bio_score') || '0';
+        // Load Trust Scores
+        const trust = parseInt(localStorage.getItem('chaos_trust_score') || '50');
+        const bio = parseInt(localStorage.getItem('chaos_last_bio_score') || '0');
 
-        // Animate Bars
+        // Logic: Calculate API Limits based on Trust
+        let limit = 0;
+        let tier = "GUEST";
+        
+        if (trust < 20) { limit = 0; tier = "RESTRICTED"; }
+        else if (trust < 50) { limit = 100; tier = "BASIC"; }
+        else if (trust < 80) { limit = 1000; tier = "ADVANCED"; }
+        else { limit = 5000; tier = "PRO"; }
+
+        // Render UI
         setTimeout(() => {
+            // Bars
             document.getElementById('trust-bar').style.width = trust + '%';
             document.getElementById('trust-val').innerText = trust + '%';
-            
             document.getElementById('bio-bar').style.width = bio + '%';
             document.getElementById('bio-val').innerText = bio + '%';
+            
+            // API Panel
+            document.getElementById('plan-badge').innerText = tier + " TIER";
+            document.getElementById('quota-text').innerText = `0 / ${limit.toLocaleString()}`;
+            
+            // Visual logic for quota bar (mock usage of 15%)
+            if(limit > 0) document.getElementById('quota-bar').style.width = "15%";
+            else document.getElementById('quota-bar').style.width = "0%";
+            
+            // Danger state
+            if(trust < 20) {
+                document.getElementById('quota-msg').innerText = "Account Restricted. Improve biometric match to restore access.";
+                document.getElementById('quota-msg').classList.add('text-red-500');
+            }
         }, 300);
+
+        function revealKey() {
+            const key = "sk_chaos_" + btoa(document.getElementById('user-id').innerText).substring(0, 12);
+            const el = document.getElementById('api-key');
+            
+            if(el.innerText.includes('•')) {
+                el.innerText = key;
+                el.classList.add('text-white');
+            } else {
+                el.innerText = "sk_chaos_••••••••";
+                el.classList.remove('text-white');
+            }
+        }
+
+        function upgrade() {
+            alert("Payment Gateway Linking... (Coming Soon)");
+        }
     </script>
 </body>
 </html>
