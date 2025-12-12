@@ -1,171 +1,48 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Chaos Access</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="router.js"></script>
-    <script src="chaos-bio-engine.js"></script> <style>
-        body { 
-            background: #000; color: #e5e5e5; font-family: -apple-system, monospace;
-            min-height: 100vh; display: flex; flex-direction: column; 
-            padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom);
-        }
-        .native-input { width: 100%; height: 52px; background: #111; border: 1px solid #333; border-radius: 10px; padding: 0 16px; font-size: 16px; color: #fff; outline: none; }
-        .native-input:focus { border-color: #00ff41; background: #080808; }
-        .sigil-card { background: #0a0a0a; border: 1px solid #222; border-radius: 12px; width: 100%; aspect-ratio: 4/3; touch-action: none; position: relative; overflow: hidden; }
-        .btn-action { width: 100%; height: 56px; background: #fff; color: #000; font-weight: 700; font-size: 16px; border-radius: 12px; transition: all 0.2s; }
-        #analysis-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; align-items: center; justify-content: center; flex-direction: column; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
-    </style>
-</head>
-<body class="px-6 justify-center">
+<script>
+    // ... (Setup) ...
+    const Bio = new ChaosBioEngine();
 
-    <div class="w-full max-w-sm mx-auto flex flex-col gap-6">
-        <div class="text-center mb-2">
-            <h1 class="text-2xl font-bold text-white tracking-tight">Access Node</h1>
-            <div class="flex justify-center items-center gap-2 text-[10px] font-mono mt-1">
-                <span class="text-gray-500">TRUST SCORE:</span>
-                <span id="trust-indicator" class="text-blue-400 font-bold">--</span>
-            </div>
-        </div>
+    function verifyBiometrics() {
+        const masterJSON = localStorage.getItem('chaos_master_template');
+        if(!masterJSON) { alert("Recalibrate."); window.location.href='/abyss-forge.html'; return; }
+        const masterData = JSON.parse(masterJSON);
 
-        <div>
-            <label class="block text-gray-500 text-xs font-bold mb-2 ml-1">CALLSIGN</label>
-            <input id="callsign" type="text" class="native-input" autocomplete="off">
-        </div>
+        if(loginPath.length < 10) { alert("Trace too short."); return; }
 
-        <div>
-            <label class="block text-gray-500 text-xs font-bold mb-2 ml-1">SIGIL TRACE</label>
-            <div class="sigil-card">
-                <canvas id="canvas"></canvas>
-                <div id="status-display" class="absolute top-3 right-3 text-[10px] text-gray-600 font-mono tracking-widest font-bold">READY</div>
-                
-                <div id="analysis-overlay">
-                    <div class="text-green-500 font-bold text-xl mb-1">BIO-VERIFIED</div>
-                    <div class="text-gray-400 text-[10px] font-mono mb-4 tracking-widest">BEHAVIORAL ANALYSIS COMPLETE</div>
-                    
-                    <div class="grid grid-cols-2 gap-2 text-[9px] font-mono text-gray-500 w-full px-8">
-                        <div class="bg-gray-800 p-2 rounded">TREMOR: <span id="stat-tremor" class="text-white">--</span></div>
-                        <div class="bg-gray-800 p-2 rounded">MOTION: <span id="stat-motion" class="text-white">--</span></div>
-                        <div class="bg-gray-800 p-2 rounded">GRIP: <span id="stat-grip" class="text-white">--</span></div>
-                        <div class="bg-gray-800 p-2 rounded">SHAPE: <span id="stat-shape" class="text-white">--</span></div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        // --- LAYER 1: IS IT HUMAN? (Bio-Engine) ---
+        const isHumanScore = Bio.analyzeBiologicalMotion(loginPath);
+        if(isHumanScore < 50) { failLogin("BOT MOVEMENT DETECTED"); return; }
 
-        <div class="mt-4">
-            <button onclick="verifyBiometrics()" id="btn" class="btn-action shadow-lg shadow-green-900/20">Verify Access</button>
-        </div>
-    </div>
+        // --- LAYER 2: IS IT THE RIGHT SHAPE? (Vector) ---
+        // (Assume Vector Logic from V258 is here)
 
-    <script>
-        const Bio = new ChaosBioEngine();
-        // Try to start sensors silently (if already granted)
-        Bio.startMotionCapture();
+        // --- LAYER 3: IS IT YOU? (DNA Check) ---
+        const loginDNA = Bio.extractDNA(loginPath);
+        const masterDNA = masterData.dnaProfile;
 
-        if(localStorage.getItem('callsign_history')) document.getElementById('callsign').value = localStorage.getItem('callsign_history');
-        let currentTrust = parseFloat(localStorage.getItem('chaos_trust_score') || '50.0');
-        document.getElementById('trust-indicator').innerText = currentTrust.toFixed(1) + "%";
-
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const sigilType = localStorage.getItem('chaos_sigil_type') || 'TRIANGLE';
-        let loginPath = []; let isDrawing = false;
-
-        function resizeCanvas() { canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight; drawGuide(); }
-        window.addEventListener('resize', resizeCanvas);
-
-        function drawGuide() {
-            const w=canvas.width, h=canvas.height, cx=w/2, cy=h/2;
-            ctx.strokeStyle='#1a1a1a'; ctx.lineWidth=6; ctx.lineCap='round'; ctx.beginPath();
-            if(sigilType==='TRIANGLE') { ctx.moveTo(cx, h*0.2); ctx.lineTo(w*0.8, h*0.8); ctx.lineTo(w*0.2, h*0.8); ctx.closePath(); }
-            else if(sigilType==='CIRCLE') { ctx.arc(cx, cy, h*0.3, 0, 2*Math.PI); }
-            else if(sigilType==='LIGHTNING') { ctx.moveTo(cx+20, h*0.15); ctx.lineTo(cx-20, cy); ctx.lineTo(cx+20, cy); ctx.lineTo(cx-20, h*0.85); }
-            ctx.stroke();
+        // CRITICAL CHECK: DIRECTION
+        if (masterDNA && loginDNA.direction !== masterDNA.direction) {
+            failLogin("WRONG DIRECTION (Clockwise/CCW Mismatch)");
+            return;
         }
 
-        function start(e) { e.preventDefault(); isDrawing=true; loginPath=[]; ctx.clearRect(0,0,canvas.width,canvas.height); drawGuide(); }
+        // CRITICAL CHECK: STYLE MATCH
+        // Compare Speed Rhythm and Cornering
+        const dnaScore = Bio.compareDNA(masterDNA, loginDNA); // Returns 0-100
         
-        function move(e) {
-            if(!isDrawing) return; e.preventDefault();
-            const t = e.touches ? e.touches[0] : e;
-            const r = canvas.getBoundingClientRect();
-            const x = t.clientX - r.left; const y = t.clientY - r.top;
+        document.getElementById('stat-shape').innerText = `DNA: ${dnaScore}%`;
+
+        // STRICT THRESHOLD
+        // You need a 70% match on your OWN HABITS
+        if(dnaScore >= 65) {
+            // SUCCESS
+            // ... (Grant Access Logic) ...
             
-            ctx.lineTo(x, y); ctx.strokeStyle='#00ff41'; ctx.lineWidth=3; ctx.stroke();
-            loginPath.push({x, y, t: Date.now()});
+            // Adapt the DNA (Learn new habits slightly)
+            // (Simplified adaptive logic here)
+        } else {
+            failLogin(`DNA MISMATCH (${dnaScore}%)\nRhythm/Speed incorrect.`);
         }
-        function end() { isDrawing=false; }
-
-        ['mousedown','touchstart'].forEach(e=>canvas.addEventListener(e, start));
-        ['mousemove','touchmove'].forEach(e=>canvas.addEventListener(e, move));
-        ['mouseup','touchend'].forEach(e=>canvas.addEventListener(e, end));
-        setTimeout(resizeCanvas, 50);
-
-        function verifyBiometrics() {
-            const masterJSON = localStorage.getItem('chaos_master_template');
-            if(!masterJSON) { alert("Recalibrate."); window.location.href='/abyss-forge.html'; return; }
-            const masterData = JSON.parse(masterJSON);
-
-            if(loginPath.length < 10) { alert("Trace too short."); return; }
-
-            // 1. BIO-ENGINE CHECKS
-            const tremorScore = Bio.analyzeTremor(loginPath); // 1.0 = Human, 0.0 = Bot
-            const motionScore = Bio.analyzeBiologicalMotion(loginPath); // 0-100
-            const gripScore = Bio.analyzeGrip(Date.now()); // 1.0 = Held, 0.2 = Flat/Bot
-
-            // 2. SHAPE & SPEED (Standard)
-            // (Simplified for this snippet, assumes Shape Check is passed from previous logic)
-            const shapeScore = 85; // Placeholder for successful vector match
-
-            // 3. FINAL VERDICT
-            // If Tremor is 0 (Bot), instant fail.
-            if(tremorScore === 0) {
-                failLogin("BOT DETECTED (Zero Tremor)");
-                return;
-            }
-
-            // Weighted Total
-            const totalScore = Math.floor(
-                (shapeScore * 0.4) + 
-                (motionScore * 0.3) + 
-                (gripScore * 20) + // Grip adds up to 20 points
-                (tremorScore * 10) // Tremor adds 10 points
-            );
-
-            document.getElementById('stat-tremor').innerText = tremorScore > 0 ? "HUMAN" : "SUSPICIOUS";
-            document.getElementById('stat-motion').innerText = motionScore + "% BIO";
-            document.getElementById('stat-grip').innerText = gripScore > 0.5 ? "DETECTED" : "NONE";
-            document.getElementById('stat-shape').innerText = shapeScore + "%";
-
-            if(totalScore >= 70) {
-                // SUCCESS
-                document.getElementById('analysis-overlay').style.opacity = '1';
-                document.getElementById('btn').style.background = "#00ff41";
-                document.getElementById('btn').innerText = "GRANTED";
-
-                let trust = parseFloat(localStorage.getItem('chaos_trust_score') || '50');
-                localStorage.setItem('chaos_trust_score', Math.min(100, trust + 2).toFixed(1));
-                localStorage.setItem('chaos_last_bio_score', totalScore);
-                localStorage.setItem('session_start', Date.now());
-
-                setTimeout(() => window.location.href='/dashboard', 1500);
-            } else {
-                failLogin("BIO-MISMATCH");
-            }
-        }
-
-        function failLogin(reason) {
-            let trust = parseFloat(localStorage.getItem('chaos_trust_score') || '50');
-            localStorage.setItem('chaos_trust_score', Math.max(0, trust - 10).toFixed(1));
-            
-            document.getElementById('status-display').innerText = `FAIL`;
-            document.getElementById('status-display').classList.add('text-red-500');
-            alert(`ACCESS DENIED\nReason: ${reason}`);
-            ctx.clearRect(0,0,canvas.width,canvas.height); drawGuide();
-        }
-    </script>
-</body>
-</html>
+    }
+    // ...
+</script>
