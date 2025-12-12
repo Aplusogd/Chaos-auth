@@ -1,70 +1,99 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>OVERWATCH // ABYSS</title>
+    <title>OVERWATCH // GOD MODE</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="router.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        body { background: #000; color: #ff003c; font-family: 'Courier New', monospace; padding-bottom: 80px; }
-        .grid-line { border-bottom: 1px solid #333; }
-        .stat-box { border: 1px solid #333; padding: 12px; }
-        .live-dot { height: 8px; width: 8px; background: #ff003c; border-radius: 50%; display: inline-block; animation: blink 1s infinite; }
-        @keyframes blink { 50% { opacity: 0; } }
+        body { background: #000; color: #ff003c; font-family: 'JetBrains Mono', monospace; padding-bottom: 80px; }
+        .panel { border: 1px solid #330000; background: #110000; padding: 16px; margin-bottom: 16px; border-radius: 8px; }
+        .btn-cmd { 
+            width: 100%; background: #330000; border: 1px solid #ff003c; 
+            color: #ff003c; padding: 12px; font-weight: bold; text-transform: uppercase;
+            margin-top: 8px; cursor: pointer; transition: all 0.1s;
+        }
+        .btn-cmd:active { background: #ff003c; color: #000; }
+        .log-screen { height: 100px; overflow-y: auto; font-size: 10px; color: #555; border-top: 1px solid #333; margin-top: 10px; padding-top: 5px; }
     </style>
 </head>
 <body class="p-4">
     
     <div class="flex justify-between items-center mb-6 border-b border-red-900 pb-2">
-        <h1 class="text-lg font-bold tracking-widest">OVERWATCH <span class="text-[10px] align-top">V251</span></h1>
-        <div class="text-[10px] text-red-500 font-bold"><span class="live-dot mr-2"></span>LIVE</div>
+        <h1 class="text-xl font-bold tracking-widest">GOD_MODE <span class="text-xs text-gray-500">V259</span></h1>
+        <div class="text-xs text-red-500 animate-pulse">● LIVE</div>
     </div>
 
-    <div class="grid grid-cols-2 gap-3 mb-6">
-        <div class="stat-box bg-red-900/10 rounded">
-            <div class="text-[10px] text-gray-500 mb-1">MEMORY</div>
-            <div class="text-xl font-bold" id="mem">--</div>
+    <div class="panel">
+        <h2 class="text-xs font-bold text-gray-500 mb-2">USER STATUS OVERRIDE</h2>
+        <div class="flex justify-between text-sm mb-2">
+            <span>CURRENT TRUST:</span>
+            <span id="trust-display" class="text-white">--</span>
         </div>
-        <div class="stat-box bg-red-900/10 rounded">
-            <div class="text-[10px] text-gray-500 mb-1">CONN</div>
-            <div class="text-xl font-bold">SECURE</div>
+        <button onclick="godMode()" class="btn-cmd">
+            GRANT FULL POWER (100%)
+        </button>
+    </div>
+
+    <div class="panel">
+        <h2 class="text-xs font-bold text-gray-500 mb-2">KEY FORGE (MINT TOKENS)</h2>
+        <div class="bg-black border border-gray-800 p-3 mb-2 text-xs break-all text-white" id="generated-key">
+            WAITING_FOR_COMMAND...
         </div>
-        <div class="stat-box bg-red-900/10 col-span-2 rounded">
-            <div class="text-[10px] text-gray-500 mb-1">LAST SYNC</div>
-            <div class="text-xl font-bold" id="time">--:--:--</div>
+        <div class="grid grid-cols-2 gap-2">
+            <button onclick="mintKey('standard')" class="btn-cmd text-xs" style="margin-top:0;">STD KEY</button>
+            <button onclick="mintKey('admin')" class="btn-cmd text-xs" style="margin-top:0;">ADMIN KEY</button>
         </div>
     </div>
 
-    <h2 class="text-[10px] text-gray-500 mb-2 font-bold tracking-widest">EVENT LOG</h2>
-    <div id="console" class="bg-gray-900 p-3 h-64 overflow-y-auto text-[11px] text-gray-300 font-mono border border-gray-800 mb-6 rounded break-all shadow-inner shadow-black">
-        <div class="text-red-500 mb-1">>> SYSTEM INITIALIZED...</div>
+    <div class="panel" style="border-color: #333; background: #050505;">
+        <h2 class="text-xs font-bold text-gray-500 mb-2">DANGER ZONE</h2>
+        <button onclick="resetBio()" class="btn-cmd" style="border-color: #666; color: #888;">
+            WIPE BIOMETRICS
+        </button>
     </div>
 
-    <a href="/dashboard" class="block w-full text-center border border-gray-800 bg-gray-900 py-4 text-gray-400 hover:text-white hover:border-gray-600 transition uppercase text-xs font-bold rounded">
+    <a href="/dashboard" class="block w-full text-center py-4 text-gray-500 hover:text-white text-xs border-t border-gray-900 mt-8">
         << RETURN TO SANCTUARY
     </a>
 
     <script>
-        document.getElementById('mem').innerText = (navigator.deviceMemory || 4) + "GB";
-        
-        setInterval(() => {
-            const now = new Date();
-            document.getElementById('time').innerText = now.toLocaleTimeString();
-        }, 1000);
+        // Init
+        const trust = localStorage.getItem('chaos_trust_score') || '0';
+        document.getElementById('trust-display').innerText = trust + '%';
 
-        const logs = document.getElementById('console');
-        const msgs = ["Handshake ACK", "Packet 0x4F verified", "Entropy pool refreshed", "Heartbeat OK", "Zero-Knowledge Check passed", "Buffer cleared"];
-        
-        setInterval(() => {
-            const msg = msgs[Math.floor(Math.random() * msgs.length)];
-            const time = new Date().toLocaleTimeString().split(' ')[0];
-            const div = document.createElement('div');
-            div.className = "mb-1 border-b border-gray-800/50 pb-1";
-            div.innerText = `[${time}] ${msg}`;
-            logs.prepend(div);
-            // Limit logs
-            if(logs.children.length > 20) logs.lastChild.remove();
-        }, 2000);
+        // 1. GOD MODE: Force Trust to 100
+        function godMode() {
+            if(confirm("ELEVATE PRIVILEGES TO LEVEL 10?")) {
+                localStorage.setItem('chaos_trust_score', '100');
+                localStorage.setItem('chaos_last_bio_score', '100');
+                document.getElementById('trust-display').innerText = '100% (MAX)';
+                alert("PRIVILEGES GRANTED. YOU ARE NOW ADMIN.");
+            }
+        }
+
+        // 2. MINT KEYS
+        function mintKey(type) {
+            const seed = Array.from(window.crypto.getRandomValues(new Uint8Array(8)), b=>b.toString(16).padStart(2,'0')).join('');
+            let prefix = type === 'admin' ? 'sk_admin_' : 'sk_live_';
+            let key = prefix + seed;
+            
+            document.getElementById('generated-key').innerText = key;
+            document.getElementById('generated-key').classList.add('text-green-500');
+            
+            navigator.clipboard.writeText(key).then(() => alert("KEY COPIED TO CLIPBOARD"));
+        }
+
+        // 3. RESET
+        function resetBio() {
+            if(confirm("WARNING: THIS WILL WIPE YOUR BIOMETRIC DATA. CONTINUE?")) {
+                localStorage.removeItem('chaos_master_template');
+                localStorage.removeItem('chaos_trust_score');
+                alert("SYSTEM WIPED. RECALIBRATION REQUIRED.");
+                window.location.href = '/abyss-forge.html';
+            }
+        }
     </script>
 </body>
 </html>
