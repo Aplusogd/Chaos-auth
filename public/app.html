@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Chaos Access</title>
-    <style>
-        body { background-color: #000000; color: #ffffff; margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
-    </style>
+    <style>body { background-color: #000000; color: #ffffff; margin: 0; display: flex; flex-direction: column; min-height: 100vh; }</style>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="router.js"></script>
     
@@ -48,8 +46,8 @@
                     <div class="text-green-500 font-bold text-xl mb-1">ACCESS GRANTED</div>
                     <div class="text-gray-400 text-[10px] font-mono mb-4 tracking-widest">BIOMETRICS VERIFIED</div>
                     <div class="grid grid-cols-2 gap-2 text-[9px] font-mono text-gray-500 w-full px-8">
-                        <div class="bg-gray-800 p-2 rounded">MATCH: <span id="stat-match" class="text-white">--</span></div>
-                        <div class="bg-gray-800 p-2 rounded">DNA: <span id="stat-dna" class="text-white">VALID</span></div>
+                        <div class="bg-gray-800 p-2 rounded">SCORE: <span id="stat-match" class="text-white">--</span></div>
+                        <div class="bg-gray-800 p-2 rounded">STRICTNESS: <span id="stat-mode" class="text-yellow-400">--</span></div>
                     </div>
                 </div>
             </div>
@@ -62,26 +60,15 @@
     </div>
 
     <script>
-        // --- BIO ENGINE (TUNED FOR FORGIVENESS) ---
+        // --- BIO ENGINE ---
         const Bio = {
             extractDNA: function(path) {
-                if (!path || path.length < 10) return { direction: 0, velocity: [0,0,0] };
+                if (!path || path.length < 10) return { direction: 0 };
                 let sum = 0;
                 for (let i = 0; i < path.length - 1; i++) sum += (path[i+1].x - path[i].x) * (path[i+1].y + path[i].y);
                 const direction = sum > 0 ? 1 : -1;
-
-                const speeds = [];
-                for (let i = 1; i < path.length; i++) {
-                    const dt = path[i].t - path[i-1].t || 16;
-                    const dist = Math.hypot(path[i].x - path[i-1].x, path[i].y - path[i-1].y);
-                    speeds.push(dist / dt);
-                }
-                const p10 = speeds[Math.floor(speeds.length * 0.1)] || 0;
-                const p50 = speeds[Math.floor(speeds.length * 0.5)] || 0;
-                const p90 = speeds[Math.floor(speeds.length * 0.9)] || 0;
-                return { direction, velocity: [p10, p50, p90] };
+                return { direction };
             },
-            
             normalizePath: function(path) {
                 if(!path || path.length < 5) return [];
                 let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
@@ -98,9 +85,10 @@
         };
 
         // --- UI LOGIC ---
+        let currentTrust = 50.0;
         try {
             if(localStorage.getItem('callsign_history')) document.getElementById('callsign').value = localStorage.getItem('callsign_history');
-            let currentTrust = parseFloat(localStorage.getItem('chaos_trust_score') || '50.0');
+            currentTrust = parseFloat(localStorage.getItem('chaos_trust_score') || '50.0');
             document.getElementById('trust-indicator').innerText = currentTrust.toFixed(1) + "%";
         } catch(e) {}
 
@@ -151,22 +139,18 @@
                 const masterJSON = localStorage.getItem('chaos_master_template');
                 if(!masterJSON) { alert("Please Recalibrate."); window.location.href='/abyss-forge.html'; return; }
                 let masterData = JSON.parse(masterJSON);
-                
-                // Ensure DNA profile exists
-                if(!masterData.dnaProfile && masterData.path) {
-                    masterData.dnaProfile = Bio.extractDNA(masterData.path);
-                }
+                if(!masterData.dnaProfile && masterData.path) masterData.dnaProfile = Bio.extractDNA(masterData.path);
 
                 if(loginPath.length < 10) { alert("Trace too short."); return; }
 
-                // 1. DNA DIRECTION (Absolute Fail if wrong)
-                const loginDNA = Bio.extractDNA(loginPath);
-                if(masterData.dnaProfile.direction !== loginDNA.direction) {
-                    failLogin("WRONG DIRECTION");
-                    return;
-                }
+                // --- 1. DYNAMIC DIFFICULTY (The Trust Ramp) ---
+                // Scale difficulty from 0.0 (Easy) to 1.0 (Hard) based on Trust
+                let difficulty = 0.0;
+                if(currentTrust >= 90) difficulty = 1.0;       // Fortress Mode
+                else if(currentTrust >= 50) difficulty = 0.5;  // Standard Mode
+                else difficulty = 0.2;                         // Learning Mode
 
-                // 2. SHAPE CHECK (Forgiving)
+                // --- 2. VECTOR CHECK ---
                 const normA = Bio.normalizePath(masterData.path);
                 const normB = Bio.normalizePath(loginPath);
                 let err = 0;
@@ -175,49 +159,56 @@
                     const dy = normA[i].y - normB[i].y;
                     err += Math.sqrt(dx*dx + dy*dy);
                 }
-                
-                // *** TUNED: Reduced penalty from 400 to 250 ***
-                let shapeScore = Math.max(0, 100 - (err * 250));
-                
-                // *** TUNED: Direction Bonus (+15) ***
-                // If they got the direction right (which they did to get here), boost the score
+
+                // PENALTY SCALING
+                // Low Trust: Penalty is 150 (Very Loose)
+                // Max Trust: Penalty is 400 (Very Strict)
+                const penaltyWeight = 150 + (250 * difficulty); 
+                let shapeScore = Math.max(0, 100 - (err * penaltyWeight));
+
+                // --- 3. DIRECTION CHECK (Hard Lock) ---
+                const loginDNA = Bio.extractDNA(loginPath);
+                if(masterData.dnaProfile.direction !== loginDNA.direction) {
+                    failLogin("WRONG DIRECTION");
+                    return;
+                }
+                // Bonus for correct direction (Always +15)
                 shapeScore += 15;
 
-                // 3. SPEED CHECK (Bonus Only)
-                // We use speed to boost score, not to fail it (allows for "tired" user)
-                let speedScore = 0;
-                for(let i=0; i<3; i++) {
-                    const v1 = masterData.dnaProfile.velocity[i] || 0.1;
-                    const v2 = loginDNA.velocity[i] || 0.1;
-                    speedScore += Math.min(v1, v2) / Math.max(v1, v2);
-                }
-                const speedBonus = (speedScore / 3) * 10; // Max 10 points bonus
+                // --- 4. DECISION THRESHOLD ---
+                // Low Trust: Pass at 55
+                // Max Trust: Pass at 75
+                const passThreshold = 55 + (20 * difficulty);
                 
-                // FINAL SCORE
-                let totalScore = Math.min(100, Math.floor(shapeScore + speedBonus));
+                // Cap Score at 100
+                const finalScore = Math.min(100, Math.floor(shapeScore));
 
-                // *** TUNED: Threshold 65 ***
-                if(totalScore > 65) {
+                if(finalScore >= passThreshold) {
                     // SUCCESS
                     document.getElementById('analysis-overlay').style.opacity = '1';
-                    document.getElementById('stat-match').innerText = `${totalScore}%`;
+                    document.getElementById('stat-match').innerText = `${finalScore}%`;
+                    document.getElementById('stat-mode').innerText = difficulty < 0.5 ? "LEARNING" : "SECURE";
+                    
                     document.getElementById('btn').style.background = "#00ff41";
                     document.getElementById('btn').innerText = "GRANTED";
 
+                    // Reward: Trust increases
                     let trust = parseFloat(localStorage.getItem('chaos_trust_score') || '50');
-                    localStorage.setItem('chaos_trust_score', Math.min(100, trust + 2).toFixed(1));
-                    localStorage.setItem('chaos_last_bio_score', totalScore);
+                    localStorage.setItem('chaos_trust_score', Math.min(100, trust + 3).toFixed(1));
+                    localStorage.setItem('chaos_last_bio_score', finalScore);
                     localStorage.setItem('session_start', Date.now());
 
-                    // Only Update Master if score is VERY good (>80) to avoid poisoning
-                    if(totalScore > 80) {
-                        masterData.dnaProfile.velocity = loginDNA.velocity; 
-                        localStorage.setItem('chaos_master_template', JSON.stringify(masterData));
+                    // Adaptive Learning: Only update Master if score is high enough to be "safe"
+                    if(finalScore > passThreshold + 10) {
+                        localStorage.setItem('chaos_master_template', JSON.stringify({
+                            ...masterData,
+                            path: loginPath // Evolve the shape
+                        }));
                     }
 
                     setTimeout(() => window.location.href='/dashboard', 1200);
                 } else {
-                    failLogin(`MISMATCH (${totalScore}%)`);
+                    failLogin(`MISMATCH (${finalScore}%)`);
                 }
             } catch(e) {
                 console.error(e);
