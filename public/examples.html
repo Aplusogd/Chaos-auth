@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Chaos Code Vault</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        body { background: #0b1120; color: #fff; font-family: 'Inter', sans-serif; padding-bottom: 80px; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        
+        /* Code Block Styling */
+        .code-card {
+            background: #1e293b; border: 1px solid #334155;
+            border-radius: 12px; margin-bottom: 24px; overflow: hidden;
+        }
+        .code-header {
+            background: #0f172a; padding: 12px 16px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 1px solid #334155;
+        }
+        pre {
+            padding: 16px; margin: 0; overflow-x: auto;
+            color: #a5b4fc; font-size: 12px; line-height: 1.5;
+        }
+        
+        /* Copy Button */
+        .copy-btn {
+            background: #334155; color: #fff; border-radius: 6px;
+            padding: 4px 10px; font-size: 10px; font-weight: bold;
+            text-transform: uppercase; transition: all 0.2s;
+        }
+        .copy-btn:active { background: #00ff41; color: #000; transform: scale(0.95); }
+    </style>
+</head>
+<body class="p-6 max-w-2xl mx-auto">
+
+    <div class="flex items-center gap-4 mb-8">
+        <a href="/dashboard" class="w-10 h-10 flex items-center justify-center bg-slate-800 rounded-lg text-slate-400 hover:text-white transition">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <div>
+            <h1 class="text-xl font-bold">CHAOS CODE VAULT</h1>
+            <p class="text-xs text-slate-500">Copy-Paste Ready Snippets</p>
+        </div>
+    </div>
+
+    <p class="text-sm text-slate-400 mb-8 leading-relaxed">
+        These snippets use standard cryptographic libraries. You can drop them into any JavaScript project to add a layer of Chaos Security.
+    </p>
+
+    <div class="code-card">
+        <div class="code-header">
+            <span class="text-xs font-bold text-green-400">01. TRUE RANDOMNESS</span>
+            <button class="copy-btn" onclick="copyCode('c1')">Copy</button>
+        </div>
+        <pre id="c1" class="mono">// Generate a True Random Number (0-255)
+function getTrueRandom() {
+    const array = new Uint8Array(1);
+    window.crypto.getRandomValues(array);
+    return array[0];
+}</pre>
+    </div>
+
+    <div class="code-card">
+        <div class="code-header">
+            <span class="text-xs font-bold text-blue-400">02. GENERATE TOKEN</span>
+            <button class="copy-btn" onclick="copyCode('c2')">Copy</button>
+        </div>
+        <pre id="c2" class="mono">// Create a Secure Session Key
+function generateKey() {
+    return 'sk_live_' + Array.from(
+        window.crypto.getRandomValues(new Uint8Array(16)),
+        byte => byte.toString(16).padStart(2, '0')
+    ).join('');
+}</pre>
+    </div>
+
+    <div class="code-card">
+        <div class="code-header">
+            <span class="text-xs font-bold text-purple-400">03. CHAOS DECISION</span>
+            <button class="copy-btn" onclick="copyCode('c3')">Copy</button>
+        </div>
+        <pre id="c3" class="mono">// 50/50 Choice based on Entropy
+function chaosFlip() {
+    const r = new Uint8Array(1);
+    window.crypto.getRandomValues(r);
+    return r[0] % 2 === 0 ? "ACTION_A" : "ACTION_B";
+}</pre>
+    </div>
+
+    <div class="code-card">
+        <div class="code-header">
+            <span class="text-xs font-bold text-red-400">04. GLITCH TEXT EFFECT</span>
+            <button class="copy-btn" onclick="copyCode('c4')">Copy</button>
+        </div>
+        <pre id="c4" class="mono">// Corrupt text visually
+function glitchText(text) {
+    const chars = "!@#$%^&*<>?/";
+    return text.split('').map(c => 
+        Math.random() > 0.9 ? chars[Math.floor(Math.random()*chars.length)] : c
+    ).join('');
+}</pre>
+    </div>
+
+    <div class="code-card">
+        <div class="code-header">
+            <span class="text-xs font-bold text-yellow-400">05. SHA-256 HASH</span>
+            <button class="copy-btn" onclick="copyCode('c5')">Copy</button>
+        </div>
+        <pre id="c5" class="mono">// Hash data (Requires CryptoJS)
+function secureHash(input) {
+    return CryptoJS.SHA256(input).toString();
+}</pre>
+    </div>
+
+    <script>
+        function copyCode(id) {
+            const text = document.getElementById(id).innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                alert("CODE COPIED TO CLIPBOARD");
+            });
+        }
+    </script>
+</body>
+</html>
