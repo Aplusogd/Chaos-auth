@@ -45,11 +45,11 @@
                 <div id="status-display" class="absolute top-3 right-3 text-[10px] text-gray-600 font-mono tracking-widest font-bold">READY</div>
                 
                 <div id="analysis-overlay">
-                    <div class="text-green-500 font-bold text-xl mb-1">VERIFIED</div>
-                    <div class="text-gray-400 text-[10px] font-mono mb-4 tracking-widest">DNA MATCH CONFIRMED</div>
+                    <div class="text-green-500 font-bold text-xl mb-1">ACCESS GRANTED</div>
+                    <div class="text-gray-400 text-[10px] font-mono mb-4 tracking-widest">BIOMETRICS VERIFIED</div>
                     <div class="grid grid-cols-2 gap-2 text-[9px] font-mono text-gray-500 w-full px-8">
-                        <div class="bg-gray-800 p-2 rounded">DNA: <span id="stat-dna" class="text-white">--</span></div>
-                        <div class="bg-gray-800 p-2 rounded">VECTOR: <span id="stat-vector" class="text-white">--</span></div>
+                        <div class="bg-gray-800 p-2 rounded">MATCH: <span id="stat-match" class="text-white">--</span></div>
+                        <div class="bg-gray-800 p-2 rounded">DNA: <span id="stat-dna" class="text-white">VALID</span></div>
                     </div>
                 </div>
             </div>
@@ -62,19 +62,14 @@
     </div>
 
     <script>
-        // --- INLINE BIO-ENGINE (To prevent loading errors) ---
+        // --- BIO ENGINE (TUNED FOR FORGIVENESS) ---
         const Bio = {
             extractDNA: function(path) {
-                if (!path || path.length < 10) return { direction: 0, velocity: [0,0,0], sharpness: 0 };
-                
-                // 1. Direction (Shoelace)
+                if (!path || path.length < 10) return { direction: 0, velocity: [0,0,0] };
                 let sum = 0;
-                for (let i = 0; i < path.length - 1; i++) {
-                    sum += (path[i+1].x - path[i].x) * (path[i+1].y + path[i].y);
-                }
+                for (let i = 0; i < path.length - 1; i++) sum += (path[i+1].x - path[i].x) * (path[i+1].y + path[i].y);
                 const direction = sum > 0 ? 1 : -1;
 
-                // 2. Velocity Profile
                 const speeds = [];
                 for (let i = 1; i < path.length; i++) {
                     const dt = path[i].t - path[i-1].t || 16;
@@ -84,30 +79,13 @@
                 const p10 = speeds[Math.floor(speeds.length * 0.1)] || 0;
                 const p50 = speeds[Math.floor(speeds.length * 0.5)] || 0;
                 const p90 = speeds[Math.floor(speeds.length * 0.9)] || 0;
-
                 return { direction, velocity: [p10, p50, p90] };
-            },
-
-            compareDNA: function(master, login) {
-                if(!master || !login) return 0;
-                if(master.direction !== login.direction) return 0; // Wrong direction = 0 score
-                
-                let speedScore = 0;
-                for(let i=0; i<3; i++) {
-                    const v1 = master.velocity[i] || 0.1;
-                    const v2 = login.velocity[i] || 0.1;
-                    speedScore += Math.min(v1, v2) / Math.max(v1, v2);
-                }
-                return Math.floor((speedScore / 3) * 100);
             },
             
             normalizePath: function(path) {
                 if(!path || path.length < 5) return [];
                 let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
-                path.forEach(p => {
-                    if(p.x<minX) minX=p.x; if(p.x>maxX) maxX=p.x;
-                    if(p.y<minY) minY=p.y; if(p.y>maxY) maxY=p.y;
-                });
+                path.forEach(p => { if(p.x<minX) minX=p.x; if(p.x>maxX) maxX=p.x; if(p.y<minY) minY=p.y; if(p.y>maxY) maxY=p.y; });
                 const w = maxX - minX || 1; const h = maxY - minY || 1;
                 const resampled = [];
                 for(let i=0; i<20; i++) {
@@ -124,7 +102,7 @@
             if(localStorage.getItem('callsign_history')) document.getElementById('callsign').value = localStorage.getItem('callsign_history');
             let currentTrust = parseFloat(localStorage.getItem('chaos_trust_score') || '50.0');
             document.getElementById('trust-indicator').innerText = currentTrust.toFixed(1) + "%";
-        } catch(e) { console.log("Storage init error", e); }
+        } catch(e) {}
 
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -172,20 +150,23 @@
             try {
                 const masterJSON = localStorage.getItem('chaos_master_template');
                 if(!masterJSON) { alert("Please Recalibrate."); window.location.href='/abyss-forge.html'; return; }
-                
                 let masterData = JSON.parse(masterJSON);
-                // Data Migration safety check
+                
+                // Ensure DNA profile exists
                 if(!masterData.dnaProfile && masterData.path) {
                     masterData.dnaProfile = Bio.extractDNA(masterData.path);
                 }
 
                 if(loginPath.length < 10) { alert("Trace too short."); return; }
 
-                // 1. DNA CHECK
+                // 1. DNA DIRECTION (Absolute Fail if wrong)
                 const loginDNA = Bio.extractDNA(loginPath);
-                const dnaScore = Bio.compareDNA(masterData.dnaProfile, loginDNA);
+                if(masterData.dnaProfile.direction !== loginDNA.direction) {
+                    failLogin("WRONG DIRECTION");
+                    return;
+                }
 
-                // 2. VECTOR CHECK (Shape)
+                // 2. SHAPE CHECK (Forgiving)
                 const normA = Bio.normalizePath(masterData.path);
                 const normB = Bio.normalizePath(loginPath);
                 let err = 0;
@@ -194,23 +175,32 @@
                     const dy = normA[i].y - normB[i].y;
                     err += Math.sqrt(dx*dx + dy*dy);
                 }
-                const shapeScore = Math.max(0, 100 - (err * 400));
+                
+                // *** TUNED: Reduced penalty from 400 to 250 ***
+                let shapeScore = Math.max(0, 100 - (err * 250));
+                
+                // *** TUNED: Direction Bonus (+15) ***
+                // If they got the direction right (which they did to get here), boost the score
+                shapeScore += 15;
 
-                // 3. DECISION
-                // Direction fail is instant 0 DNA score
-                if(dnaScore === 0) {
-                    failLogin("WRONG DIRECTION");
-                    return;
+                // 3. SPEED CHECK (Bonus Only)
+                // We use speed to boost score, not to fail it (allows for "tired" user)
+                let speedScore = 0;
+                for(let i=0; i<3; i++) {
+                    const v1 = masterData.dnaProfile.velocity[i] || 0.1;
+                    const v2 = loginDNA.velocity[i] || 0.1;
+                    speedScore += Math.min(v1, v2) / Math.max(v1, v2);
                 }
+                const speedBonus = (speedScore / 3) * 10; // Max 10 points bonus
+                
+                // FINAL SCORE
+                let totalScore = Math.min(100, Math.floor(shapeScore + speedBonus));
 
-                // Weighted Score
-                const totalScore = Math.floor(dnaScore * 0.5 + shapeScore * 0.5);
-
+                // *** TUNED: Threshold 65 ***
                 if(totalScore > 65) {
                     // SUCCESS
                     document.getElementById('analysis-overlay').style.opacity = '1';
-                    document.getElementById('stat-dna').innerText = `${dnaScore}%`;
-                    document.getElementById('stat-vector').innerText = `${Math.floor(shapeScore)}%`;
+                    document.getElementById('stat-match').innerText = `${totalScore}%`;
                     document.getElementById('btn').style.background = "#00ff41";
                     document.getElementById('btn').innerText = "GRANTED";
 
@@ -218,6 +208,12 @@
                     localStorage.setItem('chaos_trust_score', Math.min(100, trust + 2).toFixed(1));
                     localStorage.setItem('chaos_last_bio_score', totalScore);
                     localStorage.setItem('session_start', Date.now());
+
+                    // Only Update Master if score is VERY good (>80) to avoid poisoning
+                    if(totalScore > 80) {
+                        masterData.dnaProfile.velocity = loginDNA.velocity; 
+                        localStorage.setItem('chaos_master_template', JSON.stringify(masterData));
+                    }
 
                     setTimeout(() => window.location.href='/dashboard', 1200);
                 } else {
