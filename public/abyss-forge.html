@@ -3,49 +3,49 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Calibrate Bio-Geometry</title>
-    <style>body { background-color: #000000; margin: 0; }</style>
+    <title>Bio-Calibration</title>
+    <style>body { background-color: #000; margin: 0; }</style>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body { background: #000; color: #00ff41; font-family: monospace; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
         
+        /* RESPONSIVE SQUARE CANVAS */
+        .canvas-container {
+            width: 100%; max-width: 340px; aspect-ratio: 1/1;
+            position: relative; margin: 0 auto;
+        }
         canvas { 
+            width: 100%; height: 100%;
             background: #0a0a0a; border: 2px solid #333; border-radius: 12px; 
             touch-action: none; box-shadow: 0 0 20px rgba(0,255,65,0.1); 
         }
         
-        .progress-bar { width: 100%; height: 6px; background: #222; margin-top: 20px; border-radius: 3px; }
+        .progress-bar { width: 100%; max-width: 340px; height: 6px; background: #222; margin-top: 20px; border-radius: 3px; }
         .fill { height: 100%; background: #00ff41; width: 0%; transition: width 0.3s; }
     </style>
 </head>
-<body class="p-4">
+<body class="p-6">
     
-    <div class="text-center w-full max-w-sm">
-        <h1 class="text-xl font-bold mb-2 text-white">BIO-CALIBRATION</h1>
-        <p class="text-gray-400 text-[10px] mb-6">Trace the shape 5 times. <br>Mapping <span class="text-white">DNA</span>, <span class="text-white">Speed</span>, and <span class="text-white">Rotation</span>.</p>
+    <div class="text-center w-full">
+        <h1 class="text-xl font-bold mb-1 text-white">CALIBRATION</h1>
+        <p class="text-gray-500 text-[10px] mb-6 tracking-widest" id="shape-name">LOADING SHAPE...</p>
 
-        <div class="relative flex justify-center">
-            <canvas id="canvas" width="300" height="300"></canvas>
+        <div class="canvas-container">
+            <canvas id="canvas"></canvas>
         </div>
 
-        <div class="progress-bar"><div id="fill" class="fill"></div></div>
+        <div class="progress-bar mx-auto"><div id="fill" class="fill"></div></div>
         <p id="status" class="mt-4 font-bold text-lg">0 / 5</p>
     </div>
 
     <script>
-        // --- INLINE BIO-ENGINE (Guarantees Loading) ---
+        // --- INLINE BIO-ENGINE ---
         const Bio = {
             extractDNA: function(path) {
                 if (!path || path.length < 10) return { direction: 0, velocity: [0,0,0] };
-                
-                // 1. Direction (Shoelace Formula)
                 let sum = 0;
-                for (let i = 0; i < path.length - 1; i++) {
-                    sum += (path[i+1].x - path[i].x) * (path[i+1].y + path[i].y);
-                }
+                for (let i = 0; i < path.length - 1; i++) sum += (path[i+1].x - path[i].x) * (path[i+1].y + path[i].y);
                 const direction = sum > 0 ? 1 : -1;
-
-                // 2. Velocity Profile
                 const speeds = [];
                 for (let i = 1; i < path.length; i++) {
                     const dt = path[i].t - path[i-1].t || 16;
@@ -55,65 +55,59 @@
                 const p10 = speeds[Math.floor(speeds.length * 0.1)] || 0;
                 const p50 = speeds[Math.floor(speeds.length * 0.5)] || 0;
                 const p90 = speeds[Math.floor(speeds.length * 0.9)] || 0;
-
                 return { direction, velocity: [p10, p50, p90] };
             }
         };
 
-        // --- CALIBRATION LOGIC ---
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const sigilType = localStorage.getItem('chaos_sigil_type') || 'TRIANGLE';
+        document.getElementById('shape-name').innerText = `TRACE: ${sigilType}`;
         
         let traces = 0; const required = 5;
         let isDrawing = false;
-        let currentPath = []; 
-        let bioStats = []; 
+        let currentPath = []; let bioStats = []; 
+
+        // Handle Resizing for High-DPI screens
+        function resize() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width;
+            canvas.height = rect.height;
+            drawGuide();
+        }
+        window.addEventListener('resize', resize);
 
         function drawGuide() {
-            ctx.clearRect(0,0,300,300);
+            const w = canvas.width; const h = canvas.height;
+            const cx = w/2; const cy = h/2;
+            
+            ctx.clearRect(0,0,w,h);
             ctx.beginPath();
             ctx.strokeStyle = '#1a331a'; ctx.lineWidth = 10; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-            if(sigilType === 'TRIANGLE') { ctx.moveTo(150, 50); ctx.lineTo(250, 250); ctx.lineTo(50, 250); ctx.closePath(); }
-            else if(sigilType === 'CIRCLE') { ctx.arc(150, 150, 100, 0, 2 * Math.PI); }
-            else if(sigilType === 'LIGHTNING') { ctx.moveTo(180, 50); ctx.lineTo(120, 150); ctx.lineTo(220, 150); ctx.lineTo(100, 250); }
+            if(sigilType === 'TRIANGLE') { ctx.moveTo(cx, h*0.15); ctx.lineTo(w*0.85, h*0.85); ctx.lineTo(w*0.15, h*0.85); ctx.closePath(); }
+            else if(sigilType === 'CIRCLE') { ctx.arc(cx, cy, w*0.35, 0, 2 * Math.PI); }
+            else if(sigilType === 'LIGHTNING') { ctx.moveTo(cx+20, h*0.15); ctx.lineTo(cx-30, cy); ctx.lineTo(cx+30, cy); ctx.lineTo(cx-20, h*0.85); }
             ctx.stroke();
         }
 
-        function start(e) { 
-            e.preventDefault(); isDrawing=true; currentPath=[]; 
-            ctx.clearRect(0,0,300,300); drawGuide(); 
-        }
-
+        function start(e) { e.preventDefault(); isDrawing=true; currentPath=[]; ctx.clearRect(0,0,canvas.width,canvas.height); drawGuide(); }
         function move(e) {
             if(!isDrawing) return; e.preventDefault();
             const t = e.touches ? e.touches[0] : e;
             const r = canvas.getBoundingClientRect();
             const x = t.clientX - r.left; const y = t.clientY - r.top;
             
-            // Capture Touch Geometry
-            const rx = t.radiusX || 15;
-            const ry = t.radiusY || 15;
-            const rot = t.rotationAngle || 0;
-
-            // Draw Real Finger Oval
-            ctx.beginPath();
-            ctx.ellipse(x, y, rx, ry, rot * (Math.PI/180), 0, 2 * Math.PI);
-            ctx.fillStyle = `rgba(0, 255, 65, 0.3)`; 
-            ctx.fill();
-            
+            const rx = t.radiusX || 15; const ry = t.radiusY || 15; const rot = t.rotationAngle || 0;
+            ctx.beginPath(); ctx.ellipse(x, y, rx, ry, rot * (Math.PI/180), 0, 2 * Math.PI);
+            ctx.fillStyle = `rgba(0, 255, 65, 0.3)`; ctx.fill();
             currentPath.push({ x: Math.round(x), y: Math.round(y), t: Date.now(), rx, ry, rot });
         }
-
         function end() {
             if(!isDrawing) return; isDrawing = false;
-            
             if(currentPath.length > 20) {
-                // Save simplified stats for averaging later
                 const avgRx = currentPath.reduce((a,b)=>a+b.rx,0) / currentPath.length;
                 const avgRy = currentPath.reduce((a,b)=>a+b.ry,0) / currentPath.length;
                 const avgRot = currentPath.reduce((a,b)=>a+b.rot,0) / currentPath.length;
-                
                 bioStats.push({avgRx, avgRy, avgRot});
                 success();
             } else { drawGuide(); }
@@ -126,37 +120,32 @@
             document.getElementById('status').innerText = `${traces} / ${required}`;
 
             if(traces >= required) {
-                // 1. CALCULATE AVERAGES
                 const masterRx = bioStats.reduce((a,b)=>a+b.avgRx,0)/5;
                 const masterRy = bioStats.reduce((a,b)=>a+b.avgRy,0)/5;
                 const masterRot = bioStats.reduce((a,b)=>a+b.avgRot,0)/5;
-
-                // 2. EXTRACT DNA (Direction & Speed)
-                // We use the LAST trace as the representative motion path
                 const dna = Bio.extractDNA(currentPath);
 
-                // 3. CREATE MASTER TEMPLATE
                 const masterData = {
-                    path: currentPath,      // Vector Path
-                    speedMod: 1.0,          // Learning Baseline
-                    bio: { rx: masterRx, ry: masterRy, rot: masterRot }, // Finger Size
-                    dnaProfile: dna         // Behavioral DNA
+                    sigilType: sigilType,
+                    path: currentPath, 
+                    speedMod: 1.0,
+                    bio: { rx: masterRx, ry: masterRy, rot: masterRot },
+                    dnaProfile: dna
                 };
 
                 localStorage.setItem('chaos_master_template', JSON.stringify(masterData));
                 localStorage.setItem('chaos_trust_score', '50');
 
-                // 4. UI SUCCESS
-                document.getElementById('status').innerText = "PROFILE MAPPED.";
+                document.getElementById('status').innerText = "PROFILE LOCKED.";
                 document.getElementById('status').classList.add('text-white');
                 setTimeout(() => window.location.href = '/login', 1000);
             } else {
-                setTimeout(() => { ctx.clearRect(0,0,300,300); drawGuide(); }, 500);
+                setTimeout(() => { ctx.clearRect(0,0,canvas.width,canvas.height); drawGuide(); }, 500);
             }
         }
 
         // Init
-        drawGuide();
+        resize();
         ['mousedown','touchstart'].forEach(e=>canvas.addEventListener(e, start));
         ['mousemove','touchmove'].forEach(e=>canvas.addEventListener(e, move));
         ['mouseup','touchend'].forEach(e=>canvas.addEventListener(e, end));
