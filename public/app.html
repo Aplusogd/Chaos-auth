@@ -7,6 +7,7 @@
     <style>body { background-color: #000000; color: #ffffff; margin: 0; display: flex; flex-direction: column; min-height: 100vh; }</style>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="router.js"></script>
+    <script src="chaos-bio-engine.js"></script>
     
     <style>
         body { 
@@ -26,7 +27,7 @@
         <div class="text-center mb-2">
             <h1 class="text-2xl font-bold text-white tracking-tight">Access Node</h1>
             <div class="flex justify-center items-center gap-2 text-[10px] font-mono mt-1">
-                <span class="text-gray-500">TRUST SCORE:</span>
+                <span class="text-gray-500">TRUST LEVEL:</span>
                 <span id="trust-indicator" class="text-blue-400 font-bold">LOADING...</span>
             </div>
         </div>
@@ -44,7 +45,6 @@
             <div class="sigil-card">
                 <canvas id="canvas"></canvas>
                 <div id="status-display" class="absolute top-3 right-3 text-[10px] text-gray-600 font-mono tracking-widest font-bold">READY</div>
-                
                 <div id="analysis-overlay">
                     <div class="text-green-500 font-bold text-xl mb-1">ACCESS GRANTED</div>
                     <div class="text-gray-400 text-[10px] font-mono mb-4 tracking-widest">BIOMETRICS VERIFIED</div>
@@ -63,31 +63,9 @@
     </div>
 
     <script>
-        // --- 1. BIO ENGINE ---
-        const Bio = {
-            extractDNA: function(path) {
-                if (!path || path.length < 10) return { direction: 0 };
-                let sum = 0;
-                for (let i = 0; i < path.length - 1; i++) sum += (path[i+1].x - path[i].x) * (path[i+1].y + path[i].y);
-                const direction = sum > 0 ? 1 : -1;
-                return { direction };
-            },
-            normalizePath: function(path) {
-                if(!path || path.length < 5) return [];
-                let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
-                path.forEach(p => { if(p.x<minX) minX=p.x; if(p.x>maxX) maxX=p.x; if(p.y<minY) minY=p.y; if(p.y>maxY) maxY=p.y; });
-                const w = maxX - minX || 1; const h = maxY - minY || 1;
-                const resampled = [];
-                for(let i=0; i<20; i++) {
-                    const index = Math.floor((i/19)*(path.length-1));
-                    const p = path[index];
-                    resampled.push({ x:(p.x-minX)/w, y:(p.y-minY)/h });
-                }
-                return resampled;
-            }
-        };
+        const Bio = new ChaosBioEngine(); // Use the V10 Engine
 
-        // --- 2. INIT ---
+        // --- INIT ---
         let currentTrust = 50.00;
         let sigilType = 'TRIANGLE';
 
@@ -145,93 +123,72 @@
         ['mouseup','touchend'].forEach(e=>canvas.addEventListener(e, end));
         setTimeout(resizeCanvas, 100);
 
-        // --- 3. THE PRESTIGE FORMULA ---
         function verifyBiometrics() {
             try {
                 const masterJSON = localStorage.getItem('chaos_master_template');
                 if(!masterJSON) { alert("Please Recalibrate."); window.location.href='/abyss-forge.html'; return; }
                 let masterData = JSON.parse(masterJSON);
-                if(!masterData.dnaProfile && masterData.path) masterData.dnaProfile = Bio.extractDNA(masterData.path);
-
+                
                 if(loginPath.length < 10) { alert("Trace too short."); return; }
 
-                // --- CALCULATE SCORE ---
-                const normA = Bio.normalizePath(masterData.path);
-                const normB = Bio.normalizePath(loginPath);
-                let err = 0;
-                for(let i=0; i<20; i++) {
-                    const dx = normA[i].x - normB[i].x;
-                    const dy = normA[i].y - normB[i].y;
-                    err += Math.sqrt(dx*dx + dy*dy);
-                }
-                
-                // Base Score
-                let shapeScore = Math.max(0, 100 - (err * 200));
-
-                // Direction Bonus (+20)
+                // --- 1. DIRECTION CHECK ---
+                // We still check direction first because it's a great bot filter
                 const loginDNA = Bio.extractDNA(loginPath);
-                if(masterData.dnaProfile.direction === loginDNA.direction) {
-                    shapeScore += 20; 
-                } else {
-                    shapeScore -= 20; // Wrong direction is bad
-                }
-
-                let finalScore = Math.min(100, Math.floor(shapeScore));
-
-                // --- TIER LOGIC ---
-                let requiredScore = 65; // Default (Trust < 85)
+                // Ensure master has DNA (Safety)
+                if(!masterData.dnaProfile) masterData.dnaProfile = Bio.extractDNA(masterData.path);
                 
-                if(currentTrust >= 85) {
-                    requiredScore = 80; // Elite Tier (Harder)
+                if(masterData.dnaProfile.direction !== loginDNA.direction) {
+                    failLogin("WRONG DIRECTION");
+                    return;
                 }
 
-                if(finalScore >= requiredScore) {
-                    // SUCCESS
-                    
-                    // SLOW BUILD REWARD: +0.40 Points
-                    // Takes ~90 logins to go from 50 -> 85
-                    let newTrust = Math.min(100, currentTrust + 0.40);
-                    
-                    // Save
-                    localStorage.setItem('chaos_trust_score', newTrust.toFixed(2));
-                    localStorage.setItem('chaos_last_bio_score', finalScore);
-                    localStorage.setItem('session_start', Date.now());
+                // --- 2. V10 GEOMETRIC SCORE ---
+                // This is the new mathematical heavy lifter
+                const shapeScore = Bio.compareShapesV10(masterData.path, loginPath);
 
-                    // UI
+                // --- 3. DECISION ---
+                // Tier Logic: 50 trust -> 65 needed. 90 trust -> 80 needed.
+                let requiredScore = 65; 
+                if(currentTrust >= 85) requiredScore = 80;
+
+                // PASS?
+                if(shapeScore >= requiredScore) {
+                    // SUCCESS
                     document.getElementById('analysis-overlay').style.opacity = '1';
-                    document.getElementById('stat-match').innerText = `${finalScore}%`;
-                    document.getElementById('stat-gain').innerText = `+0.40`;
+                    document.getElementById('stat-match').innerText = `${shapeScore}%`;
                     document.getElementById('btn').style.background = "#00ff41";
                     document.getElementById('btn').innerText = "GRANTED";
 
-                    // Adaptive (Only if score > 90)
-                    if(finalScore > 90) {
+                    // Reward (+0.40)
+                    let newTrust = Math.min(100, currentTrust + 0.40);
+                    localStorage.setItem('chaos_trust_score', newTrust.toFixed(2));
+                    localStorage.setItem('chaos_last_bio_score', shapeScore);
+                    localStorage.setItem('session_start', Date.now());
+
+                    // Adapt if High Quality Match (>95)
+                    if(shapeScore > 95) {
                         masterData.path = loginPath;
                         localStorage.setItem('chaos_master_template', JSON.stringify(masterData));
                     }
 
                     setTimeout(() => window.location.href='/dashboard', 1200);
                 } else {
-                    failLogin(`Score: ${finalScore}% / Need: ${requiredScore}%`);
+                    failLogin(`Score: ${shapeScore}% / Need: ${requiredScore}%`);
                 }
             } catch(e) {
                 console.error(e);
-                alert("Error. Recalibrate.");
+                alert("Data Error. Please Recalibrate.");
             }
         }
 
         function failLogin(reason) {
-            // NO PUNISHMENT (As requested)
-            // Score stays the same. Access just denied.
-            
+            // No penalty for fail (Just deny)
             document.getElementById('status-display').innerText = "FAIL";
             document.getElementById('status-display').classList.add('text-red-500');
-            
             const btn = document.getElementById('btn');
             btn.style.background = "#ff3333";
             setTimeout(() => btn.style.background = "#fff", 300);
-            
-            alert(`ACCESS DENIED\n${reason}\n(No Trust Lost)`);
+            alert(`ACCESS DENIED\n${reason}`);
             ctx.clearRect(0,0,canvas.width,canvas.height); drawGuide();
         }
     </script>
