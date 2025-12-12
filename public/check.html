@@ -10,24 +10,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         body { background: #0b1120; color: #fff; font-family: 'Inter', sans-serif; padding-bottom: 120px; }
-        
-        /* Refined Card Style */
         .card-btn {
             display: flex; align-items: center; justify-content: space-between;
-            background: rgba(30, 41, 59, 0.6); /* Slate 800 with opacity */
-            border: 1px solid rgba(148, 163, 184, 0.1);
+            background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(148, 163, 184, 0.1);
             padding: 20px; border-radius: 12px; margin-bottom: 12px;
-            transition: all 0.2s ease;
-            backdrop-filter: blur(8px);
+            transition: all 0.2s ease; backdrop-filter: blur(8px);
         }
         .card-btn:active { transform: scale(0.98); background: rgba(30, 41, 59, 0.9); }
-        
-        .icon-sq {
-            width: 48px; height: 48px; border-radius: 10px;
-            display: flex; align-items: center; justify-content: center; font-size: 20px;
-        }
-
-        /* Progress Bars */
+        .icon-sq { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
         .bar-bg { width: 100%; height: 6px; background: #1e293b; border-radius: 99px; margin-top: 8px; overflow: hidden; }
         .bar-fill { height: 100%; border-radius: 99px; transition: width 1s cubic-bezier(0.4, 0, 0.2, 1); }
     </style>
@@ -49,7 +39,6 @@
             <h3 class="text-xs font-bold text-slate-500 tracking-widest">TRUST METRICS</h3>
             <span id="tier-badge" class="text-[10px] bg-slate-800 text-slate-300 px-2 py-1 rounded">CALCULATING...</span>
         </div>
-        
         <div class="mb-4">
             <div class="flex justify-between text-[10px] font-bold mb-1">
                 <span class="text-blue-400">TRUST SCORE</span>
@@ -60,36 +49,30 @@
     </div>
 
     <h2 class="text-xs text-slate-500 mb-4 font-bold tracking-widest ml-1">SYSTEMS</h2>
+
+    <a href="/admin" class="card-btn group border-red-500/30 bg-red-900/10 hover:bg-red-900/20">
+        <div class="flex items-center gap-4">
+            <div class="icon-sq bg-red-500/10 text-red-500 border border-red-500/20"><i class="fas fa-crown"></i></div>
+            <div>
+                <div class="font-bold text-base text-white">Admin Console</div>
+                <div class="text-red-400 text-xs mt-0.5">Mint Keys & Manage Access</div>
+            </div>
+        </div>
+        <i class="fas fa-chevron-right text-red-500 text-sm"></i>
+    </a>
     
     <a href="/pair" class="card-btn group">
         <div class="flex items-center gap-4">
             <div class="icon-sq bg-purple-500/10 text-purple-400 border border-purple-500/20"><i class="fas fa-plug"></i></div>
-            <div>
-                <div class="font-bold text-base text-slate-100">Bind Device</div>
-                <div class="text-slate-500 text-xs mt-0.5">Sync Hardware Plug</div>
-            </div>
+            <div><div class="font-bold text-base text-slate-100">Bind Device</div><div class="text-slate-500 text-xs mt-0.5">Sync Hardware Plug</div></div>
         </div>
         <i class="fas fa-chevron-right text-slate-700 text-sm"></i>
     </a>
     
-    <a href="/search" class="card-btn group">
-        <div class="flex items-center gap-4">
-            <div class="icon-sq bg-blue-500/10 text-blue-400 border border-blue-500/20"><i class="fas fa-search"></i></div>
-            <div>
-                <div class="font-bold text-base text-slate-100">Black Box</div>
-                <div class="text-slate-500 text-xs mt-0.5">Search Archives</div>
-            </div>
-        </div>
-        <i class="fas fa-chevron-right text-slate-700 text-sm"></i>
-    </a>
-
     <a href="/examples.html" class="card-btn group">
         <div class="flex items-center gap-4">
             <div class="icon-sq bg-yellow-500/10 text-yellow-400 border border-yellow-500/20"><i class="fas fa-code"></i></div>
-            <div>
-                <div class="font-bold text-base text-slate-100">Code Vault</div>
-                <div class="text-slate-500 text-xs mt-0.5">Copy/Paste Chaos Scripts</div>
-            </div>
+            <div><div class="font-bold text-base text-slate-100">Code Vault</div><div class="text-slate-500 text-xs mt-0.5">Developer Tools</div></div>
         </div>
         <i class="fas fa-chevron-right text-slate-700 text-sm"></i>
     </a>
@@ -97,23 +80,9 @@
     <a href="/sdk" class="card-btn group">
         <div class="flex items-center gap-4">
             <div class="icon-sq bg-teal-500/10 text-teal-400 border border-teal-500/20"><i class="fas fa-book"></i></div>
-            <div>
-                <div class="font-bold text-base text-slate-100">Protocols</div>
-                <div class="text-slate-500 text-xs mt-0.5">Documentation</div>
-            </div>
+            <div><div class="font-bold text-base text-slate-100">Protocols</div><div class="text-slate-500 text-xs mt-0.5">Documentation</div></div>
         </div>
         <i class="fas fa-chevron-right text-slate-700 text-sm"></i>
-    </a>
-
-    <h2 class="text-xs text-red-900/60 mb-4 mt-8 font-bold tracking-widest ml-1">RESTRICTED</h2>
-    <a href="/admin" class="card-btn border-red-900/30 bg-red-900/5">
-        <div class="flex items-center gap-4">
-            <div class="icon-sq bg-red-500/10 text-red-500 border border-red-500/20"><i class="fas fa-shield-alt"></i></div>
-            <div>
-                <div class="font-bold text-base text-red-100">The Abyss</div>
-                <div class="text-red-400/50 text-xs mt-0.5">Admin Overwatch</div>
-            </div>
-        </div>
     </a>
 
     <div class="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-[#0b1120] to-transparent">
@@ -125,9 +94,7 @@
         const trust = parseInt(localStorage.getItem('chaos_trust_score') || '50');
         
         let tier = "GUEST";
-        if (trust > 80) tier = "PRO";
-        else if (trust > 50) tier = "STANDARD";
-        
+        if (trust > 80) tier = "PRO"; else if (trust > 50) tier = "STANDARD";
         document.getElementById('tier-badge').innerText = tier;
         
         setTimeout(() => {
