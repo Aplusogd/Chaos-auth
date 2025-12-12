@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Calibrate Bio-Geometry</title>
+    <title>Bio-Engine Calibration</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="chaos-bio-engine.js"></script>
     <style>
         body { background: #000; color: #00ff41; font-family: monospace; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
         canvas { background: #0a0a0a; border: 2px solid #333; border-radius: 12px; touch-action: none; box-shadow: 0 0 20px rgba(0,255,65,0.1); }
@@ -15,8 +16,12 @@
 <body class="p-4">
     
     <div class="text-center w-full max-w-sm">
-        <h1 class="text-xl font-bold mb-2 text-white">TOUCH GEOMETRY</h1>
-        <p class="text-gray-400 text-[10px] mb-6">Trace the shape. <br>Mapping <span class="text-white">finger rotation</span> and <span class="text-white">contact oval</span>.</p>
+        <h1 class="text-xl font-bold mb-2 text-white">BIO-ENGINE CALIBRATION</h1>
+        <p class="text-gray-400 text-[10px] mb-6">Trace 5 times. <br>Learning <span class="text-white">tremor</span>, <span class="text-white">grip</span>, and <span class="text-white">flow</span>.</p>
+
+        <button id="perm-btn" onclick="initSensors()" class="mb-4 bg-gray-800 text-xs px-4 py-2 rounded border border-gray-600 hover:border-white">
+            ENABLE GRIP SENSORS (REQUIRED)
+        </button>
 
         <div class="relative flex justify-center">
             <canvas id="canvas" width="300" height="300"></canvas>
@@ -27,6 +32,7 @@
     </div>
 
     <script>
+        const Bio = new ChaosBioEngine();
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const sigilType = localStorage.getItem('chaos_sigil_type') || 'TRIANGLE';
@@ -34,12 +40,23 @@
         let traces = 0; const required = 5;
         let isDrawing = false;
         let currentPath = []; 
-        let bioStats = []; // Stores {avgRx, avgRy, avgRot} for each trace
+        let bioScores = []; 
+
+        async function initSensors() {
+            const granted = await Bio.requestMotionAccess();
+            if(granted) {
+                document.getElementById('perm-btn').innerText = "SENSORS ACTIVE";
+                document.getElementById('perm-btn').classList.replace('bg-gray-800', 'bg-green-900');
+                document.getElementById('perm-btn').disabled = true;
+                Bio.startMotionCapture();
+            } else {
+                alert("Motion sensors denied. Grip detection will be disabled.");
+            }
+        }
 
         function drawGuide() {
             ctx.clearRect(0,0,300,300);
-            ctx.beginPath();
-            ctx.strokeStyle = '#1a331a'; ctx.lineWidth = 10; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+            ctx.beginPath(); ctx.strokeStyle = '#1a331a'; ctx.lineWidth = 10; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
             if(sigilType === 'TRIANGLE') { ctx.moveTo(150, 50); ctx.lineTo(250, 250); ctx.lineTo(50, 250); ctx.closePath(); }
             else if(sigilType === 'CIRCLE') { ctx.arc(150, 150, 100, 0, 2 * Math.PI); }
             else if(sigilType === 'LIGHTNING') { ctx.moveTo(180, 50); ctx.lineTo(120, 150); ctx.lineTo(220, 150); ctx.lineTo(100, 250); }
@@ -57,31 +74,20 @@
             const r = canvas.getBoundingClientRect();
             const x = t.clientX - r.left; const y = t.clientY - r.top;
             
-            // --- CAPTURE OVAL GEOMETRY ---
-            // Fallbacks for desktops/older phones
-            const rx = t.radiusX || 15;
-            const ry = t.radiusY || 15;
-            const rot = t.rotationAngle || 0;
-
-            // Draw The Real "Fingerprint" Oval
-            ctx.beginPath();
-            ctx.ellipse(x, y, rx, ry, rot * (Math.PI/180), 0, 2 * Math.PI);
-            ctx.fillStyle = `rgba(0, 255, 65, 0.3)`; // Heatmap effect
-            ctx.fill();
-            
-            currentPath.push({ x: Math.round(x), y: Math.round(y), t: Date.now(), rx, ry, rot });
+            ctx.lineTo(x, y); ctx.strokeStyle = '#00ff41'; ctx.lineWidth = 3; ctx.stroke();
+            currentPath.push({ x: Math.round(x), y: Math.round(y), t: Date.now() });
         }
 
         function end() {
             if(!isDrawing) return; isDrawing = false;
             
             if(currentPath.length > 20) {
-                // Calculate Averages for this single trace
-                const avgRx = currentPath.reduce((a,b)=>a+b.rx,0) / currentPath.length;
-                const avgRy = currentPath.reduce((a,b)=>a+b.ry,0) / currentPath.length;
-                const avgRot = currentPath.reduce((a,b)=>a+b.rot,0) / currentPath.length;
+                // Calculate Bio-Metrics
+                const bioMotion = Bio.analyzeBiologicalMotion(currentPath);
+                const tremor = Bio.analyzeTremor(currentPath);
+                // We assume grip is valid during calibration
                 
-                bioStats.push({avgRx, avgRy, avgRot});
+                bioScores.push({bioMotion, tremor});
                 success();
             } else { drawGuide(); }
         }
@@ -92,22 +98,20 @@
             document.getElementById('status').innerText = `${traces} / ${required}`;
 
             if(traces >= required) {
-                // CREATE MASTER TEMPLATE
-                // Average the 5 traces to find the "Perfect Thumb" profile
-                const masterRx = bioStats.reduce((a,b)=>a+b.avgRx,0)/5;
-                const masterRy = bioStats.reduce((a,b)=>a+b.avgRy,0)/5;
-                const masterRot = bioStats.reduce((a,b)=>a+b.avgRot,0)/5;
-
+                // Save Average Bio-Profile
+                const avgMotion = bioScores.reduce((a,b)=>a+b.bioMotion,0)/5;
+                
                 const masterData = {
-                    path: currentPath,      // Geometry of last best trace
-                    speedMod: 1.0,          // Speed learning
-                    bio: { rx: masterRx, ry: masterRy, rot: masterRot } // The Thumbprint
+                    path: currentPath, 
+                    speedMod: 1.0,
+                    bioProfile: { motionScore: avgMotion } // How "Human" you naturally are
                 };
 
                 localStorage.setItem('chaos_master_template', JSON.stringify(masterData));
                 localStorage.setItem('chaos_trust_score', '50');
+                Bio.stopMotionCapture();
 
-                document.getElementById('status').innerText = "GEOMETRY MAPPED.";
+                document.getElementById('status').innerText = "NEURO-PROFILE SAVED.";
                 document.getElementById('status').classList.add('text-white');
                 setTimeout(() => window.location.href = '/login', 1000);
             } else {
