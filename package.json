@@ -1,6 +1,6 @@
 {
-  "name": "chaos-core",
-  "version": "2.5.0",
+  "name": "aplus-chaos-core",
+  "version": "2.7.2",
   "type": "module",
   "main": "index.js",
   "scripts": {
@@ -9,7 +9,8 @@
   "dependencies": {
     "express": "^4.21.1",
     "compression": "^1.7.4",
-    "helmet": "^7.1.0"
+    "helmet": "^7.1.0",
+    "cors": "^2.8.5"
   },
   "engines": {
     "node": ">=20"
