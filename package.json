@@ -1,6 +1,6 @@
 {
   "name": "chaos-command-center",
-  "version": "1.0.0",
+  "version": "3.0.0",
   "description": "Secure Server for A+ Overhead Garage Doors Chaos Ecosystem",
   "main": "index.js",
   "scripts": {
@@ -11,7 +11,7 @@
     "chaos",
     "shield",
     "secure",
-    "ai"
+    "swarm"
   ],
   "author": "Arturo Fuentes Villagomez",
   "license": "UNLICENSED",
