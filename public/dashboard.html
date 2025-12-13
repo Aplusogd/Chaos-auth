@@ -3,238 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>A+ COMMAND CENTER | LIVE FEED</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <title>Chaos Dashboard</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;800&display=swap');
-        body { background-color: #000; color: #00ff41; font-family: 'JetBrains Mono', monospace; height: 100vh; overflow: hidden; display: none; }
-        
-        /* LAYOUT */
-        .grid-layout { display: grid; grid-template-rows: auto auto 1fr; height: 100%; } 
-        .main-view { display: grid; grid-template-columns: 2fr 1fr; gap: 2px; height: 100%; background: #111; }
-        
-        /* TABS - SUPER NAV */
-        .nav-tabs { display: flex; border-bottom: 1px solid #1a1a1a; background: #050505; overflow-x: auto; }
-        .nav-tab { 
-            padding: 12px 18px; cursor: pointer; border-right: 1px solid #1a1a1a; 
-            color: #555; font-size: 0.7rem; font-weight: bold; letter-spacing: 1px; 
-            transition: all 0.2s; text-decoration: none; display: flex; align-items: center; gap: 6px; whitespace: nowrap;
-        }
-        .nav-tab:hover { background: #111; color: #fff; }
-        .nav-tab.active { background: #003300; color: #00ff41; border-bottom: 2px solid #00ff41; }
-        
-        /* PANELS */
-        .panel { background: #000; border: 1px solid #1a1a1a; padding: 20px; overflow: hidden; display: flex; flex-direction: column; }
-        .panel-header { display: flex; justify-content: space-between; border-bottom: 1px solid #1a1a1a; padding-bottom: 10px; margin-bottom: 10px; }
-        .panel-title { font-size: 0.8rem; letter-spacing: 2px; color: #666; font-weight: 800; }
-        
-        /* TERMINAL LOG */
-        #terminal { flex-grow: 1; overflow-y: auto; font-size: 0.75rem; line-height: 1.6; scroll-behavior: smooth; }
-        .log-entry { margin-bottom: 4px; border-left: 2px solid transparent; padding-left: 8px; animation: fadeIn 0.2s; }
-        .log-time { color: #444; margin-right: 10px; }
-        .type-TRAFFIC { color: #00ff41; } .type-THREAT { color: #ff0000; } .type-SYSTEM { color: #0088ff; } .type-BLOCK { color: #ffff00; }
-
-        /* METRICS */
-        .stat-card { background: #0a0a0a; border: 1px solid #222; padding: 15px; margin-bottom: 10px; }
-        .stat-val { font-size: 2rem; font-weight: bold; line-height: 1; }
-        .stat-label { font-size: 0.6rem; color: #555; letter-spacing: 1px; text-transform: uppercase; }
-        
-        @keyframes fadeIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+        body { background: #050505; color: #ccc; font-family: sans-serif; padding: 20px; }
+        .header { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 10px; }
+        .card { background: #1a1a1a; padding: 20px; margin-top: 20px; border-radius: 8px; border-left: 5px solid #007700; }
+        .alert { border-left: 5px solid #ff0000; }
+        .btn { background: #333; color: white; padding: 10px; text-decoration: none; border-radius: 4px; display: inline-block; margin-top: 10px;}
+        .btn-admin { background: #550000; }
     </style>
 </head>
-<body class="grid-layout">
-
-    <header class="bg-black border-b border-gray-900 p-3 flex justify-between items-center">
-        <div class="flex items-center gap-4">
-            <h1 class="text-lg font-bold tracking-widest text-white">A+ OVERWATCH</h1>
-            <div class="flex items-center gap-2 px-3 py-1 bg-green-900/20 rounded border border-green-900">
-                <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-                <span class="text-[10px] text-green-500 font-bold">GOD MODE ACTIVE</span>
-            </div>
-        </div>
-        <div class="flex gap-4 items-center">
-            <div id="clock" class="text-gray-500 text-xs font-bold font-mono mr-4">00:00:00</div>
-            <button onclick="logout()" class="text-xs text-red-500 hover:text-red-400 border border-red-900/50 px-3 py-1 rounded hover:bg-red-900/20 transition">[ TERMINATE ]</button>
-        </div>
-    </header>
-
-    <nav class="nav-tabs">
-        <a href="#" class="nav-tab active">
-            <i class="fas fa-terminal"></i> COMMAND
-        </a>
-        <a href="/tech-hub" class="nav-tab">
-            <i class="fas fa-tools"></i> TECH HUB
-        </a>
-        <a href="/overwatch" class="nav-tab">
-            <i class="fas fa-satellite-dish"></i> OVERWATCH
-        </a>
-        <a href="/keyforge" class="nav-tab">
-            <i class="fas fa-key"></i> KEYS
-        </a>
-        <a href="/hydra" class="nav-tab text-red-400 hover:text-red-300">
-            <i class="fas fa-dragon"></i> HYDRA
-        </a>
-        <a href="/sdk" class="nav-tab">
-            <i class="fas fa-code"></i> SDK
-        </a>
-        <a href="/dreams" class="nav-tab">
-            <i class="fas fa-wave-square"></i> DREAMS
-        </a>
-        <a href="/test-console" class="nav-tab">
-            <i class="fas fa-flask"></i> LAB
-        </a>
-    </nav>
-
-    <div class="main-view">
-        <div class="panel">
-            <div class="panel-header">
-                <span class="panel-title">EVENT STREAM</span>
-                <span class="text-[10px] text-gray-600">PORT 3000 LISTENER</span>
-            </div>
-            <div id="terminal">
-                <div class="log-entry"><span class="log-time">--:--:--</span><span class="log-type type-SYSTEM">SYSTEM</span> Initializing Secure Uplink...</div>
-            </div>
-        </div>
-
-        <div class="panel bg-black border-l border-gray-800">
-            <div class="panel-header">
-                <span class="panel-title">INTELLIGENCE</span>
-            </div>
-            
-            <div class="stat-card border-l-4 border-l-green-500">
-                <div class="stat-val text-green-500" id="cnt-humans">0</div>
-                <div class="stat-label">Verified Humans</div>
-            </div>
-
-            <div class="stat-card border-l-4 border-l-red-600">
-                <div class="stat-val text-red-600" id="cnt-threats">0</div>
-                <div class="stat-label">Threats Neutralized</div>
-            </div>
-
-            <div class="stat-card border-l-4 border-l-blue-500">
-                <div class="stat-val text-blue-500" id="cnt-integrity">V189</div>
-                <div class="stat-label">Chaos Core Version</div>
-            </div>
-
-            <div class="mt-auto">
-                <div class="text-[10px] text-gray-500 mb-2">MODULE STATUS</div>
-                <div class="space-y-2 border-t border-gray-800 pt-2">
-                    <div class="flex justify-between text-xs">
-                        <span class="text-gray-400">SENTINEL AI</span>
-                        <span class="text-green-500 font-bold">ONLINE</span>
-                    </div>
-                    <div class="flex justify-between text-xs">
-                        <span class="text-gray-400">GHOST PROTOCOL</span>
-                        <span class="text-green-500 font-bold">ACTIVE</span>
-                    </div>
-                    <div class="flex justify-between text-xs">
-                        <span class="text-gray-400">ABYSS GATEWAY</span>
-                        <span class="text-blue-500 font-bold">READY</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+<body>
+    <div class="header">
+        <h2>📊 CHAOS OPERATOR</h2>
+        <h4 id="user-display">LOADING...</h4>
     </div>
 
+    <div class="card">
+        <h3>🛡️ Active Chaos Shield</h3>
+        <p>Status: <span id="shield-status" style="color:orange">SEARCHING...</span></p>
+        <p>Swarm Latency: <span id="ping">--</span> ms</p>
+        <button class="btn" onclick="pingShield()">PING SHIELD (192.168.4.1)</button>
+    </div>
+
+    <div class="card">
+        <h3>👑 Command Access</h3>
+        <p>Restricted to Level 5 Operators.</p>
+        <a href="/admin.html" class="btn btn-admin">OPEN ADMIN CONSOLE</a>
+    </div>
+
+    <br>
+    <button onclick="logout()" style="background:none; border:none; color:#555; cursor:pointer;">[ TERMINATE SESSION ]</button>
+
+    <script src="router.js"></script>
     <script>
-        // --- GOD LOCK PROTOCOL ---
-        const sessionToken = sessionStorage.getItem('chaos_session');
-        const localKey = localStorage.getItem('chaos_key_vault');
-        
-        // Allow access if we have a session OR a stored admin key
-        const activeToken = sessionToken || localKey;
-
-        async function verifyAccess() {
-            if (!activeToken) {
-                terminateSession("NO CREDENTIALS FOUND");
-                return;
-            }
-
-            try {
-                const res = await fetch('/api/admin/verify', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token: activeToken })
-                });
-                
-                const data = await res.json();
-                
-                if (!data.valid) {
-                    // Try verify as Sentinel (in case it's a new Ghost Key with admin rights)
-                    // For now, strict Admin check.
-                    terminateSession("INVALID SESSION TOKEN");
-                } else {
-                    document.body.style.display = "grid"; 
-                    startClock();
-                    connectLiveWire(); 
-                    console.log(">>> [ADMIN] GOD LOCK OPEN.");
-                }
-            } catch (e) {
-                terminateSession("SERVER HANDSHAKE FAILED");
-            }
-        }
-
-        function terminateSession(reason) {
-            console.warn(`>>> [SECURITY] LOCKOUT: ${reason}`);
-            window.location.href = '/login';
-        }
+        // Display User Info
+        document.getElementById('user-display').innerText = 
+            localStorage.getItem('callsign_history') + " [" + localStorage.getItem('chaos_trust_score') + "%]";
 
         function logout() {
-            sessionStorage.removeItem('chaos_session');
-            localStorage.removeItem('chaos_key_vault'); // Optional: Clear persistent key
-            window.location.href = '/login';
+            localStorage.clear();
+            window.location.href = '/index.html';
         }
 
-        function startClock() {
-            setInterval(() => {
-                document.getElementById('clock').innerText = new Date().toLocaleTimeString();
-            }, 1000);
-        }
-
-        // --- LIVE WIRE CONNECTION ---
-        let humanCount = 0;
-        let threatCount = 0;
-
-        function connectLiveWire() {
-            const evtSource = new EventSource("/api/live-wire");
-            
-            evtSource.onmessage = function(event) {
-                try {
-                    const payload = JSON.parse(event.data);
-                    logEvent(payload);
-                    updateMetrics(payload);
-                } catch(e) { console.error("Data Parse Error", e); }
-            };
-        }
-
-        function logEvent(payload) {
-            const term = document.getElementById('terminal');
-            const row = document.createElement('div');
-            row.className = 'log-entry';
-            
-            const time = new Date().toLocaleTimeString();
-            let msg = typeof payload.data === 'string' ? payload.data : JSON.stringify(payload.data);
-            
-            row.innerHTML = `<span class="log-time">${time}</span><span class="log-type type-${payload.type}">${payload.type}</span> ${msg}`;
-            term.appendChild(row);
-            term.scrollTop = term.scrollHeight;
-        }
-
-        function updateMetrics(payload) {
-            if (payload.type === 'TRAFFIC' && payload.data.status === 'VERIFIED') {
-                humanCount++;
-                document.getElementById('cnt-humans').innerText = humanCount;
-            }
-            if (payload.type === 'THREAT' || payload.type === 'BLOCK') {
-                threatCount++;
-                document.getElementById('cnt-threats').innerText = threatCount;
-                document.body.style.boxShadow = "inset 0 0 50px rgba(255,0,0,0.3)";
-                setTimeout(() => document.body.style.boxShadow = "none", 200);
+        async function pingShield() {
+            // Tries to talk to the LOCAL ESP32 IP
+            // Note: Phone must be connected to "Chaos_Shield_AP"
+            try {
+                document.getElementById('shield-status').innerText = "PINGING...";
+                // This fetches from the JS variable or a direct IP if connected to AP
+                const response = await fetch('http://192.168.4.1/api/status', { mode: 'no-cors' }); 
+                // Note: 'no-cors' is opaque, but if it doesn't fail, device is there.
+                document.getElementById('shield-status').innerText = "🟢 CONNECTED (SWARM LINK)";
+                document.getElementById('ping').innerText = "<5"; 
+            } catch (e) {
+                document.getElementById('shield-status').innerText = "🔴 OFFLINE (Connect Wi-Fi)";
+                alert("Ensure you are connected to Wi-Fi: 'Chaos_Shield_Shadow'");
             }
         }
-
-        verifyAccess();
     </script>
 </body>
 </html>
