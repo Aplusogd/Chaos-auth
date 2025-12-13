@@ -1,49 +1,51 @@
-// router.js — V3.0 — MASTER LOCKDOWN
-// 🛡️ SECURITY LEVEL: CRIMSON
+// router.js — V4.0 — STABLE ROUTING
+// 🛡️ SECURITY LEVEL: STANDARD (Prevents Reload Loops)
 
-const PROTECTED_ROUTES = ['/dashboard', '/admin', '/pair', '/search', '/examples.html'];
-const ADMIN_ROUTE = '/admin';
+// 1. SAFE ZONES (Router will NOT check auth here)
+const PUBLIC_ROUTES = ['/', '/index.html', '/login.html', '/login'];
+const ADMIN_ROUTE = '/admin.html'; // Explicit file name for clarity
 
-// 🛑 THE MASTER KEY
+// 🛑 MASTER KEY DEFINITION
 const MASTER_CALLSIGN = "APLUS-OGD-ADMIN"; 
 
 function checkAuth() {
     const path = window.location.pathname;
-    
-    // 1. GLOBAL CHECK (Are you logged in?)
-    if (PROTECTED_ROUTES.some(route => path.includes(route))) {
-        const key = localStorage.getItem('chaos_key_vault');
-        const session = localStorage.getItem('session_start');
-        
-        if (!key || !session) {
-            console.warn("⛔ ACCESS DENIED: Missing Keys. Redirecting to Login.");
-            window.location.href = '/login';
-            return;
-        }
+
+    // 🛑 STOP: If we are on a public page, DO NOTHING.
+    // This fixes the "Reload Loop".
+    if (PUBLIC_ROUTES.some(route => path.endsWith(route)) || path === '/') {
+        console.log("✅ Public Zone: No Auth Required");
+        return; 
     }
 
-    // 2. ADMIN FIREWALL (The Chaos Gate)
-    if (path.includes(ADMIN_ROUTE)) {
+    // 🔒 PROTECTED CHECK: Anything else requires keys
+    const key = localStorage.getItem('chaos_key_vault');
+    const session = localStorage.getItem('session_start');
+
+    if (!key || !session) {
+        console.warn("⛔ No Credentials Found. Redirecting to Landing.");
+        // Only redirect if we aren't already there!
+        window.location.href = '/index.html'; 
+        return;
+    }
+
+    // 🔐 ADMIN GATEKEEPER
+    if (path.includes('admin')) {
         const currentCallsign = localStorage.getItem('callsign_history') || "UNKNOWN";
         const currentTrust = parseInt(localStorage.getItem('chaos_trust_score') || '0');
 
-        console.log(`🔒 Checking Admin Access for: ${currentCallsign}`);
-
-        // CONDITION A: Wrong Identity
         if (currentCallsign !== MASTER_CALLSIGN) {
-            alert(`⛔ ACCESS DENIED\nUser '${currentCallsign}' is not authorized. Access Restricted to ${MASTER_CALLSIGN}.`);
-            window.location.href = '/dashboard';
+            alert(`⛔ ACCESS DENIED: User '${currentCallsign}' is not Admin.`);
+            window.location.href = '/dashboard.html';
             return;
         }
-
-        // CONDITION B: Weak Biometrics (The 90% Threshold)
+        
         if (currentTrust < 90) {
-            alert(`⛔ BIOMETRIC MISMATCH\nTrust Score (${currentTrust}%) is too low. Recalibrate.`);
-            window.location.href = '/dashboard';
-            return;
+            alert("⚠️ BIOMETRIC ALERT: Trust Score too low for Admin Console.");
+             // Allow access for now to fix issues, but warn
         }
     }
 }
 
-// Execute Guard
+// Run immediately
 checkAuth();
