@@ -1,4 +1,4 @@
-// public/router.js — V300 — MASTER LOCK
+// router.js — V3.0 — MASTER LOCKDOWN
 // 🛡️ SECURITY LEVEL: CRIMSON
 
 const PROTECTED_ROUTES = ['/dashboard', '/admin', '/pair', '/search', '/examples.html'];
@@ -27,7 +27,7 @@ function checkAuth() {
         const currentCallsign = localStorage.getItem('callsign_history') || "UNKNOWN";
         const currentTrust = parseInt(localStorage.getItem('chaos_trust_score') || '0');
 
-        console.log(`🔒 Checking Admin Access for: ${currentCallsign} (Trust: ${currentTrust}%)`);
+        console.log(`🔒 Checking Admin Access for: ${currentCallsign}`);
 
         // CONDITION A: Wrong Identity
         if (currentCallsign !== MASTER_CALLSIGN) {
@@ -38,7 +38,7 @@ function checkAuth() {
 
         // CONDITION B: Weak Biometrics (The 90% Threshold)
         if (currentTrust < 90) {
-            alert(`⛔ BIOMETRIC MISMATCH\nTrust Score (${currentTrust}%) is too low for Admin Control. Recalibrate to reach 90%+.`);
+            alert(`⛔ BIOMETRIC MISMATCH\nTrust Score (${currentTrust}%) is too low. Recalibrate.`);
             window.location.href = '/dashboard';
             return;
         }
