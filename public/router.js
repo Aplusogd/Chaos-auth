@@ -1,10 +1,11 @@
-// router.js — V260 — BIOMETRIC FIREWALL
+// public/router.js — V300 — MASTER LOCK
+// 🛡️ SECURITY LEVEL: CRIMSON
 
 const PROTECTED_ROUTES = ['/dashboard', '/admin', '/pair', '/search', '/examples.html'];
 const ADMIN_ROUTE = '/admin';
 
-// 🛑 SET YOUR MASTER CALLSIGN HERE
-const MASTER_CALLSIGN = "APLUS-ROOT"; 
+// 🛑 THE MASTER KEY
+const MASTER_CALLSIGN = "APLUS-OGD-ADMIN"; 
 
 function checkAuth() {
     const path = window.location.pathname;
@@ -15,7 +16,7 @@ function checkAuth() {
         const session = localStorage.getItem('session_start');
         
         if (!key || !session) {
-            console.warn("⛔ ACCESS DENIED: Missing Keys.");
+            console.warn("⛔ ACCESS DENIED: Missing Keys. Redirecting to Login.");
             window.location.href = '/login';
             return;
         }
@@ -26,18 +27,18 @@ function checkAuth() {
         const currentCallsign = localStorage.getItem('callsign_history') || "UNKNOWN";
         const currentTrust = parseInt(localStorage.getItem('chaos_trust_score') || '0');
 
-        // CONDITION A: Wrong Name
+        console.log(`🔒 Checking Admin Access for: ${currentCallsign} (Trust: ${currentTrust}%)`);
+
+        // CONDITION A: Wrong Identity
         if (currentCallsign !== MASTER_CALLSIGN) {
-            alert(`⛔ ACCESS DENIED\nUser '${currentCallsign}' is not Authorized.\nThis incident has been logged.`);
+            alert(`⛔ ACCESS DENIED\nUser '${currentCallsign}' is not authorized. Access Restricted to ${MASTER_CALLSIGN}.`);
             window.location.href = '/dashboard';
             return;
         }
 
-        // CONDITION B: Weak Biometrics (The Hacker Trap)
-        // If someone steals your name but doesn't have your finger history, 
-        // their score will be low (50). They need > 90 to enter.
+        // CONDITION B: Weak Biometrics (The 90% Threshold)
         if (currentTrust < 90) {
-            alert(`⛔ BIOMETRIC MISMATCH\nTrust Score ${currentTrust}% is too low.\nOnly the True Operator (90%+) can enter.`);
+            alert(`⛔ BIOMETRIC MISMATCH\nTrust Score (${currentTrust}%) is too low for Admin Control. Recalibrate to reach 90%+.`);
             window.location.href = '/dashboard';
             return;
         }
