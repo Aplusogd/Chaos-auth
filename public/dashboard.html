@@ -11,6 +11,7 @@
         .alert { border-left: 5px solid #ff0000; }
         .btn { background: #333; color: white; padding: 10px; text-decoration: none; border-radius: 4px; display: inline-block; margin-top: 10px;}
         .btn-admin { background: #550000; }
+        .btn-abyss { background: #004d40; }
     </style>
 </head>
 <body>
@@ -20,15 +21,23 @@
     </div>
 
     <div class="card">
-        <h3>🛡️ Active Chaos Shield</h3>
+        <h3>🛡️ Chaos Shield Harmony Check</h3>
+        <p>Wi-Fi Name: **Chaos_Shield_Abyss**</p>
+        <p>Shield IP: 192.168.4.1</p>
         <p>Status: <span id="shield-status" style="color:orange">SEARCHING...</span></p>
-        <p>Swarm Latency: <span id="ping">--</span> ms</p>
-        <button class="btn" onclick="pingShield()">PING SHIELD (192.168.4.1)</button>
+        <p>Latency: <span id="ping">--</span> ms</p>
+        <button class="btn" onclick="pingShield()">TEST HARMONY (Ping Shield)</button>
+    </div>
+
+    <div class="card">
+        <h3>🌌 Biometric Forge</h3>
+        <p>Train or Verify Master Sigil (DTW Engine)</p>
+        <a href="/forge.html" class="btn btn-abyss">OPEN ABYSS FORGE</a>
     </div>
 
     <div class="card">
         <h3>👑 Command Access</h3>
-        <p>Restricted to Level 5 Operators.</p>
+        <p>Restricted to Master Operator.</p>
         <a href="/admin.html" class="btn btn-admin">OPEN ADMIN CONSOLE</a>
     </div>
 
@@ -37,7 +46,6 @@
 
     <script src="router.js"></script>
     <script>
-        // Display User Info
         document.getElementById('user-display').innerText = 
             localStorage.getItem('callsign_history') + " [" + localStorage.getItem('chaos_trust_score') + "%]";
 
@@ -47,18 +55,25 @@
         }
 
         async function pingShield() {
-            // Tries to talk to the LOCAL ESP32 IP
-            // Note: Phone must be connected to "Chaos_Shield_AP"
+            document.getElementById('shield-status').innerText = "PINGING...";
+            
             try {
-                document.getElementById('shield-status').innerText = "PINGING...";
-                // This fetches from the JS variable or a direct IP if connected to AP
-                const response = await fetch('http://192.168.4.1/api/status', { mode: 'no-cors' }); 
-                // Note: 'no-cors' is opaque, but if it doesn't fail, device is there.
-                document.getElementById('shield-status').innerText = "🟢 CONNECTED (SWARM LINK)";
+                // Fetch to the Shield's local IP (This relies on the client being connected to the Shield's AP)
+                // Use the status endpoint defined in the ESP32 code
+                const response = await fetch('http://192.168.4.1/api/status', { 
+                    method: 'GET',
+                    mode: 'no-cors' // Use no-cors for local IP access from a browser
+                }); 
+                
+                // Since we use no-cors, we rely on the network not throwing an error.
+                document.getElementById('shield-status').innerText = "🟢 CONNECTED (HARMONY)";
                 document.getElementById('ping').innerText = "<5"; 
+
             } catch (e) {
-                document.getElementById('shield-status').innerText = "🔴 OFFLINE (Connect Wi-Fi)";
-                alert("Ensure you are connected to Wi-Fi: 'Chaos_Shield_Shadow'");
+                // This catches if the phone is NOT connected to the Shield AP
+                document.getElementById('shield-status').innerText = "🔴 OFFLINE (Connect to Chaos_Shield_Abyss Wi-Fi)";
+                document.getElementById('ping').innerText = "FAILED";
+                alert("ERROR: Client must connect to Wi-Fi 'Chaos_Shield_Abyss' to communicate with Shield.");
             }
         }
     </script>
