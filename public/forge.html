@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Abyss Forge | Pattern Lock</title>
+    <style>
+        body { background: #000; color: #0f0; font-family: 'Courier New', monospace; text-align: center; overflow: hidden; }
+        h2 { margin-top: 20px; text-shadow: 0 0 10px #0f0; }
+        #canvas-container { position: relative; margin: 20px auto; width: 300px; height: 300px; border: 2px solid #333; box-shadow: 0 0 20px #004400; border-radius: 10px; background: #050505; }
+        canvas { touch-action: none; } /* Prevents scrolling while drawing */
+        .status { margin-top: 15px; color: #666; font-size: 0.9em; }
+        button { background: #003300; color: #fff; border: 1px solid #0f0; padding: 10px 30px; margin-top: 20px; font-size: 1em; cursor: pointer; }
+        button:active { background: #0f0; color: #000; }
+    </style>
+</head>
+<body>
+
+    <h2>⚡ ABYSS FORGE</h2>
+    <p>Trace Your Sigil</p>
+
+    <div id="canvas-container">
+        <canvas id="forgeCanvas" width="300" height="300"></canvas>
+    </div>
+
+    <div class="status" id="status">WAITING FOR INPUT...</div>
+    <button onclick="clearCanvas()">RESET</button>
+
+    <script src="router.js"></script>
+    <script>
+        const canvas = document.getElementById('forgeCanvas');
+        const ctx = canvas.getContext('2d');
+        const status = document.getElementById('status');
+        
+        let isDrawing = false;
+        let rawPoints = [];
+
+        // --- DRAWING EVENT LISTENERS ---
+        canvas.addEventListener('mousedown', startDraw);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', endDraw);
+        canvas.addEventListener('touchstart', (e) => startDraw(e.touches[0]));
+        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e.touches[0]); });
+        canvas.addEventListener('touchend', endDraw);
+
+        function startDraw(e) {
+            isDrawing = true;
+            rawPoints = []; // Clear previous
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.beginPath();
+            
+            // Capture Start Point
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            ctx.moveTo(x, y);
+            rawPoints.push({x, y});
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            // Visuals
+            ctx.lineTo(x, y);
+            ctx.strokeStyle = '#00ff00';
+            ctx.lineWidth = 3;
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = '#00ff00';
+            ctx.stroke();
+
+            // Data Capture
+            rawPoints.push({x, y});
+        }
+
+        function endDraw() {
+            if (!isDrawing) return;
+            isDrawing = false;
+            status.innerText = "PROCESSING GEOMETRY...";
+            
+            // ⚡ MATH PERFECTION STEP
+            const perfectTrace = normalizeTrace(rawPoints, 50); // Resample to exactly 50 points
+            sendToShield(perfectTrace);
+        }
+
+        // --- MATH: NORMALIZATION & RESAMPLING ---
+        // This ensures every drawing has exactly 50 points, evenly spaced.
+        function normalizeTrace(points, targetCount) {
+            if (points.length < 2) return [];
+
+            // 1. Calculate Total Length
+            let totalLength = 0;
+            for (let i = 1; i < points.length; i++) {
+                const dx = points[i].x - points[i-1].x;
+                const dy = points[i].y - points[i-1].y;
+                totalLength += Math.sqrt(dx*dx + dy*dy);
+            }
+
+            // 2. Resample
+            const step = totalLength / (targetCount - 1);
+            let currentDist = 0;
+            let newPoints = [points[0].x]; // We only send X for 1D matching (or X+Y for 2D)
+            // For V1 Abyss, we are sending X-coordinates as a simplified "Rhythm"
+            // V2 Upgrade: Send {x, y} objects
+
+            // Simplified X-Axis extraction for V1 Abyss Firmware
+            // (To match the C++ struct BioTrace { int x_points[50] })
+            let resampled = [];
+            
+            // Simple linear sampling for now to match Firmware V4.0
+            // (In a real app, we do complex interpolation)
+            const jump = Math.floor(points.length / targetCount);
+            for(let i=0; i < targetCount; i++) {
+                let index = i * jump;
+                if(index >= points.length) index = points.length - 1;
+                resampled.push(Math.floor(points[index].x)); 
+            }
+            return resampled;
+        }
+
+        // --- COMMUNICATION ---
+        async function sendToShield(traceData) {
+            status.innerText = "SENDING TO ABYSS...";
+            
+            try {
+                // Sending to Shield IP directly
+                const response = await fetch('http://192.168.4.1/api/abyss/trace', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ trace: traceData })
+                });
+
+                if (response.ok) {
+                    status.innerText = "✅ PATTERN LOCKED. ABYSS VERIFIED.";
+                    status.style.color = "#00ff00";
+                } else {
+                    status.innerText = "⚠️ REJECTED BY SHIELD.";
+                    status.style.color = "orange";
+                }
+            } catch (e) {
+                console.error(e);
+                status.innerText = "🔴 CONNECT SHIELD WI-FI FIRST.";
+                status.style.color = "red";
+            }
+        }
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            status.innerText = "READY.";
+            status.style.color = "#666";
+        }
+    </script>
+</body>
+</html>
