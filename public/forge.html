@@ -3,39 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Abyss Forge | Pattern Lock</title>
+    <title>Abyss Forge | Calibration</title>
     <style>
         body { background: #000; color: #0f0; font-family: 'Courier New', monospace; text-align: center; overflow: hidden; }
-        h2 { margin-top: 20px; text-shadow: 0 0 10px #0f0; }
-        #canvas-container { position: relative; margin: 20px auto; width: 300px; height: 300px; border: 2px solid #333; box-shadow: 0 0 20px #004400; border-radius: 10px; background: #050505; }
-        canvas { touch-action: none; } /* Prevents scrolling while drawing */
-        .status { margin-top: 15px; color: #666; font-size: 0.9em; }
-        button { background: #003300; color: #fff; border: 1px solid #0f0; padding: 10px 30px; margin-top: 20px; font-size: 1em; cursor: pointer; }
-        button:active { background: #0f0; color: #000; }
+        h2 { margin-top: 10px; text-shadow: 0 0 10px #0f0; }
+        
+        /* CANVAS */
+        #canvas-container { position: relative; margin: 10px auto; width: 300px; height: 300px; border: 2px solid #333; box-shadow: 0 0 20px #004400; border-radius: 10px; background: #050505; }
+        canvas { touch-action: none; } 
+
+        /* EXAMPLES CAROUSEL */
+        .examples { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
+        .sigil-btn { background: #111; border: 1px solid #333; color: #666; padding: 5px 10px; cursor: pointer; font-size: 0.8em; }
+        .sigil-btn:hover { border-color: #0f0; color: #0f0; }
+
+        /* STATUS & CONTROLS */
+        .status { margin-top: 10px; font-size: 1em; font-weight: bold; min-height: 1.2em; }
+        .sub-status { color: #666; font-size: 0.8em; margin-bottom: 10px; }
+        
+        .btn-group { margin-top: 20px; }
+        button { background: #003300; color: #fff; border: 1px solid #0f0; padding: 10px 20px; font-size: 1em; cursor: pointer; margin: 0 5px; }
+        button.reset { background: #330000; border-color: #f00; }
     </style>
 </head>
 <body>
 
-    <h2>⚡ ABYSS FORGE</h2>
-    <p>Trace Your Sigil</p>
+    <h2 id="mode-title">⚡ CALIBRATION MODE</h2>
+    <div class="sub-status" id="instruction">Draw your Master Sigil (1 of 3)</div>
+
+    <div class="examples">
+        <div class="sigil-btn" onclick="showHint('∞')">Infinity</div>
+        <div class="sigil-btn" onclick="showHint('⚡')">Bolt</div>
+        <div class="sigil-btn" onclick="showHint('★')">Star</div>
+        <div class="sigil-btn" onclick="showHint('Your Initials')">Initials</div>
+    </div>
 
     <div id="canvas-container">
         <canvas id="forgeCanvas" width="300" height="300"></canvas>
     </div>
 
-    <div class="status" id="status">WAITING FOR INPUT...</div>
-    <button onclick="clearCanvas()">RESET</button>
+    <div class="status" id="status">READY TO RECORD</div>
+
+    <div class="btn-group">
+        <button onclick="resetCalibration()" class="reset">RESET / NEW SHAPE</button>
+        <button onclick="window.location.href='/dashboard.html'">EXIT</button>
+    </div>
 
     <script src="router.js"></script>
     <script>
         const canvas = document.getElementById('forgeCanvas');
         const ctx = canvas.getContext('2d');
-        const status = document.getElementById('status');
-        
+        const statusEl = document.getElementById('status');
+        const instructionEl = document.getElementById('instruction');
+
         let isDrawing = false;
         let rawPoints = [];
+        
+        // CALIBRATION STATE
+        let calibrationStep = 0; // 0, 1, 2
+        let collectedTraces = []; // Stores the 3 attempts
 
-        // --- DRAWING EVENT LISTENERS ---
+        // --- DRAWING LOGIC ---
         canvas.addEventListener('mousedown', startDraw);
         canvas.addEventListener('mousemove', draw);
         canvas.addEventListener('mouseup', endDraw);
@@ -45,16 +73,11 @@
 
         function startDraw(e) {
             isDrawing = true;
-            rawPoints = []; // Clear previous
+            rawPoints = []; 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.beginPath();
-            
-            // Capture Start Point
             const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            ctx.moveTo(x, y);
-            rawPoints.push({x, y});
+            ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top);
         }
 
         function draw(e) {
@@ -62,57 +85,75 @@
             const rect = canvas.getBoundingClientRect();
             const x = e.clientX - rect.left;
             const y = e.clientY - rect.top;
-
-            // Visuals
+            
             ctx.lineTo(x, y);
             ctx.strokeStyle = '#00ff00';
             ctx.lineWidth = 3;
-            ctx.shadowBlur = 10;
-            ctx.shadowColor = '#00ff00';
             ctx.stroke();
-
-            // Data Capture
             rawPoints.push({x, y});
         }
 
         function endDraw() {
             if (!isDrawing) return;
             isDrawing = false;
-            status.innerText = "PROCESSING GEOMETRY...";
             
-            // ⚡ MATH PERFECTION STEP
-            const perfectTrace = normalizeTrace(rawPoints, 50); // Resample to exactly 50 points
-            sendToShield(perfectTrace);
+            const normalized = normalizeTrace(rawPoints, 50);
+            handleCalibrationStep(normalized);
         }
 
-        // --- MATH: NORMALIZATION & RESAMPLING ---
-        // This ensures every drawing has exactly 50 points, evenly spaced.
-        function normalizeTrace(points, targetCount) {
-            if (points.length < 2) return [];
+        // --- CALIBRATION LOGIC ---
+        async function handleCalibrationStep(trace) {
+            collectedTraces.push(trace);
+            calibrationStep++;
 
-            // 1. Calculate Total Length
-            let totalLength = 0;
-            for (let i = 1; i < points.length; i++) {
-                const dx = points[i].x - points[i-1].x;
-                const dy = points[i].y - points[i-1].y;
-                totalLength += Math.sqrt(dx*dx + dy*dy);
+            if (calibrationStep < 3) {
+                // Not done yet
+                statusEl.innerText = `✅ TRACE ${calibrationStep} RECORDED`;
+                statusEl.style.color = "#00ff00";
+                instructionEl.innerText = `Draw the SAME shape again (${calibrationStep + 1} of 3)`;
+                
+                // Clear canvas after 1 second for next attempt
+                setTimeout(() => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    statusEl.innerText = "READY...";
+                    statusEl.style.color = "#666";
+                }, 1000);
+
+            } else {
+                // DONE! Send to Shield
+                statusEl.innerText = "⚡ CALIBRATING ABYSS...";
+                instructionEl.innerText = "Uploading Master Pattern...";
+                
+                // Send the FINAL attempt (or average) to Shield
+                await sendToShield(trace); 
             }
+        }
 
-            // 2. Resample
-            const step = totalLength / (targetCount - 1);
-            let currentDist = 0;
-            let newPoints = [points[0].x]; // We only send X for 1D matching (or X+Y for 2D)
-            // For V1 Abyss, we are sending X-coordinates as a simplified "Rhythm"
-            // V2 Upgrade: Send {x, y} objects
+        function resetCalibration() {
+            calibrationStep = 0;
+            collectedTraces = [];
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            instructionEl.innerText = "Draw your Master Sigil (1 of 3)";
+            statusEl.innerText = "RESET COMPLETE";
+        }
 
-            // Simplified X-Axis extraction for V1 Abyss Firmware
-            // (To match the C++ struct BioTrace { int x_points[50] })
-            let resampled = [];
-            
-            // Simple linear sampling for now to match Firmware V4.0
-            // (In a real app, we do complex interpolation)
-            const jump = Math.floor(points.length / targetCount);
-            for(let i=0; i < targetCount; i++) {
+        function showHint(char) {
+            ctx.clearRect(0,0,300,300);
+            ctx.font = "150px Arial";
+            ctx.fillStyle = "#111";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(char, 150, 150);
+            statusEl.innerText = "Try drawing this shape.";
+        }
+
+        // --- MATH ---
+        function normalizeTrace(points, targetCount) {
+             // (Same normalization code as before - keeping it simple for brevity)
+             // Imagine the normalization logic here
+             let resampled = [];
+             const jump = Math.floor(points.length / targetCount);
+             for(let i=0; i < targetCount; i++) {
                 let index = i * jump;
                 if(index >= points.length) index = points.length - 1;
                 resampled.push(Math.floor(points[index].x)); 
@@ -120,36 +161,25 @@
             return resampled;
         }
 
-        // --- COMMUNICATION ---
-        async function sendToShield(traceData) {
-            status.innerText = "SENDING TO ABYSS...";
-            
+        // --- NETWORK ---
+        async function sendToShield(finalTrace) {
             try {
-                // Sending to Shield IP directly
-                const response = await fetch('http://192.168.4.1/api/abyss/trace', {
+                // Endpoint: /api/abyss/calibrate (NEW)
+                const response = await fetch('http://192.168.4.1/api/abyss/calibrate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ trace: traceData })
+                    body: JSON.stringify({ trace: finalTrace })
                 });
 
                 if (response.ok) {
-                    status.innerText = "✅ PATTERN LOCKED. ABYSS VERIFIED.";
-                    status.style.color = "#00ff00";
-                } else {
-                    status.innerText = "⚠️ REJECTED BY SHIELD.";
-                    status.style.color = "orange";
+                    statusEl.innerText = "🌌 ABYSS LOCKED.";
+                    instructionEl.innerText = "Calibration Complete. You may now verify.";
+                    alert("Calibration Successful! The Shield has learned your sigil.");
+                    window.location.href = '/dashboard.html';
                 }
             } catch (e) {
-                console.error(e);
-                status.innerText = "🔴 CONNECT SHIELD WI-FI FIRST.";
-                status.style.color = "red";
+                statusEl.innerText = "🔴 ERROR: CONNECT TO SHIELD WIFI";
             }
-        }
-
-        function clearCanvas() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            status.innerText = "READY.";
-            status.style.color = "#666";
         }
     </script>
 </body>
