@@ -2,144 +2,58 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>A+ CHAOS CORE</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chaos Shield | A+ Overhead Garage Doors</title>
     <style>
-        body { background-color: #000; color: #e5e5e5; font-family: 'Inter', sans-serif; padding-top: env(safe-area-inset-top); }
-        .mono { font-family: 'JetBrains Mono', monospace; }
-        canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; opacity: 0.2; pointer-events: none; }
-        header { background: rgba(0,0,0,0.9); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.08); }
-
-        /* Standard Pill Buttons */
-        .btn-pill {
-            display: inline-flex; align-items: center; justify-content: center;
-            padding: 12px 24px; border-radius: 999px;
-            font-weight: 700; font-size: 14px; letter-spacing: 0.02em;
-            text-decoration: none; transition: transform 0.1s;
-        }
-        .btn-primary { background: #00ff41; color: #000; }
-        .btn-primary:active { transform: scale(0.96); }
-        
-        .btn-outline { border: 1px solid rgba(255,255,255,0.2); color: #fff; }
-        .btn-outline:active { background: rgba(255,255,255,0.1); transform: scale(0.96); }
-
-        .glass-card { background: rgba(20,20,20,0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 24px; }
+        body { background: #111; color: #eee; font-family: 'Courier New', monospace; text-align: center; padding: 50px; }
+        .logo { color: #00ff00; font-size: 2em; font-weight: bold; margin-bottom: 10px; }
+        .box { border: 1px solid #333; padding: 20px; max-width: 400px; margin: 0 auto; background: #222; }
+        input { background: #000; border: 1px solid #555; color: #0f0; padding: 10px; width: 80%; margin-bottom: 10px; }
+        button { background: #004400; color: #fff; border: none; padding: 10px 20px; cursor: pointer; font-size: 1.1em; }
+        button:hover { background: #007700; }
+        .status { color: #888; font-size: 0.8em; margin-top: 20px; }
     </style>
 </head>
-<body class="relative">
+<body>
+    <div class="logo">CHAOS SHIELD</div>
+    <p>Secure Ecosystem V3.1</p>
 
-    <canvas id="chaos-bg"></canvas>
-
-    <header class="fixed top-0 left-0 w-full z-50 h-16 flex items-center">
-        <div class="w-full max-w-5xl mx-auto px-6 flex justify-between items-center">
-            <a href="/" class="flex items-center gap-2">
-                <div class="w-2 h-2 bg-green-500 rounded-full shadow-[0_0_10px_#00ff41]"></div>
-                <span class="font-bold tracking-wider text-white text-xs">A+ CHAOS</span>
-            </a>
-            <a href="/login" class="text-xs font-bold bg-white text-black px-4 py-2 rounded-full hover:bg-gray-200 transition">
-                Log In
-            </a>
-        </div>
-    </header>
-
-    <main class="pt-28 pb-20 px-6 max-w-5xl mx-auto">
+    <div class="box">
+        <h3>⚡ KEY FORGE</h3>
+        <p>Enter Identity to Generate Keys</p>
         
-        <div class="mb-16 mt-8">
-            <h1 class="text-4xl md:text-6xl font-black text-white leading-tight mb-6">
-                Security that <br> <span class="text-green-500">Lives.</span>
-            </h1>
-            <p class="text-gray-400 text-lg leading-relaxed max-w-lg">
-                ChaosID creates a living key from your movement entropy. 
-                No passwords to steal. No databases to hack.
-            </p>
-        </div>
+        <input type="text" id="callsign" placeholder="ENTER CALLSIGN (e.g. ARTURO)">
+        <br>
+        <button onclick="forgeKey()">INITIATE SEQUENCE</button>
+    </div>
 
-        <div class="flex flex-col sm:flex-row gap-4 max-w-md mb-24">
-            <a href="/abyss.html" class="btn-pill btn-primary text-center">
-                Forge Callsign
-            </a>
-            <a href="/login" class="btn-pill btn-outline text-center">
-                Access Node
-            </a>
-        </div>
+    <div class="status">System Status: ONLINE | Protection: ACTIVE</div>
 
-        <div class="mb-24">
-            <div class="flex items-center gap-4 mb-8">
-                <h2 class="text-xs font-bold tracking-widest text-gray-500">HOW IT WORKS</h2>
-                <div class="h-px bg-gray-800 flex-grow"></div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="glass-card">
-                    <div class="mono text-green-500 text-xs mb-2">01. CAPTURE</div>
-                    <h3 class="font-bold text-white text-lg mb-2">Entropy Seed</h3>
-                    <p class="text-gray-400 text-sm">We capture unique micro-movements to create a one-time seed.</p>
-                </div>
-                <div class="glass-card">
-                    <div class="mono text-green-500 text-xs mb-2">02. TRACE</div>
-                    <h3 class="font-bold text-white text-lg mb-2">Muscle Memory</h3>
-                    <p class="text-gray-400 text-sm">You trace a shape. Your speed and angle form the key.</p>
-                </div>
-                <div class="glass-card">
-                    <div class="mono text-green-500 text-xs mb-2">03. VERIFY</div>
-                    <h3 class="font-bold text-white text-lg mb-2">Zero Trust</h3>
-                    <p class="text-gray-400 text-sm">We verify the mathematical proof, never the raw data.</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="mb-12">
-            <h2 class="text-2xl font-black text-white mb-8">Chaos for the World.</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="glass-card border-l-4 border-l-blue-500">
-                    <h3 class="font-bold text-white mb-1">Healthcare</h3>
-                    <p class="text-xs text-gray-400">Prevents mass patient data leaks by binding access to physical doctors.</p>
-                </div>
-                <div class="glass-card border-l-4 border-l-yellow-500">
-                    <h3 class="font-bold text-white mb-1">Infrastructure</h3>
-                    <p class="text-xs text-gray-400">Rolling physical codes for power grids and secure facilities.</p>
-                </div>
-                <div class="glass-card border-l-4 border-l-purple-500">
-                    <h3 class="font-bold text-white mb-1">Corporate</h3>
-                    <p class="text-xs text-gray-400">Eliminates phishing. You can't fish a key that doesn't exist yet.</p>
-                </div>
-                <div class="glass-card border-l-4 border-l-green-500">
-                    <h3 class="font-bold text-white mb-1">Sovereignty</h3>
-                    <p class="text-xs text-gray-400">You own your identity. No master key held by big tech.</p>
-                </div>
-            </div>
-        </div>
-
-    </main>
-
-    <footer class="border-t border-gray-900 bg-black py-8 text-center">
-        <p class="text-[10px] text-gray-600 font-bold tracking-widest mb-4">A+ OVERHEAD GARAGE DOORS</p>
-        <a href="/sdk" class="text-xs text-gray-500 hover:text-white underline">Protocol Documentation</a>
-    </footer>
-
+    <script src="router.js"></script>
     <script>
-        /* Background Logic */
-        const cvs = document.getElementById('chaos-bg');
-        const ctx = cvs.getContext('2d');
-        let w, h, points = [];
-        function resize() { w=window.innerWidth; h=window.innerHeight; cvs.width=w; cvs.height=h; }
-        window.addEventListener('resize', resize); resize();
-        function addP(x,y) { if(points.length>30) points.shift(); points.push({x,y,age:100}); }
-        document.addEventListener('mousemove', e=> { if(Math.random()>0.5) addP(e.clientX, e.clientY); });
-        document.addEventListener('touchmove', e=> { if(Math.random()>0.5) addP(e.touches[0].clientX, e.touches[0].clientY); });
-        function anim() {
-            ctx.clearRect(0,0,w,h);
-            ctx.fillStyle='rgba(0,255,65,0.4)';
-            points.forEach(p => { p.age--; ctx.fillRect(p.x,p.y,2,2); });
-            points=points.filter(p=>p.age>0);
-            requestAnimationFrame(anim);
+        function forgeKey() {
+            const callsign = document.getElementById('callsign').value.toUpperCase();
+            
+            if(!callsign) { alert("Callsign Required"); return; }
+
+            // 1. GENERATE KEYS (Simulated Biometric Hash)
+            const mockKey = "CHAOS-" + Math.random().toString(36).substr(2, 9).toUpperCase();
+            
+            // 2. STORE SECURELY
+            localStorage.setItem('chaos_key_vault', mockKey);
+            localStorage.setItem('session_start', Date.now());
+            localStorage.setItem('callsign_history', callsign);
+            // Default Trust Score for Admin
+            if(callsign === "APLUS-OGD-ADMIN") {
+                localStorage.setItem('chaos_trust_score', '95'); 
+            } else {
+                localStorage.setItem('chaos_trust_score', '50');
+            }
+
+            // 3. ENTER SYSTEM
+            console.log("🔑 Keys Forged. Entering Dashboard...");
+            window.location.href = '/dashboard.html';
         }
-        anim();
     </script>
 </body>
 </html>
