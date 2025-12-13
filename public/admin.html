@@ -1,118 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>OVERWATCH // GOD MODE</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="router.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <title>Chaos Admin | RESTRICTED</title>
     <style>
-        body { background: #000; color: #ff003c; font-family: 'JetBrains Mono', monospace; padding-bottom: 80px; }
-        .panel { border: 1px solid #330000; background: #110000; padding: 16px; margin-bottom: 16px; border-radius: 8px; opacity: 0; transition: opacity 1s; }
-        .btn-cmd { width: 100%; background: #330000; border: 1px solid #ff003c; color: #ff003c; padding: 12px; font-weight: bold; text-transform: uppercase; margin-top: 8px; cursor: pointer; }
-        .btn-cmd:active { background: #ff003c; color: #000; }
-        
-        /* Security Overlay */
-        #security-scan {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; z-index: 50;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
-        .scan-line { width: 100%; height: 2px; background: #ff003c; box-shadow: 0 0 20px #ff003c; animation: scan 2s ease-in-out infinite; }
-        @keyframes scan { 0% { transform: translateY(-100px); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateY(100px); opacity: 0; } }
+        body { background: #200; color: #ffaaaa; font-family: monospace; padding: 40px; }
+        h1 { border-bottom: 2px solid #f00; display: inline-block; }
+        .log-box { background: #000; color: #0f0; padding: 20px; height: 300px; overflow-y: scroll; border: 1px solid #500; }
+        .back-btn { position: absolute; top: 20px; right: 20px; color: #fff; text-decoration: none; }
     </style>
 </head>
-<body class="p-4">
+<body>
+    <a href="/dashboard.html" class="back-btn">← EXIT TO DASHBOARD</a>
     
-    <div id="security-scan">
-        <div class="text-red-500 font-bold text-2xl tracking-widest mb-4">VERIFYING DNA</div>
-        <div class="text-gray-500 text-xs font-mono mb-8" id="scan-text">CHECKING BIOMETRIC HASH...</div>
-        <div class="w-64 h-32 border-x border-red-900 relative overflow-hidden flex items-center">
-            <div class="scan-line"></div>
-        </div>
+    <h1>🛑 ADMIN CONSOLE: MASTER LEVEL</h1>
+    <p>Identity Verified: <strong id="admin-name"></strong></p>
+
+    <h3>📡 Global Swarm Logs</h3>
+    <div class="log-box" id="logs">
+        > INITIALIZING SECURE CONNECTION...<br>
+        > WAITING FOR SWARM UPDATES...<br>
     </div>
 
-    <div id="secure-content" class="hidden">
-        <div class="flex justify-between items-center mb-6 border-b border-red-900 pb-2">
-            <h1 class="text-xl font-bold tracking-widest">GOD_MODE <span class="text-xs text-gray-500">SECURE</span></h1>
-            <div class="text-xs text-red-500 animate-pulse">● LIVE</div>
-        </div>
+    <h3>⚙️ Ecosystem Controls</h3>
+    <button onclick="logAction('FORCE SYNC INITIATED')">FORCE SWARM SYNC</button>
+    <button onclick="logAction('PURGE CACHE EXECUTED')">PURGE DNS CACHE</button>
+    <button onclick="logAction('SHIELD REBOOT SIGNAL SENT')">REBOOT SHIELDS</button>
 
-        <div class="panel">
-            <h2 class="text-xs font-bold text-gray-500 mb-2">USER STATUS</h2>
-            <div class="flex justify-between text-sm mb-2">
-                <span>IDENTITY:</span>
-                <span id="id-display" class="text-white">--</span>
-            </div>
-            <div class="flex justify-between text-sm mb-2">
-                <span>TRUST LEVEL:</span>
-                <span id="trust-display" class="text-green-500 font-bold">--</span>
-            </div>
-        </div>
-
-        <div class="panel">
-            <h2 class="text-xs font-bold text-gray-500 mb-2">KEY FORGE</h2>
-            <div class="bg-black border border-gray-800 p-3 mb-2 text-xs break-all text-white" id="generated-key">
-                READY_TO_MINT
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-                <button onclick="mintKey('std')" class="btn-cmd text-xs mt-0">STD KEY</button>
-                <button onclick="mintKey('adm')" class="btn-cmd text-xs mt-0">ADMIN KEY</button>
-            </div>
-        </div>
-
-        <div class="panel" style="border-color: #333; background: #050505;">
-            <h2 class="text-xs font-bold text-gray-500 mb-2">DANGER ZONE</h2>
-            <button onclick="resetBio()" class="btn-cmd" style="border-color: #666; color: #888;">WIPE BIOMETRICS</button>
-        </div>
-
-        <a href="/dashboard" class="block w-full text-center py-4 text-gray-500 hover:text-white text-xs border-t border-gray-900 mt-8">
-            << RETURN TO SANCTUARY
-        </a>
-    </div>
-
+    <script src="router.js"></script>
     <script>
-        // --- SECURITY SEQUENCE ---
-        const trust = parseInt(localStorage.getItem('chaos_trust_score') || '0');
-        const id = localStorage.getItem('callsign_history') || 'UNKNOWN';
+        document.getElementById('admin-name').innerText = localStorage.getItem('callsign_history');
 
-        setTimeout(() => {
-            document.getElementById('scan-text').innerText = "IDENTITY CONFIRMED: " + id;
-            setTimeout(() => {
-                document.getElementById('scan-text').innerText = "TRUST LEVEL: " + trust + "%";
-                setTimeout(() => {
-                    // Unlock
-                    document.getElementById('security-scan').style.display = 'none';
-                    document.getElementById('secure-content').classList.remove('hidden');
-                    
-                    // Animate Panels
-                    document.querySelectorAll('.panel').forEach((el, i) => {
-                        setTimeout(() => el.style.opacity = '1', i * 200);
-                    });
-
-                    // Populate Data
-                    document.getElementById('id-display').innerText = id;
-                    document.getElementById('trust-display').innerText = trust + "% (MAX)";
-                }, 800);
-            }, 800);
-        }, 1000);
-
-        function mintKey(type) {
-            const seed = Array.from(window.crypto.getRandomValues(new Uint8Array(8)), b=>b.toString(16).padStart(2,'0')).join('');
-            let prefix = type === 'adm' ? 'sk_admin_' : 'sk_live_';
-            let key = prefix + seed;
-            document.getElementById('generated-key').innerText = key;
-            document.getElementById('generated-key').classList.add('text-green-500');
-            navigator.clipboard.writeText(key).then(() => alert("KEY COPIED"));
+        function logAction(msg) {
+            const box = document.getElementById('logs');
+            const time = new Date().toLocaleTimeString();
+            box.innerHTML += `> [${time}] ${msg}<br>`;
+            box.scrollTop = box.scrollHeight;
         }
 
-        function resetBio() {
-            if(confirm("DANGER: WIPE DATA?")) {
-                localStorage.removeItem('chaos_master_template');
-                localStorage.removeItem('chaos_trust_score');
-                window.location.href = '/abyss-forge.html';
-            }
-        }
+        // Simulate incoming Swarm Data
+        setInterval(() => {
+            const events = ["Shield-04: Blocked Ad", "Shield-01: Low Battery", "Shield-02: User Active", "Swarm: Weights Updated"];
+            const randomEvent = events[Math.floor(Math.random() * events.length)];
+            logAction(randomEvent);
+        }, 3000);
     </script>
 </body>
 </html>
