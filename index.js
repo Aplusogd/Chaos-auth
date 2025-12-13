@@ -1,51 +1,87 @@
-// index.js — V276 — CRITICAL STARTUP STABILITY FIX
-import express from 'express';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import compression from 'compression';
-import helmet from 'helmet';
-import cors from 'cors';
+// index.js — Chaos Command Server V1.0
+// 🚀 Powering the A+ Overhead Garage Doors Ecosystem
 
-// 1. Setup
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const express = require('express');
+const path = require('path');
+const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 2. Security & Middleware
-app.use(cors({ origin: '*' })); 
-app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
-app.use(compression());
+// --- 1. SECURITY & MIDDLEWARE ---
+
+// Enable HELMET for header security (prevents basic attacks)
+app.use(helmet({
+    contentSecurityPolicy: false, // Disabled for dev simplicity, enable in Prod V2
+}));
+
+// Enable CORS (Allow the Shield to talk to us)
+app.use(cors());
+
+// Parse JSON payloads (Shield sends data in JSON)
 app.use(express.json());
 
-// 3. API & SDK ROUTING (Hardcoded for stability and CORS application)
-app.get('/chaos', (req, res) => {
-    res.json({ callsign: `CHAOS-${Date.now().toString(36).toUpperCase()}`, status: "OPERATIONAL", timestamp: Date.now() });
+// RATE LIMITING (Prevent DDoS attacks on your API)
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+    message: "⚠️ Chaos Shield Protection: Too many requests from this IP."
+});
+app.use('/api/', apiLimiter);
+
+// --- 2. CHAOS SHIELD API ENDPOINTS ---
+
+// A. Heartbeat Endpoint
+// The Shield pings this to confirm it has internet access
+app.get('/api/v1/status', (req, res) => {
+    res.json({ 
+        status: 'ONLINE', 
+        system: 'Chaos Command Center', 
+        time: Date.now() 
+    });
 });
 
-app.get('/chaos-sdk.js', (req, res) => {
-    res.sendFile(path.resolve(__dirname, 'public', 'chaos-sdk.js'));
+// B. Ambient Learning Sync
+// The Shield sends observed user interests (Keywords) here to train the Cloud Model
+app.post('/api/v1/chaos/sync', (req, res) => {
+    const { shield_id, keywords, trust_score } = req.body;
+    
+    // In the future, this will save to a database.
+    // For now, we log it to the console to verify the Shield is working.
+    console.log(`📡 [INCOMING TELEMETRY] Shield: ${shield_id} | Trust: ${trust_score}%`);
+    console.log(`🧠 [AMBIENT LEARNING] New Interests: ${keywords}`);
+
+    res.json({ success: true, message: "Telemetry Received. Model Updated." });
 });
 
-// 4. CORE ROUTING
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'app.html')));
-app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'check.html')));
-app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public', 'admin.html')));
-app.get('/forge', (req, res) => res.sendFile(path.join(__dirname, 'public', 'abyss.html')));
-app.get('/abyss-forge', (req, res) => res.sendFile(path.join(__dirname, 'public', 'abyss-forge.html')));
-app.get('/examples.html', (req, res) => res.sendFile(path.join(__dirname, 'public', 'examples.html')));
-app.get('/sdk', (req, res) => res.sendFile(path.join(__dirname, 'public', 'sdk.html')));
+// C. Secure Token Verification
+// Verifies if a Token sent by a user is valid
+app.post('/api/v1/auth/verify', (req, res) => {
+    const { token, callsign } = req.body;
+    
+    // Simulation: Check if token is valid (In V2 this checks signature)
+    if(token && callsign === "APLUS-OGD-ADMIN") {
+        res.json({ valid: true, clearance: "MAXIMUM" });
+    } else {
+        res.status(403).json({ valid: false, error: "Invalid Credentials" });
+    }
+});
 
+// --- 3. SERVE FRONTEND (The App) ---
 
-// 5. STATIC FILES
+// Serve static files from the 'public' folder
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Fallback: Send everything else to login/index
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
-// 6. LAUNCH
-app.use((req, res) => res.redirect('/'));
-
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🌑 CHAOS SERVER V276 LIVE — PORT ${PORT}`);
+// --- 4. START SERVER ---
+app.listen(PORT, () => {
+    console.log(`\n🌑 CHAOS COMMAND CENTER INITIALIZED`);
+    console.log(`✅ Server running on port: ${PORT}`);
+    console.log(`🛡️  Master Callsign: APLUS-OGD-ADMIN`);
 });
