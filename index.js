@@ -13,9 +13,14 @@ const PORT = process.env.PORT || 3000;
 const MASTER_CALLSIGN = "APLUS-OGD-ADMIN";
 
 // --- 1. FORTIFIED SECURITY MIDDLEWARE ---
+
+// Security Note: Helmet's CSP is disabled to allow the Seraphim Web Serial integration,
+// as the browser requires permissions for the navigator.serial object to be called directly.
 app.use(helmet({
-    contentSecurityPolicy: false, // Allow inline scripts for Dashboard
-}));
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false, // May be needed for some browser-level features
+})); 
+
 app.use(cors());   // Open communication for the Shield Swarm
 app.use(express.json()); // Parse JSON payloads
 
@@ -23,7 +28,7 @@ app.use(express.json()); // Parse JSON payloads
 const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 300, // Limit each IP to 300 requests per window
-    message: "⚠️ Chaos Shield Defense: Traffic Limit Exceeded."
+    message: "⚠️ Chaos Shield Defense: Traffic Limit Exceeded. Re-evaluating Trust Score."
 });
 app.use('/api/', apiLimiter);
 
@@ -41,50 +46,72 @@ app.get('/api/v1/status', (req, res) => {
 
 // B. Secure Admin Verification (The Master Lock)
 app.post('/api/v1/auth/verify_admin', (req, res) => {
+    // Requires physical access (Seraphim) and high Trust Score before calling this.
     const { callsign, trust_score } = req.body;
 
     console.log(`🔒 AUTH CHECK: ${callsign} | Trust: ${trust_score}%`);
 
-    if (callsign === MASTER_CALLSIGN && trust_score >= 90) {
+    // Master Lock Condition: Admin callsign AND high trust level
+    if (callsign === MASTER_CALLSIGN && trust_score >= 95) { // Increased minimum trust for Master Access
         res.json({ 
             access: "GRANTED", 
             role: "MASTER_OPERATOR",
             token: "CHAOS_ROOT_SIG_" + Date.now() 
         });
-    } else {
-        console.warn(`⛔ BLOCKED: Unauthorized access by ${callsign}`);
+    } else if (callsign !== MASTER_CALLSIGN) {
+        console.warn(`⛔ BLOCKED: Mismatching Master Callsign on attempt by ${callsign}`);
         res.status(403).json({ 
             access: "DENIED", 
-            reason: "Identity Verification Failed" 
+            reason: "Master Identity Verification Failed" 
+        });
+    } else {
+        console.warn(`⛔ BLOCKED: Trust Score too low (${trust_score}%). Access Denied.`);
+        res.status(403).json({ 
+            access: "DENIED", 
+            reason: "Insufficient Trust Score (Requires 95%+)" 
         });
     }
 });
 
 // C. Federated Learning Sync (Receiving Intelligence)
-// Shields send Model Weights here, not user history.
 app.post('/api/v1/chaos/federated_update', (req, res) => {
     const { shield_id, delta_weights, trust_score } = req.body;
 
+    // Must be high-trust hardware communicating
     if (trust_score < 90) {
+        console.warn(`🧠 [FEDERATED] Shield ${shield_id} rejected. Low Trust (${trust_score}%).`);
         return res.status(403).json({ error: "Low Trust. Model Update Rejected." });
     }
 
-    console.log(`🧠 [FEDERATED] Shield ${shield_id} sent model update.`);
-    // Future: Aggregate weights into global model
+    // Future: Logic to sanitize delta_weights and apply to Overthere.ai model
+    console.log(`🧠 [FEDERATED] Shield ${shield_id} sent model update. Status: Awaiting Aggregation.`);
     
-    res.json({ success: true, message: "Global Model Updated." });
+    res.json({ success: true, message: "Model Delta Acknowledged." });
 });
 
 // D. Swarm Telemetry (Network Health)
 app.post('/api/v1/chaos/swarm_health', (req, res) => {
-    const { active_peers, latency_avg } = req.body;
-    console.log(`🐝 [SWARM] Active Peers: ${active_peers} | Latency: ${latency_avg}ms`);
+    const { shield_id, active_peers, latency_avg } = req.body;
+    console.log(`🐝 [SWARM] Shield ${shield_id}: Active Peers: ${active_peers} | Latency: ${latency_avg}ms`);
+    // Future: Logic to update global latency map and trust scores
     res.json({ received: true });
 });
 
 // --- 3. SERVE FRONTEND ---
+
+// Static files must be served from the 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
 
+// All non-API routes send the main entry point HTML
+app.get('/dashboard.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+});
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Failsafe for other routes
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
@@ -94,4 +121,9 @@ app.listen(PORT, () => {
     console.log(`\n🌑 CHAOS COMMAND CENTER INITIALIZED`);
     console.log(`🛡️  Master Lock: ${MASTER_CALLSIGN}`);
     console.log(`✅ Listening on Port ${PORT}`);
+    console.log(`\n--- Production Note ---`);
+    console.log(`Ensure 'node_modules' is installed (npm install) and 'public' directory contains:`);
+    console.log(`- index.html (Landing Page)`);
+    console.log(`- dashboard.html (Command Center)`);
+    console.log(`- js/bridge.js (Seraphim Serial Logic)`);
 });
