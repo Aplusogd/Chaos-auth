@@ -3,56 +3,205 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chaos Shield | A+ Overhead Garage Doors</title>
+    <title>ChaosID | Access Node</title>
     <style>
-        body { background: #111; color: #eee; font-family: 'Courier New', monospace; text-align: center; padding: 50px; }
-        .logo { color: #00ff00; font-size: 2em; font-weight: bold; margin-bottom: 10px; }
-        .box { border: 1px solid #333; padding: 20px; max-width: 400px; margin: 0 auto; background: #222; }
-        input { background: #000; border: 1px solid #555; color: #0f0; padding: 10px; width: 80%; margin-bottom: 10px; }
-        button { background: #004400; color: #fff; border: none; padding: 10px 20px; cursor: pointer; font-size: 1.1em; }
-        button:hover { background: #007700; }
-        .status { color: #888; font-size: 0.8em; margin-top: 20px; }
+        body { 
+            background: #050505; 
+            color: #E0E0E0; 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 900px;
+            padding: 40px 20px;
+        }
+        .header {
+            text-align: center;
+            padding-bottom: 30px;
+            border-bottom: 2px solid #007700;
+            margin-bottom: 40px;
+        }
+        h1 {
+            color: #00FF00;
+            font-size: 2.5em;
+            letter-spacing: 2px;
+            margin: 0;
+        }
+        .mission {
+            font-size: 1.1em;
+            color: #A0A0A0;
+            margin-top: 10px;
+        }
+        .section {
+            margin-bottom: 40px;
+            padding: 20px;
+            background: #1a1a1a;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        .section h2 {
+            color: #00FF00;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .feature-box {
+            background: #252525;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 3px solid #007700;
+        }
+        .feature-box h3 {
+            color: #00c3ff;
+            margin-top: 0;
+        }
+        /* ACCESS NODE STYLES */
+        .access-node {
+            background: #004d40;
+            padding: 30px;
+            text-align: center;
+            border-radius: 8px;
+            border: 2px solid #00FF00;
+        }
+        .access-node input[type="text"] {
+            padding: 12px;
+            width: 80%;
+            margin: 10px 0;
+            border: 1px solid #555;
+            border-radius: 4px;
+            background: #333;
+            color: white;
+            font-size: 1em;
+        }
+        .access-btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 4px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 5px;
+            transition: background 0.3s;
+        }
+        .btn-create {
+            background: #00FF00;
+            color: #050505;
+        }
+        .btn-access {
+            background: #00c3ff;
+            color: #050505;
+        }
+        .btn-create:hover { background: #00e600; }
+        .btn-access:hover { background: #00aacc; }
     </style>
 </head>
 <body>
-    <div class="logo">CHAOS SHIELD</div>
-    <p>Secure Ecosystem V3.1</p>
+    <div class="container">
+        <div class="header">
+            <h1>CHAOSID: SYSTEM ACCESS NODE</h1>
+            <p class="mission">Establishing the digital identity required for operating A+ Overhead Garage Doors at maximum efficiency and security.</p>
+        </div>
 
-    <div class="box">
-        <h3>⚡ KEY FORGE</h3>
-        <p>Enter Identity to Generate Keys</p>
-        
-        <input type="text" id="callsign" placeholder="ENTER CALLSIGN (e.g. ARTURO)">
-        <br>
-        <button onclick="forgeKey()">INITIATE SEQUENCE</button>
+        <div class="section alert">
+            <h2>🕊️ SERAPHIM SHIELD (V-FINAL HARDWARE)</h2>
+            <p>The Seraphim Shield is the physical security key that validates your ChaosID session. It is the Guardian Angel, ensuring **Perfect Harmony** between your physical environment and digital workflow. **Access to the dashboard is impossible without the Seraphim connected.**</p>
+            <div class="grid">
+                <div class="feature-box">
+                    <h3>Physical Key Gate</h3>
+                    <p>Acts as a physical Dead Man's Switch, instantly locking the session if unplugged, ensuring data integrity.</p>
+                </div>
+                <div class="feature-box">
+                    <h3>RF Threat Sentry</h3>
+                    <p>Continuously scans the airwaves for hostile signatures (Skimmers, Flipper Zeros, Pineapple devices). Locks the session on immediate detection.</p>
+                </div>
+                <div class="feature-box">
+                    <h3>Transaction Consent</h3>
+                    <p>Requires a physical button press on the device to authorize sensitive actions (Wallet Transfers, File Access), protecting against phishing and remote exploits.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>🌌 CHAOSID CORE PRINCIPLES</h2>
+            <p>ChaosID is not just a username. It is a certified **Call Sign** with an integrated trust score, governing access to all A+ Overhead Garage Doors assets, including the **Overthere.ai** operational AI.</p>
+            <div class="grid">
+                <div class="feature-box">
+                    <h3>Overthere.ai Engine</h3>
+                    <p>The AI partner that learns from competitors, detects weaknesses, and ensures A+ Overhead Garage Doors maintains its number one priority 24/7.</p>
+                </div>
+                <div class="feature-box">
+                    <h3>Biometric Forge</h3>
+                    <p>Trains and verifies your unique operational sigil (Digital Signature) for an uncompromisable layer of personal access control.</p>
+                </div>
+                <div class="feature-box">
+                    <h3>Contextual Trust Score</h3>
+                    <p>Your access permissions are dynamic, based on hardware status, location, and biometric history. Security is always in motion.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="access-node">
+            <h2>ACCESS NODE INTERFACE</h2>
+            <p>Input your existing Call Sign or create a new one to initialize the ChaosID session.</p>
+            <input type="text" id="callsign-input" placeholder="Enter Your Unique Operator Call Sign">
+            <div>
+                <button class="access-btn btn-create" onclick="createCallSign()">CREATE NEW CALL SIGN</button>
+                <button class="access-btn btn-access" onclick="accessNode()">ACCESS CHAOS DASHBOARD</button>
+            </div>
+        </div>
     </div>
 
-    <div class="status">System Status: ONLINE | Protection: ACTIVE</div>
-
-    <script src="router.js"></script>
     <script>
-        function forgeKey() {
-            const callsign = document.getElementById('callsign').value.toUpperCase();
-            
-            if(!callsign) { alert("Callsign Required"); return; }
-
-            // 1. GENERATE KEYS (Simulated Biometric Hash)
-            const mockKey = "CHAOS-" + Math.random().toString(36).substr(2, 9).toUpperCase();
-            
-            // 2. STORE SECURELY
-            localStorage.setItem('chaos_key_vault', mockKey);
-            localStorage.setItem('session_start', Date.now());
+        function saveCallSign(callsign) {
+            // Basic persistence for demonstration. Use a secure backend for production.
             localStorage.setItem('callsign_history', callsign);
-            // Default Trust Score for Admin
-            if(callsign === "APLUS-OGD-ADMIN") {
-                localStorage.setItem('chaos_trust_score', '95'); 
-            } else {
-                localStorage.setItem('chaos_trust_score', '50');
+            // Defaulting trust score to 100% on successful access/creation
+            localStorage.setItem('chaos_trust_score', '100'); 
+            window.location.href = 'dashboard.html';
+        }
+
+        function createCallSign() {
+            const callsign = document.getElementById('callsign-input').value.trim();
+            if (callsign.length < 3) {
+                alert("ERROR: Call Sign must be at least 3 characters.");
+                return;
+            }
+            if (localStorage.getItem('callsign_history')) {
+                alert(`WARNING: Existing Call Sign detected. Creating new one will overwrite current identity.`);
+            }
+            // In a real system, this would involve a server request to register the new ID.
+            saveCallSign(callsign);
+        }
+
+        function accessNode() {
+            const callsign = document.getElementById('callsign-input').value.trim();
+            const storedCallsign = localStorage.getItem('callsign_history');
+
+            if (!callsign) {
+                alert("ERROR: Please enter your Call Sign.");
+                return;
             }
 
-            // 3. ENTER SYSTEM
-            console.log("🔑 Keys Forged. Entering Dashboard...");
-            window.location.href = '/dashboard.html';
+            if (callsign === storedCallsign) {
+                // Successful Identity Validation (Requires Seraphim connection on dashboard.html)
+                window.location.href = 'dashboard.html';
+            } else if (!storedCallsign) {
+                alert("ERROR: No Call Sign found. Use 'CREATE NEW CALL SIGN' first.");
+            } else {
+                 // Failsafe: Allows access but alerts user to potential identity mismatch
+                 alert("ACCESS WARNING: Entered Call Sign does not match stored identity. Proceeding to dashboard for Biometric Verification.");
+                 window.location.href = 'dashboard.html';
+            }
         }
     </script>
 </body>
