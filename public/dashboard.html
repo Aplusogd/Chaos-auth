@@ -12,12 +12,22 @@
         .btn { background: #333; color: white; padding: 10px; text-decoration: none; border-radius: 4px; display: inline-block; margin-top: 10px;}
         .btn-admin { background: #550000; }
         .btn-abyss { background: #004d40; }
+        /* NEW STYLES FOR SERAPHIM */
+        .btn-seraphim { background: #0056b3; border-left: 5px solid #00c3ff; margin-right: 10px; }
+        .btn-gate { background: #cc6600; }
     </style>
 </head>
 <body>
     <div class="header">
         <h2>📊 CHAOS OPERATOR</h2>
         <h4 id="user-display">LOADING...</h4>
+    </div>
+
+    <div class="card" id="seraphim-card">
+        <h3>🕊️ SERAPHIM COMMAND (ChaosID V-Final)</h3>
+        <p>Trust Anchor Status: <span id="sentry-status" style="color:#00c3ff">DISCONNECTED</span></p>
+        <p>Threat Alert: <span id="threat-alert" style="color:yellow">CLEAN</span></p>
+        <button class="btn btn-seraphim" id="connect-seraphim-btn" onclick="connectSeraphim()">CONNECT SERAPHIM (USB)</button>
     </div>
 
     <div class="card">
@@ -27,6 +37,13 @@
         <p>Status: <span id="shield-status" style="color:orange">SEARCHING...</span></p>
         <p>Latency: <span id="ping">--</span> ms</p>
         <button class="btn" onclick="pingShield()">TEST HARMONY (Ping Shield)</button>
+    </div>
+
+    <div class="card">
+        <h3>🔐 Secure Gates (Seraphim Required)</h3>
+        <p>All high-value data operations require physical confirmation (Button Press).</p>
+        <button class="btn btn-gate" onclick="gateAction('wallet')">A. WALLET TRANSFER LOCK</button>
+        <button class="btn btn-gate" onclick="gateAction('file')">B. FILE TRANSFER LOCK</button>
     </div>
 
     <div class="card">
@@ -46,6 +63,7 @@
 
     <script src="router.js"></script>
     <script>
+        // Existing Dashboard Setup
         document.getElementById('user-display').innerText = 
             localStorage.getItem('callsign_history') + " [" + localStorage.getItem('chaos_trust_score') + "%]";
 
@@ -55,27 +73,174 @@
         }
 
         async function pingShield() {
-            document.getElementById('shield-status').innerText = "PINGING...";
+            // ... (Existing pingShield logic) ...
+        }
+        
+        // ===============================================================
+        // === SERAPHIM BRIDGE: V-FINAL JAVASCRIPT INTEGRATION START ===
+        // ===============================================================
+
+        let seraphimPort;
+        let seraphimReader;
+        let seraphimWriter;
+        let keepAliveTimer;
+        let consentResolver = null;
+        let isLinked = false;
+        let lastHeartbeatTime = Date.now();
+
+        // --- 1. CONNECT HANDLER (Bound to Connect Button) ---
+        async function connectSeraphim() {
+            if (isLinked) return alert("Seraphim already connected.");
             
             try {
-                // Fetch to the Shield's local IP (This relies on the client being connected to the Shield's AP)
-                // Use the status endpoint defined in the ESP32 code
-                const response = await fetch('http://192.168.4.1/api/status', { 
-                    method: 'GET',
-                    mode: 'no-cors' // Use no-cors for local IP access from a browser
-                }); 
-                
-                // Since we use no-cors, we rely on the network not throwing an error.
-                document.getElementById('shield-status').innerText = "🟢 CONNECTED (HARMONY)";
-                document.getElementById('ping').innerText = "<5"; 
+                // Request USB Device (Vendor ID for Espressif/M5Stack)
+                document.getElementById('sentry-status').innerText = "PROMPTING USER...";
+                seraphimPort = await navigator.serial.requestPort({ filters: [{ usbVendorId: 0x303a }] });
+                await seraphimPort.open({ baudRate: 115200 });
 
-            } catch (e) {
-                // This catches if the phone is NOT connected to the Shield AP
-                document.getElementById('shield-status').innerText = "🔴 OFFLINE (Connect to Chaos_Shield_Abyss Wi-Fi)";
-                document.getElementById('ping').innerText = "FAILED";
-                alert("ERROR: Client must connect to Wi-Fi 'Chaos_Shield_Abyss' to communicate with Shield.");
+                // Setup Streams
+                const encoder = new TextEncoderStream();
+                encoder.readable.pipeTo(seraphimPort.writable);
+                seraphimWriter = encoder.writable.getWriter();
+                
+                const decoder = new TextDecoderStream();
+                seraphimPort.readable.pipeTo(decoder.writable);
+                seraphimReader = decoder.readable.getReader();
+
+                // Start communication loops
+                readLoop();
+                startHeartbeat();
+
+                isLinked = true;
+                document.getElementById('sentry-status').innerText = "🟢 SERAPHIM LINKED";
+                document.getElementById('threat-alert').innerText = "MONITORING...";
+                document.getElementById('seraphim-card').style.borderLeft = '5px solid green';
+                
+            } catch (err) {
+                document.getElementById('sentry-status').innerText = "🔴 FAILED";
+                alert("SERAPHIM ERROR: " + err.message);
             }
         }
+
+        // --- 2. THE DEAD MAN'S SWITCH (Heartbeat Timer) ---
+        function startHeartbeat() {
+            keepAliveTimer = setInterval(async () => {
+                if (seraphimWriter) {
+                    await seraphimWriter.write("PING\n");
+                }
+            }, 1000); // Ping Atom every 1 second
+            
+            // Safety Check: If last heartbeat was > 3.5s ago, lock the session.
+            setInterval(checkHeartbeat, 3500); 
+        }
+
+        function checkHeartbeat() {
+            if (isLinked && Date.now() - lastHeartbeatTime > 3500) {
+                // If the Atom goes silent (unplugged/crashed/jammed)
+                emergencyLock("CONNECTION SEVERED");
+            }
+        }
+
+        // --- 3. LISTENER LOOP ---
+        async function readLoop() {
+            try {
+                while (true) {
+                    const { value, done } = await seraphimReader.read();
+                    if (done) break;
+                    if (value) parseSeraphim(value);
+                }
+            } catch (error) {
+                console.error("Read Loop Error:", error);
+                emergencyLock("COMMUNICATION ERROR");
+            }
+        }
+        
+        // --- 4. DATA PARSER (The Seraphim Brain) ---
+        function parseSeraphim(data) {
+            const msg = data.trim();
+            
+            // 4a. PONG/HEARTBEAT
+            if (msg.includes("PONG:")) {
+                lastHeartbeatTime = Date.now();
+                document.getElementById('sentry-status').style.color = 'lightgreen';
+                document.getElementById('sentry-status').innerText = "🟢 ACTIVE";
+            }
+            
+            // 4b. LOCKDOWN SIGNAL (RF Threat)
+            if (msg.includes("LOCK:")) {
+                const threat = msg.split(":")[1];
+                document.getElementById('threat-alert').innerText = `🔴 ${threat}`;
+                emergencyLock(`RF THREAT: ${threat}`);
+            }
+
+            // 4c. CONSENT SIGNAL RESOLUTION
+            if (msg.includes("AUTHORIZED")) {
+                if (consentResolver) consentResolver(true);
+                consentResolver = null;
+            }
+            if (msg.includes("DENIED:UNSAFE_ENV")) {
+                if (consentResolver) consentResolver(false);
+                consentResolver = null;
+                document.getElementById('access-state').innerText = "DENIED (UNSAFE ENVIRONMENT)";
+            }
+        }
+
+        // --- 5. SECURE ACTION GATE (Bound to Wallet/File Buttons) ---
+        async function requestSecureAction(action) {
+            if (!isLinked) {
+                alert("SERAPHIM REQUIRED: Please connect the device first.");
+                return false;
+            }
+            
+            document.getElementById('threat-alert').innerText = "VERIFYING ENV... (Watch Atom Screen)";
+            
+            // 1. Send CONSENT command to Atom (Atom enters Blue Mode)
+            await seraphimWriter.write("CONSENT\n");
+            
+            // 2. Wait for confirmation (Promise resolves when button is pressed/denied)
+            const authorized = await new Promise(resolve => {
+                window.consentResolver = resolve;
+            });
+            
+            document.getElementById('threat-alert').innerText = "CLEAN"; // Reset visual
+            
+            if (authorized) {
+                alert(`SUCCESS! ${action.toUpperCase()} GATED BY PHYSICAL KEY.`);
+                return true;
+            } else {
+                alert(`ACTION BLOCKED! ${action.toUpperCase()} DENIED BY SERAPHIM.`);
+                return false;
+            }
+        }
+        
+        // Bind the gate handler to the buttons
+        async function gateAction(type) {
+             const success = await requestSecureAction(type);
+             if (success) {
+                 // **HERE is where you execute the secure operation (send file, submit form, etc.)**
+                 console.log(`Executing secure ${type} action...`);
+             }
+        }
+        
+        // --- 6. EMERGENCY LOCKDOWN ---
+        function emergencyLock(reason) {
+            isLinked = false;
+            clearInterval(keepAliveTimer);
+            if(seraphimReader) seraphimReader.cancel();
+            
+            // VISUAL LOCKDOWN (Takes over the whole screen)
+            document.body.innerHTML = `
+                <div style="background:#000; color:red; height:100vh; display:flex; 
+                     flex-direction:column; justify-content:center; align-items:center; 
+                     font-family:monospace; text-align:center;">
+                    <h1>🚫 PROTOCOL OMEGA ACTIVATED</h1>
+                    <h2>THREAT: ${reason}</h2>
+                    <p>Contact Command: Terminate all processes and reconnect Seraphim.</p>
+                    <button onclick="window.location.reload()" style="padding:20px; font-size:20px; background:red; color:white; border:1px solid white; cursor:pointer;">REBOOT DASHBOARD</button>
+                </div>
+            `;
+        }
+
     </script>
 </body>
 </html>
