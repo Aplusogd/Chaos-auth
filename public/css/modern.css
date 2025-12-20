@@ -1,0 +1,143 @@
+:root {
+    --primary: #2563eb;       /* Trust Blue */
+    --primary-dark: #1e40af;
+    --slate-900: #0f172a;     /* Deep Background */
+    --slate-800: #1e293b;     /* Card Background */
+    --slate-50: #f8fafc;      /* Light Text */
+    --gray-200: #e2e8f0;      /* Borders */
+    --text-main: #334155;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background-color: #ffffff;
+    color: var(--slate-900);
+    line-height: 1.6;
+}
+
+/* NAVIGATION */
+nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 5%;
+    background: white;
+    border-bottom: 1px solid var(--gray-200);
+}
+
+.logo {
+    font-weight: 800;
+    font-size: 1.2rem;
+    color: var(--slate-900);
+    letter-spacing: -0.5px;
+}
+.logo span { color: var(--primary); }
+
+.nav-links a {
+    text-decoration: none;
+    color: var(--text-main);
+    margin-left: 30px;
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+.nav-links .btn-login {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+/* HERO SECTION */
+.hero {
+    text-align: center;
+    padding: 100px 20px 80px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.hero h1 {
+    font-size: 3.5rem;
+    line-height: 1.1;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 20px;
+    color: var(--slate-900);
+}
+
+.hero p {
+    font-size: 1.25rem;
+    color: #64748b;
+    margin-bottom: 40px;
+}
+
+/* CALLSIGN INPUT ( The Focus ) */
+.callsign-wrapper {
+    background: white;
+    border: 1px solid var(--gray-200);
+    padding: 10px;
+    border-radius: 50px; /* Pill shape */
+    display: inline-flex;
+    align-items: center;
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.1);
+    max-width: 500px;
+    width: 100%;
+}
+
+.callsign-wrapper input {
+    border: none;
+    outline: none;
+    font-size: 1rem;
+    padding: 15px 20px;
+    flex-grow: 1;
+    border-radius: 50px;
+}
+
+.callsign-wrapper button {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    border-radius: 40px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.callsign-wrapper button:hover {
+    background: var(--primary-dark);
+}
+
+/* FEATURES GRID */
+.features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 40px;
+    padding: 80px 5%;
+    background: var(--slate-50);
+    margin-top: 60px;
+}
+
+.feature-card h3 {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+    color: var(--slate-900);
+}
+.feature-card p {
+    color: #64748b;
+    font-size: 0.95rem;
+}
+.icon {
+    font-size: 2rem;
+    margin-bottom: 15px;
+    display: block;
+}
+
+/* FOOTER */
+footer {
+    text-align: center;
+    padding: 40px;
+    color: #94a3b8;
+    font-size: 0.9rem;
+    border-top: 1px solid var(--gray-200);
+}
