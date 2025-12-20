@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chaos Universal Verification</title>
+    <script src="js/chaos-universal.js"></script>
+    <style>
+        body { font-family: 'Courier New', monospace; background: #111; color: #0f0; text-align: center; padding: 40px; }
+        .container { border: 1px solid #0f0; padding: 20px; max-width: 600px; margin: auto; }
+        h1 { border-bottom: 1px solid #0f0; padding-bottom: 10px; }
+        button { background: #0f0; color: #000; border: none; padding: 15px 30px; font-weight: bold; cursor: pointer; margin: 10px; font-family: inherit; font-size: 16px; }
+        button:hover { background: #fff; }
+        #output { margin-top: 20px; font-size: 18px; padding: 20px; border: 1px dashed #333; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌀 UNIVERSAL VERIFICATION HUB</h1>
+        <p>System: Active</p>
+        
+        <button onclick="runChaos('VOTE')">TEST: VOTING PROTOCOL</button>
+        <button onclick="runChaos('CHECK-IN')">TEST: CHECK-IN</button>
+        
+        <div id="output">Waiting for Input...</div>
+        
+        <p style="margin-top:40px; font-size: 12px; color: #666;">
+            <a href="/" style="color:#666">Return to Command Center</a>
+        </p>
+    </div>
+
+    <script>
+        // Initialize SDK linked to Project Crimson
+        const chaos = new ChaosSDK("PROJECT-CRIMSON");
+
+        function runChaos(action) {
+            const token = chaos.generateToken(action);
+            document.getElementById("output").innerHTML = 
+                "VERIFIED TOKEN:<br><br><span style='color:#fff'>" + token + "</span>";
+        }
+    </script>
+</body>
+</html>
