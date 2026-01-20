@@ -2,135 +2,81 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chaos Nexus | Infinite</title>
+    <title>Chaos Nexus | Living World</title>
     <link rel="stylesheet" href="css/modern.css">
+    <script src="js/chaos-core.js"></script>
+    <script src="js/loot-engine.js"></script>
 </head>
 <body>
     <div class="nexus-grid">
         <aside class="pane">
             <h2 style="color:var(--mint);">[ IDENTITY ]</h2>
-            <div style="font-size:2rem; margin:10px 0;">👤 <span id="userName" style="font-size:1rem; color:var(--mint);">...</span></div>
+            <div id="uName" style="color:var(--gold); font-size:1.2rem; margin-bottom:20px;">---</div>
             
-            <div class="label">ENTROPY_RESERVE</div>
-            <div class="status-bar"><div id="barEntropy" class="fill-mint" style="width:0%"></div></div>
-            
-            <div class="label">TRUST_STABILITY</div>
-            <div class="status-bar"><div id="barTrust" class="fill-mint" style="width:50%"></div></div>
+            <div class="vital-container">
+                <div class="vital-label"><span>SENTINEL MONITOR</span><span id="botTxt">CLEAN</span></div>
+                <div class="bar-bg"><div id="botBar" class="bar-fill" style="--fill-color: var(--mint); width: 0%;"></div></div>
+            </div>
 
-            <div class="label">CHAOS_LEVEL</div>
-            <div class="status-bar"><div id="barLvl" class="fill-gold" style="width:10%"></div></div>
+            <div class="vital-container">
+                <div class="vital-label"><span>CHAOS PULSE</span><span id="pulseTxt">100%</span></div>
+                <div class="bar-bg"><div id="pulseBar" class="bar-fill" style="--fill-color: var(--gold); width: 100%;"></div></div>
+            </div>
 
-            <h4 style="color:var(--slate); margin:20px 0 10px;">// SKILL_TREE_V2</h4>
-            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px;">
-                <div class="node" style="width:40px;height:40px;border:1px solid var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--gold);">S</div>
-                <div class="node" style="width:40px;height:40px;border:1px solid var(--slate);border-radius:50%;display:flex;align-items:center;justify-content:center;">A</div>
-                <div class="node" style="width:40px;height:40px;border:1px solid var(--slate);border-radius:50%;display:flex;align-items:center;justify-content:center;">V</div>
-                <div class="node" style="width:40px;height:40px;border:1px solid var(--slate);border-radius:50%;display:flex;align-items:center;justify-content:center;">E</div>
+            <div style="margin-top:auto; padding:15px; background:#000; border:1px solid #222;">
+                <div style="font-size:10px; color:var(--slate);">GLOBAL ACTIVITY</div>
+                <div id="globalPulse" style="color:var(--mint); font-weight:bold; font-size:14px;">---</div>
             </div>
         </aside>
 
         <main class="pane">
-            <div class="feed" id="mainFeed">
-                <div class="line" style="color:var(--slate)">[SYSTEM] Link Established to Overthere.ai...</div>
-            </div>
-
-            <div id="npcEvent" class="event-box">
-                <div id="npcTitle" style="color:var(--gold); font-weight:bold;">SUDDEN ENCOUNTER</div>
-                <div id="npcDesc" style="margin:10px 0;">A mysterious entity approaches...</div>
-                <div id="npcChoices"></div>
-            </div>
-
-            <div style="margin-top:20px; display:flex; gap:10px;">
-                <button onclick="manualVerify()" style="flex:1; background:var(--mint); color:#000; border:none; padding:12px; cursor:pointer; font-weight:bold;">EXECUTE_HANDSHAKE</button>
-            </div>
+            <div class="feed" id="feed"></div>
+            <button class="btn-chaos" onclick="triggerScavenge()">SCANNED_SCAVENGE</button>
         </main>
 
         <aside class="pane">
-            <h2 style="color:var(--slate);">// ABYSS_VAULT</h2>
-            <div id="vault" style="font-size:10px; color:#666; height:200px; overflow-y:auto; border-bottom:1px solid #222; margin-bottom:20px;"></div>
-            
-            <h4 style="color:var(--slate);">// WORLD_EVENTS</h4>
-            <div id="worldLog" class="feed" style="height:200px; border:none; font-size:10px;"></div>
-
-            <div id="masterEagles" style="display:none; margin-top:auto; border:1px solid var(--blood); padding:10px;">
-                <h4 style="color:var(--blood)">EAGLE_VIEW_ACTIVE</h4>
-            </div>
+            <h2 style="color:var(--slate);">[ ABYSS_VAULT ]</h2>
+            <div class="inv-grid" id="invGrid"></div>
         </aside>
     </div>
 
-    <script src="js/chaos-core.js"></script>
     <script>
-        const name = localStorage.getItem('CHAOS_CALLSIGN') || "GUEST";
-        document.getElementById('userName').innerText = name;
-        const chaos = new ChaosID(name);
-        if(chaos.isAdmin) document.getElementById('masterEagles').style.display='block';
+        const app = new ChaosID(localStorage.getItem('CHAOS_CALLSIGN') || "GUEST");
+        document.getElementById('uName').innerText = app.callsign;
 
-        function log(msg, target='mainFeed', color='#e0e0e0') {
-            const f = document.getElementById(target);
-            const l = document.createElement('div');
-            l.className = 'line';
-            l.innerHTML = `<span style="color:${color}">> ${msg}</span>`;
-            f.appendChild(l);
+        function log(m, c="#aaa") {
+            const f = document.getElementById('feed');
+            f.innerHTML += `<div class="line" style="color:${c}">> ${m}</div>`;
             f.scrollTop = f.scrollHeight;
         }
 
-        async function manualVerify() {
-            log("Initiating manual verification...", 'mainFeed', '#00ff9d');
-            const token = await chaos.generateProof("AUTH");
-            log("TOKEN_GEN: " + token, 'mainFeed', '#00ff9d');
-            updateVault();
-        }
-
-        function updateVault() {
-            const v = document.getElementById('vault');
-            const data = JSON.parse(localStorage.getItem('ABYSS_VAULT')) || [];
-            v.innerHTML = data.map(i => `<div>${i.i}</div>`).reverse().join('');
-        }
-
-        // --- THE CHAOS NPC ENGINE (OSRS STYLE) ---
-        const NPCs = [
-            { name: "The Wise Glitch", lines: ["Chaos is the only truth.", "Your entropy is high today."], rewards: 5 },
-            { name: "Abyss Scraper", lines: ["Give me your data.", "Scanning your vault..."], rewards: -2 },
-            { name: "Mint Sentinel", lines: ["Reputation is your shield.", "Identify yourself."], rewards: 10 }
-        ];
-
-        function spawnEvent() {
-            const npc = NPCs[Math.floor(Math.random() * NPCs.length)];
-            const box = document.getElementById('npcEvent');
-            document.getElementById('npcTitle').innerText = "ENCOUNTER: " + npc.name;
-            document.getElementById('npcDesc').innerText = npc.lines[Math.floor(Math.random()*npc.lines.length)];
-            
-            const choices = document.getElementById('npcChoices');
-            choices.innerHTML = `
-                <div class="choice" onclick="resolveEvent(1, '${npc.name}')">[1] Verify with Chaos</div>
-                <div class="choice" onclick="resolveEvent(0, '${npc.name}')">[2] Deflect into Abyss</div>
-            `;
-            box.style.display = 'block';
-            log(npc.name + " has appeared.", 'worldLog', '#ffb300');
-        }
-
-        function resolveEvent(success, npcName) {
-            document.getElementById('npcEvent').style.display = 'none';
-            if(success) {
-                log("You verified with " + npcName + ". Trust gained.", 'mainFeed', '#00ff9d');
-                chaos.trust = Math.min(100, chaos.trust + 5);
-            } else {
-                log("You deflected " + npcName + ". Entropy conserved.", 'mainFeed', '#64748b');
+        function triggerScavenge() {
+            const item = LootEngine.generate(app);
+            if(item === "ERR_NIGHTMARE") {
+                log("NIGHTMARE_DEFENSE: Pattern rejected.", "var(--blood)");
+            } else if (item) {
+                log(`LOOT_FOUND: ${item.name}`, item.color);
+                const slot = document.createElement('div');
+                slot.className = 'slot';
+                slot.innerHTML = `<span style="color:${item.color}">${item.icon}</span>`;
+                document.getElementById('invGrid').prepend(slot);
             }
-            document.getElementById('barTrust').style.width = chaos.trust + "%";
         }
 
-        // Random Event Timer (Chaos amount of playstyle)
+        // --- GLOBAL PULSE ENGINE ---
         setInterval(() => {
-            if(Math.random() > 0.7) spawnEvent();
-        }, 30000);
+            // Simulated Global Counter based on real Chaos
+            const active = Math.floor(Math.random() * 50) + 1492032;
+            document.getElementById('globalPulse').innerText = active.toLocaleString() + " LOGS";
+            
+            // Bot Detection UI
+            const botPct = (app.botScore / 20) * 100;
+            document.getElementById('botBar').style.width = botPct + "%";
+            document.getElementById('botBar').style.setProperty('--fill-color', botPct > 50 ? 'var(--blood)' : 'var(--mint)');
+            document.getElementById('botTxt').innerText = botPct > 50 ? "WARNING" : "CLEAN";
+        }, 2000);
 
-        setInterval(() => {
-            document.getElementById('barEntropy').style.width = (chaos.pool.length / 512 * 100) + "%";
-        }, 1000);
-
-        updateVault();
+        log("SENTINEL ACTIVE. MONITORING ENTROPY QUALITY...");
     </script>
 </body>
 </html>

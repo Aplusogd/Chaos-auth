@@ -1,53 +1,42 @@
-/**
- * 🌀 CHAOS PROTOCOL v4.0 - OVERTHERE.AI EDITION
- * 🛡️ NightMare Defense | 🕳️ Abyss Storage | ✨ Dreams Interface
- */
-
 class ChaosID {
     constructor(callsign) {
         this.callsign = callsign.toUpperCase();
-        // 🦅 MASTER IDENTITY LOCK
-        this.master = "APLUS-OGD-ADMIN"; 
-        this.isAdmin = (this.callsign === this.master);
-        
+        this.isAdmin = (this.callsign === "APLUS-OGD-ADMIN");
         this.pool = [];
-        this.isReady = false;
-        this.vault = JSON.parse(localStorage.getItem('ABYSS_VAULT')) || [];
-        this.trust = this.isAdmin ? 100 : (parseInt(localStorage.getItem('CHAOS_TRUST')) || 50);
-        
-        this._initProtocols();
+        this.lastMove = Date.now();
+        this.botScore = 0; // Nightmare Score
+        this._initSentinel();
     }
 
-    _initProtocols() {
-        window.addEventListener('mousemove', (e) => this._harvest(e.clientX ^ e.clientY));
-        window.addEventListener('keydown', (e) => this._harvest(e.keyCode));
-        
-        if(!this.isAdmin) {
-            // Passive Reputation Decay for non-admins
-            setInterval(() => this._decay(), 300000); // 5-minute intervals
+    _initSentinel() {
+        const gather = (e) => {
+            const now = performance.now();
+            const delta = now - this.lastMove;
+            
+            // BOT DETECTION: If movement timing is too "perfect" or repetitive
+            if (delta < 5) this.botScore += 0.1; 
+            else this.botScore = Math.max(0, this.botScore - 0.05);
+
+            const noise = (e.clientX ^ e.clientY) ^ now;
+            if(this.pool.length < 1024) this.pool.push(Math.floor(noise) % 256);
+            this.lastMove = now;
+        };
+        window.addEventListener('mousemove', gather);
+    }
+
+    extractEntropy() {
+        // If the Sentinel detects bot-like precision, it poisons the entropy
+        if(this.botScore > 20) {
+            console.error("NIGHTMARE_LOCKOUT: Non-human patterns detected.");
+            return null;
         }
-    }
-
-    _harvest(data) {
-        if(this.pool.length < 512) this.pool.push(data ^ Date.now());
-        else this.isReady = true;
-    }
-
-    _decay() {
-        this.trust = Math.max(0, this.trust - 1);
-        localStorage.setItem('CHAOS_TRUST', this.trust);
+        if(this.pool.length < 32) return null;
+        return this.pool.splice(0, 16).reduce((a, b) => a ^ b);
     }
 
     async generateProof(action) {
-        if (!this.isReady && !this.isAdmin) return "WAITING_FOR_ENTROPY";
-        const sig = btoa(this.pool.slice(0, 5).join('')).substring(0, 12).toUpperCase();
-        const token = `${this.callsign}-${action}-${sig}`;
-        
-        // Log to Abyss
-        this.vault.push({ t: Date.now(), a: action, i: token });
-        if(this.vault.length > 20) this.vault.shift();
-        localStorage.setItem('ABYSS_VAULT', JSON.stringify(this.vault));
-        
-        return token;
+        const entropy = this.extractEntropy();
+        if(!entropy) return "ERR_NIGHTMARE";
+        return `${this.callsign}-${action}-${entropy.toString(16).toUpperCase()}`;
     }
 }
