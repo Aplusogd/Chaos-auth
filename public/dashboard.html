@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Chaos Nexus | Living World</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chaosverse | Genesis</title>
     <link rel="stylesheet" href="css/modern.css">
     <script src="js/chaos-core.js"></script>
     <script src="js/loot-engine.js"></script>
@@ -10,73 +11,106 @@
 <body>
     <div class="nexus-grid">
         <aside class="pane">
-            <h2 style="color:var(--mint);">[ IDENTITY ]</h2>
-            <div id="uName" style="color:var(--gold); font-size:1.2rem; margin-bottom:20px;">---</div>
+            <h2 style="color:var(--mint); margin-bottom:20px;">[ FRAGMENT ]</h2>
+            <div id="avatar" style="width:100%; height:150px; background:#000; border:1px solid var(--mint); display:flex; align-items:center; justify-content:center; margin-bottom:20px;">
+                <canvas id="symbolView" width="150" height="150"></canvas>
+            </div>
             
-            <div class="vital-container">
-                <div class="vital-label"><span>SENTINEL MONITOR</span><span id="botTxt">CLEAN</span></div>
-                <div class="bar-bg"><div id="botBar" class="bar-fill" style="--fill-color: var(--mint); width: 0%;"></div></div>
+            <div class="stat-box">
+                <div style="font-size:10px; color:var(--slate);">INFLUENCE</div>
+                <div class="stat-bar"><div id="barTrust" class="fill" style="--color: var(--mint); width: 50%;"></div></div>
+            </div>
+            <div class="stat-box">
+                <div style="font-size:10px; color:var(--slate);">ENTROPY</div>
+                <div class="stat-bar"><div id="barEntropy" class="fill" style="--color: var(--gold); width: 0%;"></div></div>
             </div>
 
-            <div class="vital-container">
-                <div class="vital-label"><span>CHAOS PULSE</span><span id="pulseTxt">100%</span></div>
-                <div class="bar-bg"><div id="pulseBar" class="bar-fill" style="--fill-color: var(--gold); width: 100%;"></div></div>
-            </div>
-
-            <div style="margin-top:auto; padding:15px; background:#000; border:1px solid #222;">
-                <div style="font-size:10px; color:var(--slate);">GLOBAL ACTIVITY</div>
-                <div id="globalPulse" style="color:var(--mint); font-weight:bold; font-size:14px;">---</div>
-            </div>
+            <nav style="margin-top:auto;">
+                <button class="cmd-btn" style="width:100%;" onclick="navigate('SKILLS')">Skill Web (PoE)</button>
+            </nav>
         </aside>
 
-        <main class="pane">
-            <div class="feed" id="feed"></div>
-            <button class="btn-chaos" onclick="triggerScavenge()">SCANNED_SCAVENGE</button>
+        <main class="pane" style="background:#000;">
+            <div class="feed" id="mainFeed">
+                <div class="line">>> WELCOME TO THE CHAOSVERSE. DISTRICT 01 ONLINE.</div>
+            </div>
+            
+            <div id="scenarioBox" style="display:none; padding:20px; border:1px solid var(--gold); background:#0a0a00; margin-top:10px;">
+                <div id="scenTitle" style="color:var(--gold); font-weight:bold;">SITUATION: STREET HEIST</div>
+                <div id="scenDesc" style="margin:10px 0; font-size:11px;">A digital armored truck is leaking entropy. Several Netrunners are closing in.</div>
+                <button class="cmd-btn" style="font-size:10px; padding:8px;" onclick="resolve('A')">[A] Aggressive Breach</button>
+                <button class="cmd-btn" style="font-size:10px; padding:8px;" onclick="resolve('B')">[B] Silent Siphon</button>
+            </div>
+
+            <button class="cmd-btn" id="scoutBtn" onclick="scout()">Scout District (-15 Entropy)</button>
         </main>
 
         <aside class="pane">
-            <h2 style="color:var(--slate);">[ ABYSS_VAULT ]</h2>
-            <div class="inv-grid" id="invGrid"></div>
+            <h2 style="color:var(--slate); margin-bottom:20px;">VAULT</h2>
+            <div id="invGrid" style="display:grid; grid-template-columns:repeat(4,1fr); gap:5px;">
+                </div>
+            
+            <div id="lootCounter" style="margin-top:auto; padding:15px; background:var(--iron-lite); border-top:1px solid var(--slate);">
+                <div style="font-size:9px; color:var(--slate);">TOTAL WORLD LOOT</div>
+                <div id="worldCount" style="color:var(--mint); font-weight:bold; font-size:18px;">1,492,032</div>
+            </div>
         </aside>
     </div>
 
     <script>
         const app = new ChaosID(localStorage.getItem('CHAOS_CALLSIGN') || "GUEST");
-        document.getElementById('uName').innerText = app.callsign;
+        let worldLoot = 1492032;
 
-        function log(m, c="#aaa") {
-            const f = document.getElementById('feed');
-            f.innerHTML += `<div class="line" style="color:${c}">> ${m}</div>`;
+        function log(msg, color="var(--text)") {
+            const f = document.getElementById('mainFeed');
+            f.innerHTML += `<div class="line" style="border-color:${color}"><span style="color:${color}">> ${msg}</span></div>`;
             f.scrollTop = f.scrollHeight;
         }
 
-        function triggerScavenge() {
-            const item = LootEngine.generate(app);
-            if(item === "ERR_NIGHTMARE") {
-                log("NIGHTMARE_DEFENSE: Pattern rejected.", "var(--blood)");
-            } else if (item) {
-                log(`LOOT_FOUND: ${item.name}`, item.color);
-                const slot = document.createElement('div');
-                slot.className = 'slot';
-                slot.innerHTML = `<span style="color:${item.color}">${item.icon}</span>`;
-                document.getElementById('invGrid').prepend(slot);
+        async function scout() {
+            if(app.pool.length < 50) return log("INSUFFICIENT ENTROPY. INTERACT TO HARVEST.", "var(--blood)");
+            
+            log("SCOUTING SECTOR...");
+            worldLoot++;
+            document.getElementById('worldCount').innerText = worldLoot.toLocaleString();
+
+            const roll = Math.random();
+            if(roll > 0.8) {
+                const item = LootEngine.generate(app);
+                log(`LOOT DISCOVERED: ${item.name}`, item.color);
+                addSlot(item);
+            } else if (roll < 0.2) {
+                triggerScenario();
+            } else {
+                log("DISTRICT CALM. ENTROPY GATHERED.");
             }
         }
 
-        // --- GLOBAL PULSE ENGINE ---
-        setInterval(() => {
-            // Simulated Global Counter based on real Chaos
-            const active = Math.floor(Math.random() * 50) + 1492032;
-            document.getElementById('globalPulse').innerText = active.toLocaleString() + " LOGS";
-            
-            // Bot Detection UI
-            const botPct = (app.botScore / 20) * 100;
-            document.getElementById('botBar').style.width = botPct + "%";
-            document.getElementById('botBar').style.setProperty('--fill-color', botPct > 50 ? 'var(--blood)' : 'var(--mint)');
-            document.getElementById('botTxt').innerText = botPct > 50 ? "WARNING" : "CLEAN";
-        }, 2000);
+        function triggerScenario() {
+            document.getElementById('scenarioBox').style.display = 'block';
+            document.getElementById('scoutBtn').style.display = 'none';
+        }
 
-        log("SENTINEL ACTIVE. MONITORING ENTROPY QUALITY...");
+        function resolve(choice) {
+            document.getElementById('scenarioBox').style.display = 'none';
+            document.getElementById('scoutBtn').style.display = 'block';
+            log(`SCENARIO RESOLVED: CHOICE ${choice} RECORDED IN ABYSS.`, "var(--mint)");
+        }
+
+        function addSlot(item) {
+            const grid = document.getElementById('invGrid');
+            const slot = document.createElement('div');
+            slot.style.cssText = "aspect-ratio:1; background:#000; border:1px solid #222; display:flex; align-items:center; justify-content:center; cursor:pointer;";
+            slot.innerHTML = `<span style="color:${item.color}">${item.icon}</span>`;
+            grid.prepend(slot);
+        }
+
+        // Entropy Pulse
+        setInterval(() => {
+            document.getElementById('barEntropy').style.width = (app.pool.length / 512 * 100) + "%";
+        }, 500);
+
+        log("FRAGMENT LOADED. CHAOSVERSE READY.");
     </script>
 </body>
 </html>

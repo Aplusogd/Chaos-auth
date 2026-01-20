@@ -1,32 +1,39 @@
 :root {
-    --iron: #080808; --iron-lite: #121212;
-    --mint: #00ff9d; --mint-glow: rgba(0, 255, 157, 0.3);
-    --slate: #444; --text: #e0e0e0;
+    --iron: #050505; --iron-lite: #111111;
+    --mint: #00ff9d; --mint-glow: rgba(0, 255, 157, 0.4);
+    --gold: #ffb300; --blood: #ff3333;
+    --text: #e0e0e0; --slate: #333333;
 }
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Inter', sans-serif; background: var(--iron); color: var(--text); overflow-x: hidden; }
-
-/* THE INITIATION BOX */
-.init-card {
-    background: var(--iron-lite); border: 1px solid #222; 
-    padding: 30px; border-radius: 12px; width: 100%; max-width: 500px;
-    margin: 100px auto; text-align: center;
+* { box-sizing: border-box; margin: 0; padding: 0; transition: all 0.15s ease-out; }
+body { 
+    font-family: 'Fira Code', 'Courier New', monospace; 
+    background: var(--iron); color: var(--text); 
+    height: 100vh; overflow: hidden;
 }
 
-#drawCanvas {
-    background: #000; border: 1px solid var(--mint); 
-    cursor: crosshair; margin: 20px 0; touch-action: none;
-    box-shadow: inset 0 0 15px var(--mint-glow);
+/* THE THREE PILLARS LAYOUT */
+.nexus-grid {
+    display: grid; grid-template-columns: 320px 1fr 340px; height: 100vh;
 }
+.pane { border-right: 1px solid #1a1a1a; padding: 20px; display: flex; flex-direction: column; background: rgba(5,5,5,0.9); }
 
-.input-chaos {
-    width: 100%; background: #000; border: 1px solid #333; 
-    padding: 15px; color: var(--mint); font-family: 'Fira Code', monospace;
-    font-size: 1.1rem; margin-bottom: 20px; text-align: center;
-}
+/* CHARACTER STATS (Sims Style) */
+.stat-box { margin-bottom: 15px; }
+.stat-bar { height: 4px; background: #000; border: 1px solid #222; margin-top: 4px; overflow: hidden; }
+.fill { height: 100%; box-shadow: 0 0 10px var(--color); background: var(--color); }
 
-.btn-chaos {
-    width: 100%; background: var(--mint); color: #000; border: none;
-    padding: 18px; font-weight: 900; text-transform: uppercase;
-    letter-spacing: 2px; cursor: pointer; border-radius: 4px;
+/* THE FEED (GTA/Torn Style) */
+.feed { 
+    flex-grow: 1; background: #000; border: 1px solid #111; padding: 15px; 
+    overflow-y: auto; font-size: 12px; line-height: 1.4;
 }
+.line { margin-bottom: 8px; border-left: 2px solid var(--slate); padding-left: 10px; }
+.event-gold { color: var(--gold); } .event-red { color: var(--blood); }
+
+/* ACTION BUTTONS */
+.cmd-btn {
+    background: var(--iron-lite); color: var(--mint); border: 1px solid var(--mint);
+    padding: 15px; font-weight: bold; cursor: pointer; text-transform: uppercase;
+    letter-spacing: 2px; margin-top: 10px;
+}
+.cmd-btn:hover { background: var(--mint); color: #000; box-shadow: 0 0 20px var(--mint-glow); }
