@@ -2,99 +2,78 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Overthere.ai | Command Center</title>
+    <title>Chaos Home | Overthere.ai</title>
     <link rel="stylesheet" href="css/modern.css">
     <script src="js/chaos-core.js"></script>
-    <style>
-        body { background: #050505; color: #f8fafc; font-family: 'Inter', sans-serif; }
-        .eagle-eye { border-top: 2px solid #3b82f6; background: rgba(59, 130, 246, 0.05); padding: 20px; margin-bottom: 30px; border-radius: 0 0 12px 12px; }
-        .grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; padding: 20px 5%; }
-        .card { background: #0f0f12; border: 1px solid #1e1e24; border-radius: 12px; padding: 25px; }
-        .admin-only { display: none; background: #1a0b0b; border-color: #ef4444; }
-        .stat-val { font-family: monospace; color: #3b82f6; font-size: 1.5rem; }
-        .btn { background: #3b82f6; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-weight: 700; cursor: pointer; }
-        .terminal { background: #000; color: #10b981; padding: 15px; border-radius: 6px; font-family: monospace; font-size: 0.85rem; border: 1px solid #10b981; }
-    </style>
 </head>
 <body>
-    <div class="eagle-eye" id="eagleBar" style="display:none;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="color: #ef4444; font-weight: 800; letter-spacing: 2px;">🦅 EAGLE OVERSIGHT ACTIVE</span>
-            <span style="font-size: 0.8rem; color: #64748b;">DOMAIN: OVERTHERE.AI | OPERATOR: MASTER</span>
-        </div>
-    </div>
+    <div class="app-container">
+        <aside class="sidebar">
+            <h2 style="color: var(--neon-mint);">CHAOS ID</h2>
+            <p style="font-size: 0.7rem; color: var(--slate);">v5.0 Perfected</p>
+            <nav style="margin-top: 50px;">
+                <div style="color: var(--neon-mint); margin-bottom: 20px; cursor: pointer;">⬥ Dashboard</div>
+                <div style="color: var(--slate); margin-bottom: 20px; cursor: pointer;">⬥ SDK Access</div>
+                <div style="color: var(--slate); margin-bottom: 20px; cursor: pointer;">⬥ Secure Vault</div>
+                <div style="color: var(--slate); margin-bottom: 20px; cursor: pointer;">⬥ API Keys</div>
+            </nav>
+        </aside>
 
-    <nav style="padding: 20px 5%; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e1e24;">
-        <div style="font-weight: 900; font-size: 1.5rem;">CHAOS<span style="color:#3b82f6">ID</span></div>
-        <div id="userTag" style="font-weight: 600;">IDENTIFYING...</div>
-    </nav>
+        <main class="main-content">
+            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
+                <h1>Welcome Home, <span id="userName" style="color: var(--neon-mint);">...</span></h1>
+                <div id="trustLevel" style="border: 1px solid var(--neon-mint); padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; color: var(--neon-mint);">Trust: 100%</div>
+            </header>
 
-    <div class="grid">
-        <main>
-            <div class="card">
-                <h3>Universal Handshake</h3>
-                <p style="color: #64748b; margin-bottom: 15px;">Generate cryptographically secured intent proofs.</p>
-                <div id="out" class="terminal">AWAITING_INPUT</div>
-                <div style="margin-top: 20px;">
-                    <button class="btn" onclick="act('VOTE')">EXECUTE VOTE</button>
-                    <button class="btn" style="background:#1e1e24;" onclick="act('AUTH')">EXECUTE AUTH</button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
+                <div class="card">
+                    <h3>The Power of Chaos</h3>
+                    <p style="color: var(--slate); font-size: 0.8rem;">Generate hardware-encrypted verification tokens instantly.</p>
+                    <div id="tokenOut" class="terminal" style="margin: 20px 0;">AWAITING_GEN_COMMAND...</div>
+                    <button class="btn-mint" onclick="generate('VOTE')">Verify Vote</button>
+                    <button class="btn-mint" style="background: transparent; color: var(--neon-mint); border: 1px solid var(--neon-mint); margin-left: 10px;" onclick="generate('LOGIN')">Verify Auth</button>
+                </div>
+
+                <div class="card">
+                    <h3>Abyss Vault</h3>
+                    <p style="color: var(--slate); font-size: 0.8rem;">Encrypted notes stored in the Chaos Abyss.</p>
+                    <textarea id="vaultNotes" rows="4" placeholder="Enter secure data here..."></textarea>
+                    <button class="btn-mint" style="margin-top: 10px; width: 100%;" onclick="saveVault()">Seal in Abyss</button>
                 </div>
             </div>
 
-            <div id="masterConsole" class="card admin-only" style="margin-top: 20px;">
-                <h3 style="color: #ef4444;">NIGHTMARE OVERRIDE</h3>
-                <p style="font-size: 0.8rem; margin-bottom: 15px;">Global revocation and trust management.</p>
-                <button class="btn" style="background:#ef4444;" onclick="globalReset()">PURGE REPUTATION DATA</button>
+            <div class="card" style="margin-top: 25px;">
+                <h3>Developer SDK & API</h3>
+                <p style="color: var(--slate);">Implement Chaos security into your own systems with one line of code.</p>
+                <div class="terminal" style="margin-top: 15px;">
+                    // Initialize Chaos Universal SDK<br>
+                    const chaos = new ChaosProtocol({ key: "<span id='apiKey'>...</span>" });<br>
+                    chaos.verify();
+                </div>
             </div>
         </main>
-
-        <aside>
-            <div class="card">
-                <h4>System Integrity</h4>
-                <div style="margin: 15px 0;">
-                    <div style="font-size: 0.7rem; color: #64748b;">TRUST SCORE</div>
-                    <div class="stat-val"><span id="trustPct">0</span>%</div>
-                </div>
-                <div style="margin: 15px 0;">
-                    <div style="font-size: 0.7rem; color: #64748b;">ABYSS STORAGE</div>
-                    <div id="logs" style="font-size: 0.7rem; color: #475569;">No actions logged.</div>
-                </div>
-            </div>
-        </aside>
     </div>
 
     <script>
-        const myID = localStorage.getItem('CHAOS_CALLSIGN');
-        if(!myID) window.location.href = '/';
+        const myCallsign = localStorage.getItem('CHAOS_CALLSIGN') || "GUEST";
+        document.getElementById('userName').innerText = myCallsign;
+        document.getElementById('apiKey').innerText = btoa(myCallsign).substring(0,12).toUpperCase();
 
-        const chaos = new ChaosID(myID);
-        document.getElementById('userTag').innerText = chaos.callsign;
+        const chaos = new ChaosID(myCallsign);
 
-        if(chaos.isAdmin) {
-            document.getElementById('eagleBar').style.display = 'block';
-            document.getElementById('masterConsole').style.display = 'block';
+        async function generate(act) {
+            const token = await chaos.generateProof(act);
+            document.getElementById('tokenOut').innerText = "TOKEN::" + token;
         }
 
-        async function act(type) {
-            const token = await chaos.generateProof(type);
-            document.getElementById('out').innerText = "TOKEN: " + token;
-            render();
+        function saveVault() {
+            const note = document.getElementById('vaultNotes').value;
+            localStorage.setItem('CHAOS_VAULT_NOTE', note);
+            alert("Data sealed in the Abyss.");
         }
 
-        function render() {
-            document.getElementById('trustPct').innerText = chaos.trust;
-            document.getElementById('logs').innerHTML = chaos.vault.map(v => `<div>[${v.a}] ${v.i}</div>`).reverse().join('');
-        }
-
-        function globalReset() {
-            if(confirm("EAGLE OVERRIDE: Clear all local trust records?")) {
-                localStorage.clear();
-                window.location.reload();
-            }
-        }
-
-        render();
-        setInterval(render, 2000);
+        // Load existing note
+        document.getElementById('vaultNotes').value = localStorage.getItem('CHAOS_VAULT_NOTE') || "";
     </script>
 </body>
 </html>

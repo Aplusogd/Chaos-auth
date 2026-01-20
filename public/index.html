@@ -2,57 +2,44 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chaos ID | Decentralized Identity Protocol</title>
+    <title>Chaos ID | Overthere.ai</title>
     <link rel="stylesheet" href="css/modern.css">
-    <script src="js/landing.js" defer></script>
 </head>
 <body>
-
-    <nav>
-        <div class="logo">Chaos<span>ID</span> Protocol</div>
-        <div class="nav-links">
-            <a href="https://github.com/Aplusogd/Chaos-auth" target="_blank">Documentation</a>
-            <a href="/verify.html">Verify a Token</a>
-            <a href="/dashboard.html" class="btn-login">Log In</a>
-        </div>
-    </nav>
-
-    <section class="hero">
-        <h1>Trust, Verified by Physics.</h1>
-        <p>The universal standard for hardware-rooted identity. Secure your voting booths, reviews, and check-ins with un-fakeable cryptographic proofs.</p>
-
-        <div class="callsign-wrapper">
-            <input type="text" id="callsignInput" placeholder="Enter your Organization Name or Callsign...">
-            <button id="createBtn">Create Identity</button>
+    <div class="hero-section">
+        <h1>CHAOS ID</h1>
+        <p style="max-width: 600px; color: var(--slate); font-size: 1.2rem; margin-bottom: 40px;">
+            The most secure way for humans and AI to communicate. Verified by hardware entropy, protected by the Abyss.
+        </p>
+        
+        <div style="background: var(--iron-light); padding: 10px; border-radius: 50px; border: 1px solid #333; width: 400px; display: flex;">
+            <input type="text" id="callSign" placeholder="Enter your Callsign..." style="margin-top:0; background:transparent; border:none; padding-left:20px;">
+            <button class="btn-mint" style="border-radius: 50px;" onclick="enter()">Enter</button>
         </div>
         
-        <p style="font-size: 0.9rem; margin-top: 20px; color: #94a3b8;">
-            Open Source • Hardware Agnostic • Decentralized
-        </p>
-    </section>
-
-    <section class="features">
-        <div class="feature-card">
-            <span class="icon">⚛️</span>
-            <h3>Hardware Entropy</h3>
-            <p>We use physical randomness (Touch, Gyro, Chip Noise) to generate keys that bots cannot replicate.</p>
+        <div style="margin-top: 50px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; width: 80%; max-width: 1000px;">
+            <div>
+                <h4 style="color: var(--neon-mint);">SECURED</h4>
+                <p style="font-size: 0.8rem; color: var(--slate);">Multi-layer encryption via browser entropy.</p>
+            </div>
+            <div>
+                <h4 style="color: var(--neon-mint);">FAST</h4>
+                <p style="font-size: 0.8rem; color: var(--slate);">Zero-latency verification protocols.</p>
+            </div>
+            <div>
+                <h4 style="color: var(--neon-mint);">UNIVERSAL</h4>
+                <p style="font-size: 0.8rem; color: var(--slate);">SDK for Voting, Reviews, and POS.</p>
+            </div>
         </div>
-        <div class="feature-card">
-            <span class="icon">🆔</span>
-            <h3>Universal SDK</h3>
-            <p>One line of code turns any Tablet, Smartphone, or PC into a secure verification terminal.</p>
-        </div>
-        <div class="feature-card">
-            <span class="icon">🛡️</span>
-            <h3>Bot-Proof</h3>
-            <p>Every review and vote is cryptographically signed by a unique device fingerprint. Zero fakes.</p>
-        </div>
-    </section>
+    </div>
 
-    <footer>
-        &copy; 2025 Chaos Auth Protocol. Maintained by A+ OGD.
-    </footer>
-
+    <script>
+        function enter() {
+            const val = document.getElementById('callSign').value;
+            if(val.length < 3) return alert("Callsign required.");
+            localStorage.setItem('CHAOS_CALLSIGN', val.toUpperCase());
+            window.location.href = '/dashboard.html';
+        }
+    </script>
 </body>
 </html>
