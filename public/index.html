@@ -3,60 +3,81 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chaos ID | Zero Day Survival</title>
+    <title>Initiation | Overthere.ai</title>
     <link rel="stylesheet" href="css/modern.css">
 </head>
 <body>
 
-    <section class="hero container">
-        <h1>CHAOS ID</h1>
-        <p>A procedural survival RPG where every action is secured by physical entropy. No bots. No fakes. Pure Chaos.</p>
+    <div class="init-card">
+        <h1 style="color: var(--mint); margin-bottom: 10px;">CHAOS ID</h1>
+        <p style="color: var(--slate); font-size: 0.8rem; margin-bottom: 30px;">ESTABLISH YOUR FRAGMENT IN THE METAVERSE</p>
         
-        <div class="auth-card">
-            <h3 style="margin-bottom: 20px; font-size: 0.8rem; letter-spacing: 2px; color: var(--slate);">INITIATE HANDSHAKE</h3>
-            <input type="text" id="callSign" class="input-field" placeholder="CLAIM CALLSIGN...">
-            <button class="btn-primary" onclick="initiate()">Enter the Abyss</button>
-            <p style="font-size: 0.7rem; color: var(--slate); margin-top: 15px;">Claiming a new callsign creates a unique character seed.</p>
-        </div>
-    </section>
-
-    <section class="container features">
-        <div class="f-card">
-            <h3>🌀 Entropy Driven</h3>
-            <p>Unlike standard games that use predictable code, Chaos uses your physical movement to generate loot and events. It's truly random and impossible to bot.</p>
-        </div>
-        <div class="f-card">
-            <h3>🎒 Infinite Loot</h3>
-            <p>Billions of item combinations inspired by Borderlands. Find rare cloths, weapons, and skill books to survive the Zero Day fallout.</p>
-        </div>
-        <div class="f-card">
-            <h3>🌲 Deep Progress</h3>
-            <p>A massive Path of Exile inspired skill tree and Project Zomboid style job systems. Your survival depends on the path you choose.</p>
-        </div>
-        <div class="f-card">
-            <h3>📱 Cross-Platform</h3>
-            <p>Optimized for the "Eagle Eye" desktop experience and the "On-the-Move" mobile tactical interface. Your identity follows you everywhere.</p>
-        </div>
-    </section>
-
-    <footer class="container" style="text-align: center; padding: 40px; color: var(--slate); font-size: 0.8rem; border-top: 1px solid #111;">
-        &copy; 2026 OVERTHERE.AI | SECURED BY CHAOS PROTOCOL
-    </footer>
+        <input type="text" id="csInput" class="input-chaos" placeholder="[ CLAIM_CALLSIGN ]">
+        
+        <p style="font-size: 0.7rem; color: var(--slate); margin-bottom: 10px;">DRAW YOUR UNIQUE SYMBOL BELOW</p>
+        <canvas id="drawCanvas" width="300" height="200"></canvas>
+        
+        <button class="btn-chaos" onclick="sealIdentity()">Seal Identity</button>
+        <button onclick="clearCanvas()" style="background:transparent; color:var(--slate); border:none; margin-top:10px; cursor:pointer; font-size:10px;">CLEAR SYMBOL</button>
+    </div>
 
     <script>
-        function initiate() {
-            const val = document.getElementById('callSign').value.trim();
-            if(val.length < 3) return alert("MINIMUM 3 CHARACTERS REQUIRED.");
-            
-            // If the user is YOU (The Eagle)
-            if(val.toUpperCase() === "APLUS-OGD-ADMIN") {
-                localStorage.setItem('CHAOS_CALLSIGN', "APLUS-OGD-ADMIN");
-                window.location.href = '/dashboard.html';
-                return;
-            }
+        const canvas = document.getElementById('drawCanvas');
+        const ctx = canvas.getContext('2d');
+        let drawing = false;
+        let entropyPoints = [];
 
-            // Normal Character Creation
-            localStorage.setItem('CHAOS_CALLSIGN', val.toUpperCase());
+        ctx.strokeStyle = '#00ff9d';
+        ctx.lineWidth = 3;
+        ctx.lineCap = 'round';
+
+        // --- DRAWING LOGIC & ENTROPY CAPTURE ---
+        function startDraw(e) {
+            drawing = true;
+            ctx.beginPath();
+            draw(e);
+        }
+
+        function draw(e) {
+            if (!drawing) return;
+            const rect = canvas.getBoundingClientRect();
+            const x = (e.clientX || e.touches[0].clientX) - rect.left;
+            const y = (e.clientY || e.touches[0].clientY) - rect.top;
+            
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            
+            // Capture physical jitter for entropy
+            entropyPoints.push(Math.floor(x * y));
+        }
+
+        function endDraw() { drawing = false; }
+
+        canvas.addEventListener('mousedown', startDraw);
+        canvas.addEventListener('mousemove', draw);
+        window.addEventListener('mouseup', endDraw);
+        canvas.addEventListener('touchstart', startDraw);
+        canvas.addEventListener('touchmove', draw);
+        canvas.addEventListener('touchend', endDraw);
+
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            entropyPoints = [];
+        }
+
+        function sealIdentity() {
+            const cs = document.getElementById('csInput').value.trim();
+            if(cs.length < 3) return alert("CALLSIGN REQUIRED");
+            if(entropyPoints.length < 10) return alert("SYMBOL TOO SIMPLE. PROVIDE MORE ENTROPY.");
+
+            // Create the Chaos Hash from the Drawing
+            const drawingHash = btoa(entropyPoints.join('')).substring(0, 32);
+            
+            // SAVE TO METAVERSE
+            localStorage.setItem('CHAOS_CALLSIGN', cs.toUpperCase());
+            localStorage.setItem('CHAOS_IDENTITY_HASH', drawingHash);
+            
+            alert("IDENTITY SEALED. ENTERING THE METAVERSE.");
             window.location.href = '/dashboard.html';
         }
     </script>
