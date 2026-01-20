@@ -1,78 +1,74 @@
 :root {
-    --iron-ore: #0a0a0a;
-    --iron-light: #151515;
-    --neon-mint: #00ff9d;
-    --blood-red: #ff4444;
-    --slate: #555;
-    --white: #d0d0d0;
+    --iron: #0d0d0d;      /* Deep Iron Ore */
+    --iron-lite: #1a1a1a; /* Lighter Slate for cards */
+    --mint: #00ff9d;      /* High-Visibility Neon */
+    --mint-dim: rgba(0, 255, 157, 0.1);
+    --blood: #ff4444;     /* Admin/Danger Red */
+    --slate: #777;
+    --white: #e0e0e0;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { 
     font-family: 'Fira Code', 'Courier New', monospace; 
-    background: var(--iron-ore); 
+    background: var(--iron); 
     color: var(--white); 
+    font-size: 14px;
+    height: 100vh;
     overflow: hidden;
 }
 
-/* TERMINAL LAYOUT */
-.terminal-grid {
+/* TORN-INSPIRED 3-COLUMN LAYOUT */
+.game-container {
     display: grid;
-    grid-template-columns: 280px 1fr 300px;
+    grid-template-columns: 260px 1fr 300px;
     height: 100vh;
 }
 
-.column {
+.col {
     border-right: 1px solid #222;
     padding: 20px;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
 }
 
-/* TORN-STYLE SIDEBAR */
-.stats-box {
-    background: #111;
+/* VITALS (LEFT) */
+.stat-group {
+    background: var(--iron-lite);
+    border-left: 3px solid var(--mint);
     padding: 10px;
-    margin-bottom: 20px;
-    border: 1px solid #222;
+    margin-bottom: 15px;
 }
+.label { font-size: 10px; color: var(--slate); text-transform: uppercase; letter-spacing: 1px; }
+.val { font-size: 16px; font-weight: bold; color: var(--mint); }
 
-.label { color: var(--slate); font-size: 0.7rem; text-transform: uppercase; }
-.value { color: var(--neon-mint); font-weight: bold; }
-
-/* MAIN COMMAND FEED */
-.feed {
+/* TERMINAL FEED (CENTER) */
+.terminal-feed {
     background: #000;
-    padding: 20px;
+    flex-grow: 1;
     border-radius: 4px;
-    height: 60vh;
+    padding: 15px;
     overflow-y: auto;
-    font-size: 0.85rem;
-    border: 1px solid #111;
-    margin-bottom: 20px;
+    border: 1px solid #1a1a1a;
+    box-shadow: inset 0 0 10px rgba(0,0,0,1);
 }
+.line { margin-bottom: 6px; border-bottom: 1px solid #0a0a0a; }
+.time { color: var(--slate); font-size: 11px; margin-right: 8px; }
 
-.feed-line { margin-bottom: 5px; border-bottom: 1px solid #050505; padding-bottom: 2px; }
-.feed-time { color: var(--slate); margin-right: 10px; }
-
-/* BUTTONS */
-.cmd-btn {
-    display: block;
-    width: 100%;
+/* COMMAND BUTTONS */
+.cmd {
     background: transparent;
-    color: var(--neon-mint);
-    border: 1px solid var(--neon-mint);
-    padding: 10px;
-    margin-bottom: 10px;
+    color: var(--mint);
+    border: 1px solid var(--mint);
+    padding: 12px;
     text-align: left;
+    margin-bottom: 10px;
     cursor: pointer;
     font-family: inherit;
-    font-size: 0.8rem;
+    transition: 0.2s;
 }
-.cmd-btn:hover { background: var(--neon-mint); color: #000; }
+.cmd:hover { background: var(--mint-dim); box-shadow: 0 0 10px var(--mint-dim); }
 
-/* ADMIN OVERLAY */
-.eagle-mode { 
-    background: rgba(255, 68, 68, 0.1); 
-    border: 1px solid var(--blood-red) !important;
-    color: var(--blood-red) !important;
-}
+/* ADMIN OVERRIDE */
+.eagle-mode { border-color: var(--blood); color: var(--blood); }
+.eagle-mode:hover { background: rgba(255,68,68,0.1); }
