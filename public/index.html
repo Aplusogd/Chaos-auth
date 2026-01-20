@@ -3,81 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Initiation | Overthere.ai</title>
+    <title>Chaosverse | Access</title>
     <link rel="stylesheet" href="css/modern.css">
 </head>
 <body>
 
-    <div class="init-card">
-        <h1 style="color: var(--mint); margin-bottom: 10px;">CHAOS ID</h1>
-        <p style="color: var(--slate); font-size: 0.8rem; margin-bottom: 30px;">ESTABLISH YOUR FRAGMENT IN THE METAVERSE</p>
-        
-        <input type="text" id="csInput" class="input-chaos" placeholder="[ CLAIM_CALLSIGN ]">
-        
-        <p style="font-size: 0.7rem; color: var(--slate); margin-bottom: 10px;">DRAW YOUR UNIQUE SYMBOL BELOW</p>
-        <canvas id="drawCanvas" width="300" height="200"></canvas>
-        
-        <button class="btn-chaos" onclick="sealIdentity()">Seal Identity</button>
-        <button onclick="clearCanvas()" style="background:transparent; color:var(--slate); border:none; margin-top:10px; cursor:pointer; font-size:10px;">CLEAR SYMBOL</button>
+    <div class="portal-card">
+        <h1 style="color:var(--mint); margin-bottom: 5px; font-size: 24px;">CHAOSVERSE</h1>
+        <p style="color:var(--slate); font-size: 10px; margin-bottom: 30px;">SECURE IDENTITY FRAGMENT</p>
+
+        <div class="tabs">
+            <div id="tab-create" class="tab active" onclick="switchTab('create')">Create</div>
+            <div id="tab-login" class="tab" onclick="switchTab('login')">Log In</div>
+        </div>
+
+        <div id="group-create" class="input-group active">
+            <input type="text" id="csCreate" placeholder="PERMANENT CALLSIGN">
+            <input type="text" id="nnCreate" placeholder="NICKNAME (DISPLAY)">
+            <select id="jobCreate">
+                <option value="NETRUNNER">NETRUNNER (+INT)</option>
+                <option value="SCAVENGER">SCAVENGER (+LUK)</option>
+                <option value="SENTINEL">SENTINEL (+END)</option>
+            </select>
+        </div>
+
+        <div id="group-login" class="input-group">
+            <input type="text" id="csLogin" placeholder="ENTER CALLSIGN">
+        </div>
+
+        <div id="canvas-container">
+            <p style="font-size: 9px; color: var(--slate); margin-bottom: 10px;">DRAW SECURITY SYMBOL (ENTROPY KEY)</p>
+            <canvas id="symbolCanvas" width="300" height="150"></canvas>
+            <button onclick="clearCanvas()" style="background:none; border:none; color:var(--slate); font-size:9px; cursor:pointer; margin-top:5px;">[ CLEAR CANVAS ]</button>
+        </div>
+
+        <button class="btn-portal" onclick="process()">Initiate Handshake</button>
     </div>
 
     <script>
-        const canvas = document.getElementById('drawCanvas');
+        let mode = 'create';
+        const canvas = document.getElementById('symbolCanvas');
         const ctx = canvas.getContext('2d');
         let drawing = false;
-        let entropyPoints = [];
+        let points = [];
 
-        ctx.strokeStyle = '#00ff9d';
-        ctx.lineWidth = 3;
-        ctx.lineCap = 'round';
-
-        // --- DRAWING LOGIC & ENTROPY CAPTURE ---
-        function startDraw(e) {
-            drawing = true;
-            ctx.beginPath();
-            draw(e);
+        function switchTab(t) {
+            mode = t;
+            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.input-group').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-'+t).classList.add('active');
+            document.getElementById('group-'+t).classList.add('active');
+            clearCanvas();
         }
 
-        function draw(e) {
-            if (!drawing) return;
+        // --- CANVAS ENGINE ---
+        canvas.addEventListener('mousedown', () => { drawing = true; ctx.beginPath(); });
+        canvas.addEventListener('mousemove', (e) => {
+            if(!drawing) return;
             const rect = canvas.getBoundingClientRect();
             const x = (e.clientX || e.touches[0].clientX) - rect.left;
             const y = (e.clientY || e.touches[0].clientY) - rect.top;
-            
             ctx.lineTo(x, y);
+            ctx.strokeStyle = '#00ff9d';
+            ctx.lineWidth = 2;
             ctx.stroke();
-            
-            // Capture physical jitter for entropy
-            entropyPoints.push(Math.floor(x * y));
-        }
-
-        function endDraw() { drawing = false; }
-
-        canvas.addEventListener('mousedown', startDraw);
-        canvas.addEventListener('mousemove', draw);
-        window.addEventListener('mouseup', endDraw);
-        canvas.addEventListener('touchstart', startDraw);
-        canvas.addEventListener('touchmove', draw);
-        canvas.addEventListener('touchend', endDraw);
+            points.push(x*y);
+        });
+        window.addEventListener('mouseup', () => drawing = false);
+        canvas.addEventListener('touchstart', (e) => { drawing = true; ctx.beginPath(); });
+        canvas.addEventListener('touchmove', (e) => { if(drawing) e.preventDefault(); });
 
         function clearCanvas() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            entropyPoints = [];
+            points = [];
         }
 
-        function sealIdentity() {
-            const cs = document.getElementById('csInput').value.trim();
-            if(cs.length < 3) return alert("CALLSIGN REQUIRED");
-            if(entropyPoints.length < 10) return alert("SYMBOL TOO SIMPLE. PROVIDE MORE ENTROPY.");
+        function process() {
+            const cs = mode === 'create' ? document.getElementById('csCreate').value : document.getElementById('csLogin').value;
+            if(!cs || points.length < 15) return alert("Callsign and valid Symbol required.");
 
-            // Create the Chaos Hash from the Drawing
-            const drawingHash = btoa(entropyPoints.join('')).substring(0, 32);
-            
-            // SAVE TO METAVERSE
+            // Finalize Identity
             localStorage.setItem('CHAOS_CALLSIGN', cs.toUpperCase());
-            localStorage.setItem('CHAOS_IDENTITY_HASH', drawingHash);
-            
-            alert("IDENTITY SEALED. ENTERING THE METAVERSE.");
+            if(mode === 'create') {
+                localStorage.setItem('CHAOS_NICKNAME', document.getElementById('nnCreate').value || cs);
+                localStorage.setItem('CHAOS_JOB', document.getElementById('jobCreate').value);
+            }
+            localStorage.setItem('CHAOS_SEED', btoa(points.join('')));
+
             window.location.href = '/dashboard.html';
         }
     </script>
