@@ -2,78 +2,106 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Chaos Home | Overthere.ai</title>
+    <title>Chaos Terminal | Overthere.ai</title>
     <link rel="stylesheet" href="css/modern.css">
-    <script src="js/chaos-core.js"></script>
 </head>
 <body>
-    <div class="app-container">
-        <aside class="sidebar">
-            <h2 style="color: var(--neon-mint);">CHAOS ID</h2>
-            <p style="font-size: 0.7rem; color: var(--slate);">v5.0 Perfected</p>
-            <nav style="margin-top: 50px;">
-                <div style="color: var(--neon-mint); margin-bottom: 20px; cursor: pointer;">⬥ Dashboard</div>
-                <div style="color: var(--slate); margin-bottom: 20px; cursor: pointer;">⬥ SDK Access</div>
-                <div style="color: var(--slate); margin-bottom: 20px; cursor: pointer;">⬥ Secure Vault</div>
-                <div style="color: var(--slate); margin-bottom: 20px; cursor: pointer;">⬥ API Keys</div>
+    <div class="terminal-grid">
+        <aside class="column">
+            <h2 style="color:var(--neon-mint); margin-bottom:30px;">[ CHAOS_ID ]</h2>
+            
+            <div class="stats-box">
+                <div class="label">Identity</div>
+                <div class="value" id="dispCallsign">---</div>
+            </div>
+            
+            <div class="stats-box">
+                <div class="label">Trust Level</div>
+                <div class="value" id="dispTrust">50%</div>
+            </div>
+
+            <nav style="margin-top:40px;">
+                <button class="cmd-btn" onclick="execute('VOTE')">>> EXECUTE_VOTE</button>
+                <button class="cmd-btn" onclick="execute('AUTH')">>> EXECUTE_AUTH</button>
+                <button class="cmd-btn" onclick="showVault()">>> ACCESS_VAULT</button>
             </nav>
+            
+            <div id="eagleConsole" style="display:none; margin-top:30px;">
+                <div class="label" style="color:var(--blood-red)">Master Override</div>
+                <button class="cmd-btn eagle-mode" onclick="globalPurge()">>> PURGE_NETWORK</button>
+            </div>
         </aside>
 
-        <main class="main-content">
-            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
-                <h1>Welcome Home, <span id="userName" style="color: var(--neon-mint);">...</span></h1>
-                <div id="trustLevel" style="border: 1px solid var(--neon-mint); padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; color: var(--neon-mint);">Trust: 100%</div>
-            </header>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
-                <div class="card">
-                    <h3>The Power of Chaos</h3>
-                    <p style="color: var(--slate); font-size: 0.8rem;">Generate hardware-encrypted verification tokens instantly.</p>
-                    <div id="tokenOut" class="terminal" style="margin: 20px 0;">AWAITING_GEN_COMMAND...</div>
-                    <button class="btn-mint" onclick="generate('VOTE')">Verify Vote</button>
-                    <button class="btn-mint" style="background: transparent; color: var(--neon-mint); border: 1px solid var(--neon-mint); margin-left: 10px;" onclick="generate('LOGIN')">Verify Auth</button>
-                </div>
-
-                <div class="card">
-                    <h3>Abyss Vault</h3>
-                    <p style="color: var(--slate); font-size: 0.8rem;">Encrypted notes stored in the Chaos Abyss.</p>
-                    <textarea id="vaultNotes" rows="4" placeholder="Enter secure data here..."></textarea>
-                    <button class="btn-mint" style="margin-top: 10px; width: 100%;" onclick="saveVault()">Seal in Abyss</button>
-                </div>
+        <main class="column" style="background:#050505;">
+            <div id="terminalFeed" class="feed">
+                <div class="feed-line"><span class="feed-time">[00:00:00]</span> SYSTEM_INITIALIZED...</div>
             </div>
-
-            <div class="card" style="margin-top: 25px;">
-                <h3>Developer SDK & API</h3>
-                <p style="color: var(--slate);">Implement Chaos security into your own systems with one line of code.</p>
-                <div class="terminal" style="margin-top: 15px;">
-                    // Initialize Chaos Universal SDK<br>
-                    const chaos = new ChaosProtocol({ key: "<span id='apiKey'>...</span>" });<br>
-                    chaos.verify();
-                </div>
+            
+            <div class="card" id="inputArea">
+                <div class="label">Active Payload</div>
+                <input type="text" id="payload" placeholder="Enter encrypted note..." style="background:#000; color:var(--neon-mint); border:1px solid #222; width:100%; padding:10px; margin-top:5px;">
             </div>
         </main>
+
+        <aside class="column">
+            <h4 style="color:var(--slate); margin-bottom:20px;">// THE_ABYSS</h4>
+            <div id="vaultContent" style="font-size:0.75rem; color:#888;">
+                Vault is currently sealed.
+            </div>
+        </aside>
     </div>
 
+    <script src="js/chaos-core.js"></script>
     <script>
-        const myCallsign = localStorage.getItem('CHAOS_CALLSIGN') || "GUEST";
-        document.getElementById('userName').innerText = myCallsign;
-        document.getElementById('apiKey').innerText = btoa(myCallsign).substring(0,12).toUpperCase();
+        const myName = localStorage.getItem('CHAOS_CALLSIGN');
+        if(!myName) window.location.href = '/';
 
-        const chaos = new ChaosID(myCallsign);
+        const chaos = new ChaosID(myName);
+        const feed = document.getElementById('terminalFeed');
 
-        async function generate(act) {
-            const token = await chaos.generateProof(act);
-            document.getElementById('tokenOut').innerText = "TOKEN::" + token;
+        function log(msg, color = "#d0d0d0") {
+            const time = new Date().toLocaleTimeString();
+            const line = document.createElement('div');
+            line.className = 'feed-line';
+            line.innerHTML = `<span class="feed-time">[${time}]</span> <span style="color:${color}">${msg}</span>`;
+            feed.appendChild(line);
+            feed.scrollTop = feed.scrollHeight;
         }
 
-        function saveVault() {
-            const note = document.getElementById('vaultNotes').value;
-            localStorage.setItem('CHAOS_VAULT_NOTE', note);
-            alert("Data sealed in the Abyss.");
+        // Setup UI
+        document.getElementById('dispCallsign').innerText = chaos.callsign;
+        document.getElementById('dispTrust').innerText = chaos.trust + "%";
+
+        if(chaos.isAdmin) {
+            document.getElementById('eagleConsole').style.display = 'block';
+            log("🦅 MASTER ACCESS DETECTED. EAGLE_OVERSIGHT ACTIVE.", "#ff4444");
+        } else {
+            log("USER_SESSION STARTED. Welcome back, " + chaos.callsign);
         }
 
-        // Load existing note
-        document.getElementById('vaultNotes').value = localStorage.getItem('CHAOS_VAULT_NOTE') || "";
+        async function execute(action) {
+            const payload = document.getElementById('payload').value;
+            log("INITIATING " + action + " PROTOCOL...");
+            const token = await chaos.generateProof(action, payload);
+            log("SUCCESS: " + token, "#00ff9d");
+            document.getElementById('dispTrust').innerText = chaos.trust + "%";
+            showVault();
+        }
+
+        function showVault() {
+            const v = document.getElementById('vaultContent');
+            const data = JSON.parse(localStorage.getItem('ABYSS_VAULT')) || [];
+            v.innerHTML = data.map(i => `<div style="margin-bottom:10px; border-bottom:1px solid #111;">> ${i.i}</div>`).reverse().join('');
+        }
+
+        function globalPurge() {
+            if(confirm("MASTER: CLEAR ALL REPUTATION?")) {
+                localStorage.clear();
+                window.location.reload();
+            }
+        }
+
+        showVault();
     </script>
 </body>
 </html>
