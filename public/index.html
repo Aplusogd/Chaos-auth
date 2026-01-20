@@ -3,93 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chaosverse | Access</title>
+    <title>OVERTHERE.AI | CHAOSVERSE</title>
     <link rel="stylesheet" href="css/modern.css">
 </head>
 <body>
+    <div class="chaos-fog"></div>
 
-    <div class="portal-card">
-        <h1 style="color:var(--mint); margin-bottom: 5px; font-size: 24px;">CHAOSVERSE</h1>
-        <p style="color:var(--slate); font-size: 10px; margin-bottom: 30px;">SECURE IDENTITY FRAGMENT</p>
-
-        <div class="tabs">
-            <div id="tab-create" class="tab active" onclick="switchTab('create')">Create</div>
-            <div id="tab-login" class="tab" onclick="switchTab('login')">Log In</div>
+    <div class="portal-frame">
+        <div style="margin-bottom: 30px;">
+            <h1 style="color:var(--mint); font-size: 1.5rem; letter-spacing: 5px;">CHAOSVERSE</h1>
+            <p style="color:var(--slate); font-size: 10px;">ID_REGISTRY: v1.0.48_ABYSS</p>
         </div>
 
-        <div id="group-create" class="input-group active">
-            <input type="text" id="csCreate" placeholder="PERMANENT CALLSIGN">
-            <input type="text" id="nnCreate" placeholder="NICKNAME (DISPLAY)">
-            <select id="jobCreate">
+        <div class="tabs">
+            <span id="tab-c" class="tab active" onclick="switchMode('create')">New Fragment</span>
+            <span id="tab-l" class="tab" onclick="switchMode('login')">Recall Soul</span>
+        </div>
+
+        <div id="create-fields" class="input-container active">
+            <input type="text" id="cs" placeholder="[ PERMANENT_CALLSIGN ]">
+            <input type="text" id="nn" placeholder="[ NICKNAME_PERSONA ]">
+            <select id="jb">
                 <option value="NETRUNNER">NETRUNNER (+INT)</option>
                 <option value="SCAVENGER">SCAVENGER (+LUK)</option>
                 <option value="SENTINEL">SENTINEL (+END)</option>
+                <option value="FREELANCER">FREELANCER (BALANCED)</option>
             </select>
         </div>
 
-        <div id="group-login" class="input-group">
-            <input type="text" id="csLogin" placeholder="ENTER CALLSIGN">
+        <div id="login-fields" class="input-container">
+            <input type="text" id="csL" placeholder="[ ENTER_CALLSIGN ]">
         </div>
 
-        <div id="canvas-container">
-            <p style="font-size: 9px; color: var(--slate); margin-bottom: 10px;">DRAW SECURITY SYMBOL (ENTROPY KEY)</p>
-            <canvas id="symbolCanvas" width="300" height="150"></canvas>
-            <button onclick="clearCanvas()" style="background:none; border:none; color:var(--slate); font-size:9px; cursor:pointer; margin-top:5px;">[ CLEAR CANVAS ]</button>
+        <div id="canvas-wrap">
+            <div style="font-size: 9px; color: var(--slate); margin-bottom: 10px; text-align: left;">DRAW_ENTROPY_KEY:</div>
+            <canvas id="c" width="420" height="160"></canvas>
+            <div style="display: flex; justify-content: space-between; margin-top: 5px;">
+                <span style="font-size: 8px; color: var(--slate);">STATUS: AWAITING_INPUT</span>
+                <span onclick="clr()" style="font-size: 8px; color: var(--blood); cursor: pointer;">[ PURGE_CANVAS ]</span>
+            </div>
         </div>
 
-        <button class="btn-portal" onclick="process()">Initiate Handshake</button>
+        <button class="btn-initiate" onclick="auth()">Initiate Handshake</button>
     </div>
 
     <script>
         let mode = 'create';
-        const canvas = document.getElementById('symbolCanvas');
+        const canvas = document.getElementById('c');
         const ctx = canvas.getContext('2d');
-        let drawing = false;
         let points = [];
+        let drawing = false;
 
-        function switchTab(t) {
-            mode = t;
-            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.input-group').forEach(el => el.classList.remove('active'));
-            document.getElementById('tab-'+t).classList.add('active');
-            document.getElementById('group-'+t).classList.add('active');
-            clearCanvas();
+        // Reactive Background
+        document.addEventListener('mousemove', e => {
+            document.body.style.setProperty('--x', (e.clientX / window.innerWidth * 100) + '%');
+            document.body.style.setProperty('--y', (e.clientY / window.innerHeight * 100) + '%');
+        });
+
+        function switchMode(m) {
+            mode = m;
+            document.getElementById('create-fields').classList.toggle('active', m === 'create');
+            document.getElementById('login-fields').classList.toggle('active', m === 'login');
+            document.getElementById('tab-c').classList.toggle('active', m === 'create');
+            document.getElementById('tab-l').classList.toggle('active', m === 'login');
+            clr();
         }
 
-        // --- CANVAS ENGINE ---
+        // Canvas Logic
         canvas.addEventListener('mousedown', () => { drawing = true; ctx.beginPath(); });
-        canvas.addEventListener('mousemove', (e) => {
+        canvas.addEventListener('mousemove', e => {
             if(!drawing) return;
-            const rect = canvas.getBoundingClientRect();
-            const x = (e.clientX || e.touches[0].clientX) - rect.left;
-            const y = (e.clientY || e.touches[0].clientY) - rect.top;
-            ctx.lineTo(x, y);
-            ctx.strokeStyle = '#00ff9d';
-            ctx.lineWidth = 2;
-            ctx.stroke();
+            const r = canvas.getBoundingClientRect();
+            const x = e.clientX - r.left; const y = e.clientY - r.top;
+            ctx.lineTo(x, y); ctx.strokeStyle = '#00ff9d'; ctx.stroke();
             points.push(x*y);
         });
         window.addEventListener('mouseup', () => drawing = false);
-        canvas.addEventListener('touchstart', (e) => { drawing = true; ctx.beginPath(); });
-        canvas.addEventListener('touchmove', (e) => { if(drawing) e.preventDefault(); });
 
-        function clearCanvas() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            points = [];
-        }
+        function clr() { ctx.clearRect(0,0,canvas.width,canvas.height); points = []; }
 
-        function process() {
-            const cs = mode === 'create' ? document.getElementById('csCreate').value : document.getElementById('csLogin').value;
-            if(!cs || points.length < 15) return alert("Callsign and valid Symbol required.");
-
-            // Finalize Identity
-            localStorage.setItem('CHAOS_CALLSIGN', cs.toUpperCase());
+        function auth() {
+            const csValue = mode === 'create' ? document.getElementById('cs').value : document.getElementById('csL').value;
+            if(!csValue || points.length < 20) return alert("IDENTITY INCOMPLETE: Callsign & Symbol required.");
+            
+            localStorage.setItem('CHAOS_CALLSIGN', csValue.toUpperCase());
             if(mode === 'create') {
-                localStorage.setItem('CHAOS_NICKNAME', document.getElementById('nnCreate').value || cs);
-                localStorage.setItem('CHAOS_JOB', document.getElementById('jobCreate').value);
+                localStorage.setItem('CHAOS_NICKNAME', document.getElementById('nn').value || csValue);
+                localStorage.setItem('CHAOS_JOB', document.getElementById('jb').value);
             }
             localStorage.setItem('CHAOS_SEED', btoa(points.join('')));
-
             window.location.href = '/dashboard.html';
         }
     </script>
