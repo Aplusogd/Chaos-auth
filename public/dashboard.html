@@ -2,99 +2,92 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chaos Dashboard</title>
+    <title>Control Center | Chaos ID</title>
+    <link rel="stylesheet" href="css/modern.css">
+    <script src="js/chaos-universal.js"></script>
     <style>
-        body { background: #050505; color: #ccc; font-family: sans-serif; padding: 20px; }
-        .header { display: flex; justify-content: space-between; border-bottom: 1px solid #333; padding-bottom: 10px; }
-        .card { background: #1a1a1a; padding: 20px; margin-top: 20px; border-radius: 8px; border-left: 5px solid #007700; }
-        .alert { border-left: 5px solid #ff0000; }
-        .btn { background: #333; color: white; padding: 10px; text-decoration: none; border-radius: 4px; display: inline-block; margin-top: 10px;}
-        .btn-admin { background: #550000; }
-        .btn-abyss { background: #004d40; }
-        /* NEW STYLES FOR SERAPHIM */
-        .btn-seraphim { background: #0056b3; border-left: 5px solid #00c3ff; margin-right: 10px; }
-        .btn-gate { background: #cc6600; }
-        .btn-gate:hover { background: #e07b00; cursor: pointer;}
-        .btn-seraphim:hover { background: #0066c4; cursor: pointer; }
+        .admin-only { display: none; border: 2px solid #ef4444 !important; }
+        .user-stats { background: #fff; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px; }
+        .score-bar { height: 10px; background: #e2e8f0; border-radius: 5px; overflow: hidden; margin: 10px 0; }
+        .score-fill { height: 100%; background: #2563eb; transition: width 0.5s; }
+        .badge { font-size: 0.7rem; padding: 4px 8px; border-radius: 4px; text-transform: uppercase; margin-left: 10px; }
+        .badge-admin { background: #fee2e2; color: #b91c1c; }
+        .badge-user { background: #dcfce7; color: #15803d; }
     </style>
 </head>
-<body>
-    <div class="header">
-        <h2>📊 CHAOS OPERATOR</h2>
-        <h4 id="user-display">LOADING...</h4>
+<body style="background: #f8fafc;">
+    <nav class="navbar" style="background: white; border-bottom: 1px solid #e2e8f0;">
+        <a href="/" class="logo">Chaos<span>ID</span></a>
+        <div>
+            <span id="badgeIcon" class="badge">---</span>
+            <span id="displayCallsign" style="font-weight: 700;">---</span>
+        </div>
+    </nav>
+
+    <div class="dashboard-grid" style="padding: 40px 5%;">
+        <div class="user-stats">
+            <h3>Identity Reputation</h3>
+            <p style="font-size: 0.9rem; color: #64748b;">Proof of Action Rewards Score</p>
+            <div class="score-bar"><div id="scoreFill" class="score-fill"></div></div>
+            <div style="display: flex; justify-content: space-between; font-weight: bold;">
+                <span>Trust Score: <span id="scoreText">0</span>%</span>
+                <span id="rewardStatus" style="color: #2563eb;">RANK: NOVICE</span>
+            </div>
+        </div>
+
+        <div class="card" style="background: white;">
+            <h3>Verification Tools</h3>
+            <div id="tokenOutput" class="token-box" style="background: #0f172a; color: #10b981; padding: 15px; border-radius: 8px; font-family: monospace; margin: 15px 0;">READY</div>
+            <button onclick="handleAction('VOTE')" style="background: #2563eb; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600;">GENERATE VOTE</button>
+        </div>
+
+        <div id="adminPanel" class="card admin-only" style="background: white;">
+            <h3 style="color: #b91c1c;">🔴 MASTER COMMANDS</h3>
+            <p>Global System Oversight & Trust Overrides</p>
+            <button onclick="alert('Global Reset Protocol Ready')" style="background: #ef4444; color: white; border: none; padding: 10px 20px; border-radius: 6px; margin-top: 15px; cursor: pointer;">RESET ALL TRUST SCORES</button>
+        </div>
     </div>
 
-    <div class="card" id="seraphim-card">
-        <h3>🕊️ SERAPHIM COMMAND (ChaosID V-Final)</h3>
-        <p>Trust Anchor Status: <span id="sentry-status" style="color:#00c3ff">DISCONNECTED</span></p>
-        <p>Threat Alert: <span id="threat-alert" style="color:yellow">AWAITING CONNECTION...</span></p>
-        <button class="btn btn-seraphim" id="connect-seraphim-btn">CONNECT SERAPHIM (USB)</button>
-    </div>
-
-    <div class="card">
-        <h3>🔐 Secure Gates (Seraphim Required)</h3>
-        <p>All high-value data operations require physical confirmation via the Seraphim button.</p>
-        <button class="btn btn-gate" id="wallet-transfer-btn">A. WALLET TRANSFER LOCK</button>
-        <button class="btn btn-gate" id="file-transfer-btn">B. FILE TRANSFER LOCK</button>
-    </div>
-
-    <div class="card">
-        <h3>🛡️ Chaos Shield Harmony Check (Legacy Wi-Fi Ping)</h3>
-        <p>Wi-Fi Name: **Chaos_Shield_Abyss**</p>
-        <p>Shield IP: 192.168.4.1</p>
-        <p>Status: <span id="shield-status" style="color:orange">SEARCHING...</span></p>
-        <p>Latency: <span id="ping">--</span> ms</p>
-        <button class="btn" onclick="pingShield()">TEST HARMONY (Ping Shield)</button>
-    </div>
-
-    <div class="card">
-        <h3>🌌 Biometric Forge</h3>
-        <p>Train or Verify Master Sigil (DTW Engine)</p>
-        <a href="/forge.html" class="btn btn-abyss">OPEN ABYSS FORGE</a>
-    </div>
-
-    <div class="card">
-        <h3>👑 Command Access</h3>
-        <p>Restricted to Master Operator.</p>
-        <a href="/admin.html" class="btn btn-admin">OPEN ADMIN CONSOLE</a>
-    </div>
-
-    <br>
-    <button onclick="logout()" style="background:none; border:none; color:#555; cursor:pointer;">[ TERMINATE SESSION ]</button>
-
-    <script src="router.js"></script>
-    <script src="js/bridge.js"></script>
     <script>
-        document.getElementById('user-display').innerText = 
-            localStorage.getItem('callsign_history') + " [" + localStorage.getItem('chaos_trust_score') + "%]";
+        const callsign = localStorage.getItem('CHAOS_CALLSIGN');
+        if(!callsign) window.location.href = '/';
 
-        function logout() {
-            localStorage.clear();
-            window.location.href = '/index.html';
+        const engine = new ChaosEngine(callsign);
+        
+        // Setup UI
+        document.getElementById('displayCallsign').innerText = engine.callsign;
+        const badge = document.getElementById('badgeIcon');
+        
+        if(engine.isAdmin) {
+            badge.innerText = "MASTER";
+            badge.className = "badge badge-admin";
+            document.getElementById('adminPanel').style.display = "block";
+            document.getElementById('rewardStatus').innerText = "SYSTEM OWNER";
+        } else {
+            badge.innerText = "VERIFIED USER";
+            badge.className = "badge badge-user";
         }
 
-        async function pingShield() {
-            document.getElementById('shield-status').innerText = "PINGING...";
+        function updateUI() {
+            const score = engine.trustScore;
+            document.getElementById('scoreText').innerText = score;
+            document.getElementById('scoreFill').style.width = score + "%";
             
-            try {
-                // Fetch to the Shield's local IP (If connected via legacy Wi-Fi AP)
-                const response = await fetch('http://192.168.4.1/api/status', { 
-                    method: 'GET',
-                    mode: 'no-cors' // Allows browser to hit a local IP without CORS issues
-                }); 
-                
-                // Note: Due to 'no-cors', we rely on the network not throwing a fundamental error.
-                document.getElementById('shield-status').innerText = "🟢 CONNECTED (HARMONY)";
-                document.getElementById('ping').innerText = "<5"; 
-
-            } catch (e) {
-                // Catches if the phone is NOT connected to the Shield AP
-                document.getElementById('shield-status').innerText = "🔴 OFFLINE (Connect to Chaos_Shield_Abyss Wi-Fi)";
-                document.getElementById('ping').innerText = "FAILED";
-                alert("ERROR: Client must connect to Wi-Fi 'Chaos_Shield_Abyss' to communicate with Shield.");
+            if(!engine.isAdmin) {
+                let rank = "NOVICE";
+                if(score > 70) rank = "TRUSTED OPERATOR";
+                if(score > 90) rank = "CHAOS VETERAN";
+                document.getElementById('rewardStatus').innerText = "RANK: " + rank;
             }
         }
+
+        function handleAction(type) {
+            const token = engine.generateProof(type);
+            document.getElementById('tokenOutput').innerText = token;
+            updateUI();
+        }
+
+        updateUI();
     </script>
 </body>
 </html>
