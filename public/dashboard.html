@@ -2,125 +2,135 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Chaos Terminal | Overthere.ai</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chaos Nexus | Infinite</title>
     <link rel="stylesheet" href="css/modern.css">
 </head>
 <body>
-    <div class="game-container">
-        
-        <aside class="col">
-            <h2 style="color:var(--mint); margin-bottom:25px;">[ CHAOS_ID ]</h2>
+    <div class="nexus-grid">
+        <aside class="pane">
+            <h2 style="color:var(--mint);">[ IDENTITY ]</h2>
+            <div style="font-size:2rem; margin:10px 0;">👤 <span id="userName" style="font-size:1rem; color:var(--mint);">...</span></div>
             
-            <div class="stat-group">
-                <div class="label">Identity</div>
-                <div class="val" id="dispCallsign">---</div>
-            </div>
+            <div class="label">ENTROPY_RESERVE</div>
+            <div class="status-bar"><div id="barEntropy" class="fill-mint" style="width:0%"></div></div>
             
-            <div class="stat-group">
-                <div class="label">Reputation</div>
-                <div class="val" id="dispTrust">50%</div>
-            </div>
+            <div class="label">TRUST_STABILITY</div>
+            <div class="status-bar"><div id="barTrust" class="fill-mint" style="width:50%"></div></div>
 
-            <div class="stat-group">
-                <div class="label">System Rank</div>
-                <div class="val" id="dispRank" style="font-size:12px;">NOVICE</div>
-            </div>
+            <div class="label">CHAOS_LEVEL</div>
+            <div class="status-bar"><div id="barLvl" class="fill-gold" style="width:10%"></div></div>
 
-            <div style="margin-top:auto;">
-                <button class="cmd" onclick="execute('VOTE')">>> EXECUTE_VOTE</button>
-                <button class="cmd" onclick="execute('AUTH')">>> EXECUTE_HANDSHAKE</button>
-                <button class="cmd" style="color:var(--slate); border-color:#333;">>> VIEW_SDK_DOCS</button>
+            <h4 style="color:var(--slate); margin:20px 0 10px;">// SKILL_TREE_V2</h4>
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px;">
+                <div class="node" style="width:40px;height:40px;border:1px solid var(--gold);border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--gold);">S</div>
+                <div class="node" style="width:40px;height:40px;border:1px solid var(--slate);border-radius:50%;display:flex;align-items:center;justify-content:center;">A</div>
+                <div class="node" style="width:40px;height:40px;border:1px solid var(--slate);border-radius:50%;display:flex;align-items:center;justify-content:center;">V</div>
+                <div class="node" style="width:40px;height:40px;border:1px solid var(--slate);border-radius:50%;display:flex;align-items:center;justify-content:center;">E</div>
             </div>
         </aside>
 
-        <main class="col" style="background:var(--iron);">
-            <div class="terminal-feed" id="feed">
-                <div class="line"><span class="time">[00:00:00]</span> Establishing encrypted link to Overthere.ai...</div>
-                <div class="line"><span class="time">[00:00:00]</span> Chaos Protocol Active.</div>
+        <main class="pane">
+            <div class="feed" id="mainFeed">
+                <div class="line" style="color:var(--slate)">[SYSTEM] Link Established to Overthere.ai...</div>
             </div>
-            
-            <div id="eagleBox" style="display:none; margin-top:20px;">
-                <button class="cmd eagle-mode" style="width:100%;" onclick="eaglePurge()">>> EAGLE_OVERSIGHT: PURGE_GLOBAL_DATA</button>
+
+            <div id="npcEvent" class="event-box">
+                <div id="npcTitle" style="color:var(--gold); font-weight:bold;">SUDDEN ENCOUNTER</div>
+                <div id="npcDesc" style="margin:10px 0;">A mysterious entity approaches...</div>
+                <div id="npcChoices"></div>
+            </div>
+
+            <div style="margin-top:20px; display:flex; gap:10px;">
+                <button onclick="manualVerify()" style="flex:1; background:var(--mint); color:#000; border:none; padding:12px; cursor:pointer; font-weight:bold;">EXECUTE_HANDSHAKE</button>
             </div>
         </main>
 
-        <aside class="col">
-            <h4 style="color:var(--slate); margin-bottom:15px;">// THE_ABYSS_VAULT</h4>
-            <div id="vaultList" style="font-size:11px; color:#999; overflow-y:auto;">
-                Vault is empty. Execute a protocol to begin.
-            </div>
+        <aside class="pane">
+            <h2 style="color:var(--slate);">// ABYSS_VAULT</h2>
+            <div id="vault" style="font-size:10px; color:#666; height:200px; overflow-y:auto; border-bottom:1px solid #222; margin-bottom:20px;"></div>
             
-            <div style="margin-top:auto; padding-top:20px; border-top:1px solid #222;">
-                <div class="label">Session Entropy</div>
-                <div style="height:4px; background:#111; margin-top:5px; border-radius:2px;">
-                    <div id="entropyBar" style="height:100%; width:0%; background:var(--mint); transition:0.3s;"></div>
-                </div>
+            <h4 style="color:var(--slate);">// WORLD_EVENTS</h4>
+            <div id="worldLog" class="feed" style="height:200px; border:none; font-size:10px;"></div>
+
+            <div id="masterEagles" style="display:none; margin-top:auto; border:1px solid var(--blood); padding:10px;">
+                <h4 style="color:var(--blood)">EAGLE_VIEW_ACTIVE</h4>
             </div>
         </aside>
-
     </div>
 
     <script src="js/chaos-core.js"></script>
     <script>
-        const name = localStorage.getItem('CHAOS_CALLSIGN');
-        if(!name) window.location.href = '/';
-
+        const name = localStorage.getItem('CHAOS_CALLSIGN') || "GUEST";
+        document.getElementById('userName').innerText = name;
         const chaos = new ChaosID(name);
-        const feed = document.getElementById('feed');
+        if(chaos.isAdmin) document.getElementById('masterEagles').style.display='block';
 
-        function pushLog(msg, color="#e0e0e0") {
-            const time = new Date().toLocaleTimeString();
-            const div = document.createElement('div');
-            div.className = 'line';
-            div.innerHTML = `<span class="time">[${time}]</span> <span style="color:${color}">${msg}</span>`;
-            feed.appendChild(div);
-            feed.scrollTop = feed.scrollHeight;
+        function log(msg, target='mainFeed', color='#e0e0e0') {
+            const f = document.getElementById(target);
+            const l = document.createElement('div');
+            l.className = 'line';
+            l.innerHTML = `<span style="color:${color}">> ${msg}</span>`;
+            f.appendChild(l);
+            f.scrollTop = f.scrollHeight;
         }
 
-        // Setup
-        document.getElementById('dispCallsign').innerText = chaos.callsign;
-        document.getElementById('dispTrust').innerText = chaos.trust + "%";
-        
-        if(chaos.isAdmin) {
-            document.getElementById('eagleBox').style.display = 'block';
-            document.getElementById('dispRank').innerText = "MASTER_EAGLE";
-            pushLog("🦅 EAGLE_OVERSIGHT DETECTED. ALL_SYSTEMS_GO.", "#ff4444");
-        }
-
-        async function execute(action) {
-            pushLog("INITIATING " + action + " PROTOCOL...");
-            const token = await chaos.generateProof(action);
-            
-            if(token.includes("ERROR")) {
-                pushLog(token, "#ff4444");
-            } else {
-                pushLog("ENCRYPTION_COMPLETE: " + token, "#00ff9d");
-                updateVault();
-                document.getElementById('dispTrust').innerText = chaos.trust + "%";
-            }
+        async function manualVerify() {
+            log("Initiating manual verification...", 'mainFeed', '#00ff9d');
+            const token = await chaos.generateProof("AUTH");
+            log("TOKEN_GEN: " + token, 'mainFeed', '#00ff9d');
+            updateVault();
         }
 
         function updateVault() {
-            const list = document.getElementById('vaultList');
+            const v = document.getElementById('vault');
             const data = JSON.parse(localStorage.getItem('ABYSS_VAULT')) || [];
-            list.innerHTML = data.map(v => `<div style="margin-bottom:8px; border-bottom:1px solid #111; padding-bottom:4px;">> ${v.i}</div>`).reverse().join('');
+            v.innerHTML = data.map(i => `<div>${i.i}</div>`).reverse().join('');
         }
 
-        // Entropy Visualizer
-        setInterval(() => {
-            const pct = (chaos.pool.length / 512) * 100;
-            document.getElementById('entropyBar').style.width = pct + "%";
-        }, 500);
+        // --- THE CHAOS NPC ENGINE (OSRS STYLE) ---
+        const NPCs = [
+            { name: "The Wise Glitch", lines: ["Chaos is the only truth.", "Your entropy is high today."], rewards: 5 },
+            { name: "Abyss Scraper", lines: ["Give me your data.", "Scanning your vault..."], rewards: -2 },
+            { name: "Mint Sentinel", lines: ["Reputation is your shield.", "Identify yourself."], rewards: 10 }
+        ];
 
-        function eaglePurge() {
-            if(confirm("MASTER: Purge local data?")) {
-                localStorage.clear();
-                window.location.reload();
+        function spawnEvent() {
+            const npc = NPCs[Math.floor(Math.random() * NPCs.length)];
+            const box = document.getElementById('npcEvent');
+            document.getElementById('npcTitle').innerText = "ENCOUNTER: " + npc.name;
+            document.getElementById('npcDesc').innerText = npc.lines[Math.floor(Math.random()*npc.lines.length)];
+            
+            const choices = document.getElementById('npcChoices');
+            choices.innerHTML = `
+                <div class="choice" onclick="resolveEvent(1, '${npc.name}')">[1] Verify with Chaos</div>
+                <div class="choice" onclick="resolveEvent(0, '${npc.name}')">[2] Deflect into Abyss</div>
+            `;
+            box.style.display = 'block';
+            log(npc.name + " has appeared.", 'worldLog', '#ffb300');
+        }
+
+        function resolveEvent(success, npcName) {
+            document.getElementById('npcEvent').style.display = 'none';
+            if(success) {
+                log("You verified with " + npcName + ". Trust gained.", 'mainFeed', '#00ff9d');
+                chaos.trust = Math.min(100, chaos.trust + 5);
+            } else {
+                log("You deflected " + npcName + ". Entropy conserved.", 'mainFeed', '#64748b');
             }
+            document.getElementById('barTrust').style.width = chaos.trust + "%";
         }
+
+        // Random Event Timer (Chaos amount of playstyle)
+        setInterval(() => {
+            if(Math.random() > 0.7) spawnEvent();
+        }, 30000);
+
+        setInterval(() => {
+            document.getElementById('barEntropy').style.width = (chaos.pool.length / 512 * 100) + "%";
+        }, 1000);
 
         updateVault();
-        pushLog("Welcome, " + name + ". Identify session authorized.");
     </script>
 </body>
 </html>

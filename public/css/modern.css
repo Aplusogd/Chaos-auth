@@ -1,74 +1,54 @@
 :root {
-    --iron: #0d0d0d;      /* Deep Iron Ore */
-    --iron-lite: #1a1a1a; /* Lighter Slate for cards */
-    --mint: #00ff9d;      /* High-Visibility Neon */
-    --mint-dim: rgba(0, 255, 157, 0.1);
-    --blood: #ff4444;     /* Admin/Danger Red */
-    --slate: #777;
-    --white: #e0e0e0;
+    --iron: #0a0a0a;
+    --iron-lite: #141414;
+    --mint: #00ff9d;
+    --blood: #ff4444;
+    --gold: #ffb300;
+    --slate: #444;
+    --text: #d0d0d0;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { 
-    font-family: 'Fira Code', 'Courier New', monospace; 
+    font-family: 'Fira Code', monospace; 
     background: var(--iron); 
-    color: var(--white); 
-    font-size: 14px;
+    color: var(--text); 
+    font-size: 13px;
     height: 100vh;
-    overflow: hidden;
 }
 
-/* TORN-INSPIRED 3-COLUMN LAYOUT */
-.game-container {
+/* RESPONSIVE NEXUS GRID */
+.nexus-grid {
     display: grid;
-    grid-template-columns: 260px 1fr 300px;
+    grid-template-columns: 300px 1fr 320px;
     height: 100vh;
 }
 
-.col {
-    border-right: 1px solid #222;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
+@media (max-width: 1024px) {
+    .nexus-grid { grid-template-columns: 1fr; overflow-y: auto; height: auto; }
+    .pane { border-right: none; border-bottom: 1px solid #222; min-height: 400px; }
+    body { overflow-y: auto; }
 }
 
-/* VITALS (LEFT) */
-.stat-group {
-    background: var(--iron-lite);
-    border-left: 3px solid var(--mint);
-    padding: 10px;
-    margin-bottom: 15px;
-}
-.label { font-size: 10px; color: var(--slate); text-transform: uppercase; letter-spacing: 1px; }
-.val { font-size: 16px; font-weight: bold; color: var(--mint); }
+.pane { border-right: 1px solid #222; padding: 20px; display: flex; flex-direction: column; }
 
-/* TERMINAL FEED (CENTER) */
-.terminal-feed {
-    background: #000;
-    flex-grow: 1;
-    border-radius: 4px;
-    padding: 15px;
-    overflow-y: auto;
-    border: 1px solid #1a1a1a;
-    box-shadow: inset 0 0 10px rgba(0,0,0,1);
-}
-.line { margin-bottom: 6px; border-bottom: 1px solid #0a0a0a; }
-.time { color: var(--slate); font-size: 11px; margin-right: 8px; }
+/* AVATAR BARS */
+.status-bar { height: 8px; background: #111; border-radius: 4px; margin: 5px 0 15px; border: 1px solid #222; }
+.fill-mint { height: 100%; background: var(--mint); box-shadow: 0 0 10px var(--mint); }
+.fill-gold { height: 100%; background: var(--gold); }
 
-/* COMMAND BUTTONS */
-.cmd {
-    background: transparent;
-    color: var(--mint);
-    border: 1px solid var(--mint);
-    padding: 12px;
-    text-align: left;
-    margin-bottom: 10px;
-    cursor: pointer;
-    font-family: inherit;
-    transition: 0.2s;
+/* NPC EVENT BOX (Fallout style) */
+.event-box {
+    background: #000; border: 1px solid var(--gold);
+    padding: 15px; margin-top: 15px; display: none;
+    animation: flicker 0.2s infinite alternate;
 }
-.cmd:hover { background: var(--mint-dim); box-shadow: 0 0 10px var(--mint-dim); }
+@keyframes flicker { from { border-color: var(--gold); } to { border-color: #554400; } }
 
-/* ADMIN OVERRIDE */
-.eagle-mode { border-color: var(--blood); color: var(--blood); }
-.eagle-mode:hover { background: rgba(255,68,68,0.1); }
+.choice { color: var(--mint); cursor: pointer; margin: 10px 0; border-left: 2px solid transparent; padding-left: 10px; }
+.choice:hover { border-color: var(--mint); background: rgba(0,255,157,0.05); }
+
+/* FEED */
+.feed { flex-grow: 1; background: #000; padding: 10px; border: 1px solid #1a1a1a; overflow-y: auto; font-size: 11px; }
+.line { margin-bottom: 4px; }
+.osrs-event { color: var(--gold); font-style: italic; }
