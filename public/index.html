@@ -2,41 +2,60 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Chaos ID | Overthere.ai</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chaos ID | Zero Day Survival</title>
     <link rel="stylesheet" href="css/modern.css">
 </head>
 <body>
-    <div class="hero-section">
+
+    <section class="hero container">
         <h1>CHAOS ID</h1>
-        <p style="max-width: 600px; color: var(--slate); font-size: 1.2rem; margin-bottom: 40px;">
-            The most secure way for humans and AI to communicate. Verified by hardware entropy, protected by the Abyss.
-        </p>
+        <p>A procedural survival RPG where every action is secured by physical entropy. No bots. No fakes. Pure Chaos.</p>
         
-        <div style="background: var(--iron-light); padding: 10px; border-radius: 50px; border: 1px solid #333; width: 400px; display: flex;">
-            <input type="text" id="callSign" placeholder="Enter your Callsign..." style="margin-top:0; background:transparent; border:none; padding-left:20px;">
-            <button class="btn-mint" style="border-radius: 50px;" onclick="enter()">Enter</button>
+        <div class="auth-card">
+            <h3 style="margin-bottom: 20px; font-size: 0.8rem; letter-spacing: 2px; color: var(--slate);">INITIATE HANDSHAKE</h3>
+            <input type="text" id="callSign" class="input-field" placeholder="CLAIM CALLSIGN...">
+            <button class="btn-primary" onclick="initiate()">Enter the Abyss</button>
+            <p style="font-size: 0.7rem; color: var(--slate); margin-top: 15px;">Claiming a new callsign creates a unique character seed.</p>
         </div>
-        
-        <div style="margin-top: 50px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; width: 80%; max-width: 1000px;">
-            <div>
-                <h4 style="color: var(--neon-mint);">SECURED</h4>
-                <p style="font-size: 0.8rem; color: var(--slate);">Multi-layer encryption via browser entropy.</p>
-            </div>
-            <div>
-                <h4 style="color: var(--neon-mint);">FAST</h4>
-                <p style="font-size: 0.8rem; color: var(--slate);">Zero-latency verification protocols.</p>
-            </div>
-            <div>
-                <h4 style="color: var(--neon-mint);">UNIVERSAL</h4>
-                <p style="font-size: 0.8rem; color: var(--slate);">SDK for Voting, Reviews, and POS.</p>
-            </div>
+    </section>
+
+    <section class="container features">
+        <div class="f-card">
+            <h3>🌀 Entropy Driven</h3>
+            <p>Unlike standard games that use predictable code, Chaos uses your physical movement to generate loot and events. It's truly random and impossible to bot.</p>
         </div>
-    </div>
+        <div class="f-card">
+            <h3>🎒 Infinite Loot</h3>
+            <p>Billions of item combinations inspired by Borderlands. Find rare cloths, weapons, and skill books to survive the Zero Day fallout.</p>
+        </div>
+        <div class="f-card">
+            <h3>🌲 Deep Progress</h3>
+            <p>A massive Path of Exile inspired skill tree and Project Zomboid style job systems. Your survival depends on the path you choose.</p>
+        </div>
+        <div class="f-card">
+            <h3>📱 Cross-Platform</h3>
+            <p>Optimized for the "Eagle Eye" desktop experience and the "On-the-Move" mobile tactical interface. Your identity follows you everywhere.</p>
+        </div>
+    </section>
+
+    <footer class="container" style="text-align: center; padding: 40px; color: var(--slate); font-size: 0.8rem; border-top: 1px solid #111;">
+        &copy; 2026 OVERTHERE.AI | SECURED BY CHAOS PROTOCOL
+    </footer>
 
     <script>
-        function enter() {
-            const val = document.getElementById('callSign').value;
-            if(val.length < 3) return alert("Callsign required.");
+        function initiate() {
+            const val = document.getElementById('callSign').value.trim();
+            if(val.length < 3) return alert("MINIMUM 3 CHARACTERS REQUIRED.");
+            
+            // If the user is YOU (The Eagle)
+            if(val.toUpperCase() === "APLUS-OGD-ADMIN") {
+                localStorage.setItem('CHAOS_CALLSIGN', "APLUS-OGD-ADMIN");
+                window.location.href = '/dashboard.html';
+                return;
+            }
+
+            // Normal Character Creation
             localStorage.setItem('CHAOS_CALLSIGN', val.toUpperCase());
             window.location.href = '/dashboard.html';
         }
