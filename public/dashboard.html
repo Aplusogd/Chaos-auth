@@ -2,95 +2,99 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Chaos Command | Universal ID</title>
+    <title>Overthere.ai | Command Center</title>
     <link rel="stylesheet" href="css/modern.css">
     <script src="js/chaos-core.js"></script>
     <style>
-        body { background: #0a0a0c; color: #e2e8f0; }
-        .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; padding: 40px; }
-        .card { background: #111114; border: 1px solid #1e1e24; border-radius: 12px; padding: 25px; }
-        .master-glow { border-color: #3b82f6 !important; box-shadow: 0 0 20px rgba(59, 130, 246, 0.1); }
-        .trust-meter { height: 4px; background: #1e1e24; border-radius: 2px; margin: 10px 0; overflow: hidden; }
-        .trust-fill { height: 100%; background: #3b82f6; transition: width 0.5s ease; }
-        .terminal { background: #000; color: #10b981; font-family: monospace; padding: 15px; border-radius: 6px; font-size: 0.9rem; overflow-x: auto; }
-        .btn { background: #3b82f6; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s; }
-        .btn:hover { background: #2563eb; }
-        .btn-nightmare { background: #ef4444; }
+        body { background: #050505; color: #f8fafc; font-family: 'Inter', sans-serif; }
+        .eagle-eye { border-top: 2px solid #3b82f6; background: rgba(59, 130, 246, 0.05); padding: 20px; margin-bottom: 30px; border-radius: 0 0 12px 12px; }
+        .grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 20px; padding: 20px 5%; }
+        .card { background: #0f0f12; border: 1px solid #1e1e24; border-radius: 12px; padding: 25px; }
+        .admin-only { display: none; background: #1a0b0b; border-color: #ef4444; }
+        .stat-val { font-family: monospace; color: #3b82f6; font-size: 1.5rem; }
+        .btn { background: #3b82f6; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-weight: 700; cursor: pointer; }
+        .terminal { background: #000; color: #10b981; padding: 15px; border-radius: 6px; font-family: monospace; font-size: 0.85rem; border: 1px solid #10b981; }
     </style>
 </head>
 <body>
-    <nav class="navbar" style="border-bottom: 1px solid #1e1e24; padding: 15px 40px; display: flex; justify-content: space-between;">
-        <div class="logo" style="font-weight: 800; font-size: 1.2rem;">CHAOS <span style="color:#3b82f6">ID</span></div>
-        <div id="status" style="font-size: 0.8rem; letter-spacing: 1px; color: #64748b;">SYSTEM: OPTIMIZED</div>
+    <div class="eagle-eye" id="eagleBar" style="display:none;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="color: #ef4444; font-weight: 800; letter-spacing: 2px;">🦅 EAGLE OVERSIGHT ACTIVE</span>
+            <span style="font-size: 0.8rem; color: #64748b;">DOMAIN: OVERTHERE.AI | OPERATOR: MASTER</span>
+        </div>
+    </div>
+
+    <nav style="padding: 20px 5%; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #1e1e24;">
+        <div style="font-weight: 900; font-size: 1.5rem;">CHAOS<span style="color:#3b82f6">ID</span></div>
+        <div id="userTag" style="font-weight: 600;">IDENTIFYING...</div>
     </nav>
 
     <div class="grid">
-        <section>
-            <div id="mainCard" class="card">
-                <h2 id="callsignDisplay">IDENTIFYING...</h2>
-                <p style="color: #64748b; margin-bottom: 20px;">Human-AI Verified Communication Hub</p>
-                
-                <div class="terminal" id="output">Waiting for Intent...</div>
-                
-                <div style="margin-top: 25px;">
-                    <button class="btn" onclick="execute('VOTE')">EXECUTE VOTE</button>
-                    <button class="btn" onclick="execute('CHECK')">EXECUTE CHECK-IN</button>
-                    <button id="adminBtn" class="btn btn-nightmare" style="display:none;" onclick="nightmareReset()">GLOBAL RESET</button>
+        <main>
+            <div class="card">
+                <h3>Universal Handshake</h3>
+                <p style="color: #64748b; margin-bottom: 15px;">Generate cryptographically secured intent proofs.</p>
+                <div id="out" class="terminal">AWAITING_INPUT</div>
+                <div style="margin-top: 20px;">
+                    <button class="btn" onclick="act('VOTE')">EXECUTE VOTE</button>
+                    <button class="btn" style="background:#1e1e24;" onclick="act('AUTH')">EXECUTE AUTH</button>
                 </div>
             </div>
-        </section>
+
+            <div id="masterConsole" class="card admin-only" style="margin-top: 20px;">
+                <h3 style="color: #ef4444;">NIGHTMARE OVERRIDE</h3>
+                <p style="font-size: 0.8rem; margin-bottom: 15px;">Global revocation and trust management.</p>
+                <button class="btn" style="background:#ef4444;" onclick="globalReset()">PURGE REPUTATION DATA</button>
+            </div>
+        </main>
 
         <aside>
             <div class="card">
-                <h3>Nightmare Defense</h3>
-                <div class="trust-meter"><div id="trustFill" class="trust-fill"></div></div>
-                <p style="font-size: 0.8rem;">Trust Level: <span id="trustText">0</span>%</p>
-            </div>
-            <div class="card" style="margin-top:20px;">
-                <h3>Abyss Logs</h3>
-                <div id="logs" style="font-size: 0.75rem; color: #64748b; max-height: 200px; overflow-y: auto;">
-                    Static analysis ready...
+                <h4>System Integrity</h4>
+                <div style="margin: 15px 0;">
+                    <div style="font-size: 0.7rem; color: #64748b;">TRUST SCORE</div>
+                    <div class="stat-val"><span id="trustPct">0</span>%</div>
+                </div>
+                <div style="margin: 15px 0;">
+                    <div style="font-size: 0.7rem; color: #64748b;">ABYSS STORAGE</div>
+                    <div id="logs" style="font-size: 0.7rem; color: #475569;">No actions logged.</div>
                 </div>
             </div>
         </aside>
     </div>
 
     <script>
-        const callsign = localStorage.getItem('CHAOS_CALLSIGN');
-        if(!callsign) window.location.href = '/';
+        const myID = localStorage.getItem('CHAOS_CALLSIGN');
+        if(!myID) window.location.href = '/';
 
-        const chaos = new ChaosID(callsign);
-        
-        // Initial UI Setup
-        document.getElementById('callsignDisplay').innerText = chaos.callsign;
+        const chaos = new ChaosID(myID);
+        document.getElementById('userTag').innerText = chaos.callsign;
+
         if(chaos.isAdmin) {
-            document.getElementById('mainCard').classList.add('master-glow');
-            document.getElementById('adminBtn').style.display = 'inline-block';
+            document.getElementById('eagleBar').style.display = 'block';
+            document.getElementById('masterConsole').style.display = 'block';
         }
 
-        async function execute(action) {
-            const proof = await chaos.generateProof(action);
-            document.getElementById('output').innerText = "PROOF: " + proof;
-            updateUI();
+        async function act(type) {
+            const token = await chaos.generateProof(type);
+            document.getElementById('out').innerText = "TOKEN: " + token;
+            render();
         }
 
-        function updateUI() {
-            document.getElementById('trustText').innerText = chaos.trust;
-            document.getElementById('trustFill').style.width = chaos.trust + "%";
-            
-            const logs = document.getElementById('logs');
-            logs.innerHTML = chaos.vault.map(v => `<div>[${new Date(v.timestamp).toLocaleTimeString()}] ${v.action} Verified</div>`).reverse().join('');
+        function render() {
+            document.getElementById('trustPct').innerText = chaos.trust;
+            document.getElementById('logs').innerHTML = chaos.vault.map(v => `<div>[${v.a}] ${v.i}</div>`).reverse().join('');
         }
 
-        function nightmareReset() {
-            if(confirm("MASTER OVERRIDE: Clear all global reputation data?")) {
+        function globalReset() {
+            if(confirm("EAGLE OVERRIDE: Clear all local trust records?")) {
                 localStorage.clear();
                 window.location.reload();
             }
         }
 
-        updateUI();
-        setInterval(updateUI, 1000);
+        render();
+        setInterval(render, 2000);
     </script>
 </body>
 </html>
