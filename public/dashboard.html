@@ -2,92 +2,95 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Control Center | Chaos ID</title>
+    <title>Chaos Command | Universal ID</title>
     <link rel="stylesheet" href="css/modern.css">
-    <script src="js/chaos-universal.js"></script>
+    <script src="js/chaos-core.js"></script>
     <style>
-        .admin-only { display: none; border: 2px solid #ef4444 !important; }
-        .user-stats { background: #fff; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 20px; }
-        .score-bar { height: 10px; background: #e2e8f0; border-radius: 5px; overflow: hidden; margin: 10px 0; }
-        .score-fill { height: 100%; background: #2563eb; transition: width 0.5s; }
-        .badge { font-size: 0.7rem; padding: 4px 8px; border-radius: 4px; text-transform: uppercase; margin-left: 10px; }
-        .badge-admin { background: #fee2e2; color: #b91c1c; }
-        .badge-user { background: #dcfce7; color: #15803d; }
+        body { background: #0a0a0c; color: #e2e8f0; }
+        .grid { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; padding: 40px; }
+        .card { background: #111114; border: 1px solid #1e1e24; border-radius: 12px; padding: 25px; }
+        .master-glow { border-color: #3b82f6 !important; box-shadow: 0 0 20px rgba(59, 130, 246, 0.1); }
+        .trust-meter { height: 4px; background: #1e1e24; border-radius: 2px; margin: 10px 0; overflow: hidden; }
+        .trust-fill { height: 100%; background: #3b82f6; transition: width 0.5s ease; }
+        .terminal { background: #000; color: #10b981; font-family: monospace; padding: 15px; border-radius: 6px; font-size: 0.9rem; overflow-x: auto; }
+        .btn { background: #3b82f6; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .btn:hover { background: #2563eb; }
+        .btn-nightmare { background: #ef4444; }
     </style>
 </head>
-<body style="background: #f8fafc;">
-    <nav class="navbar" style="background: white; border-bottom: 1px solid #e2e8f0;">
-        <a href="/" class="logo">Chaos<span>ID</span></a>
-        <div>
-            <span id="badgeIcon" class="badge">---</span>
-            <span id="displayCallsign" style="font-weight: 700;">---</span>
-        </div>
+<body>
+    <nav class="navbar" style="border-bottom: 1px solid #1e1e24; padding: 15px 40px; display: flex; justify-content: space-between;">
+        <div class="logo" style="font-weight: 800; font-size: 1.2rem;">CHAOS <span style="color:#3b82f6">ID</span></div>
+        <div id="status" style="font-size: 0.8rem; letter-spacing: 1px; color: #64748b;">SYSTEM: OPTIMIZED</div>
     </nav>
 
-    <div class="dashboard-grid" style="padding: 40px 5%;">
-        <div class="user-stats">
-            <h3>Identity Reputation</h3>
-            <p style="font-size: 0.9rem; color: #64748b;">Proof of Action Rewards Score</p>
-            <div class="score-bar"><div id="scoreFill" class="score-fill"></div></div>
-            <div style="display: flex; justify-content: space-between; font-weight: bold;">
-                <span>Trust Score: <span id="scoreText">0</span>%</span>
-                <span id="rewardStatus" style="color: #2563eb;">RANK: NOVICE</span>
+    <div class="grid">
+        <section>
+            <div id="mainCard" class="card">
+                <h2 id="callsignDisplay">IDENTIFYING...</h2>
+                <p style="color: #64748b; margin-bottom: 20px;">Human-AI Verified Communication Hub</p>
+                
+                <div class="terminal" id="output">Waiting for Intent...</div>
+                
+                <div style="margin-top: 25px;">
+                    <button class="btn" onclick="execute('VOTE')">EXECUTE VOTE</button>
+                    <button class="btn" onclick="execute('CHECK')">EXECUTE CHECK-IN</button>
+                    <button id="adminBtn" class="btn btn-nightmare" style="display:none;" onclick="nightmareReset()">GLOBAL RESET</button>
+                </div>
             </div>
-        </div>
+        </section>
 
-        <div class="card" style="background: white;">
-            <h3>Verification Tools</h3>
-            <div id="tokenOutput" class="token-box" style="background: #0f172a; color: #10b981; padding: 15px; border-radius: 8px; font-family: monospace; margin: 15px 0;">READY</div>
-            <button onclick="handleAction('VOTE')" style="background: #2563eb; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600;">GENERATE VOTE</button>
-        </div>
-
-        <div id="adminPanel" class="card admin-only" style="background: white;">
-            <h3 style="color: #b91c1c;">🔴 MASTER COMMANDS</h3>
-            <p>Global System Oversight & Trust Overrides</p>
-            <button onclick="alert('Global Reset Protocol Ready')" style="background: #ef4444; color: white; border: none; padding: 10px 20px; border-radius: 6px; margin-top: 15px; cursor: pointer;">RESET ALL TRUST SCORES</button>
-        </div>
+        <aside>
+            <div class="card">
+                <h3>Nightmare Defense</h3>
+                <div class="trust-meter"><div id="trustFill" class="trust-fill"></div></div>
+                <p style="font-size: 0.8rem;">Trust Level: <span id="trustText">0</span>%</p>
+            </div>
+            <div class="card" style="margin-top:20px;">
+                <h3>Abyss Logs</h3>
+                <div id="logs" style="font-size: 0.75rem; color: #64748b; max-height: 200px; overflow-y: auto;">
+                    Static analysis ready...
+                </div>
+            </div>
+        </aside>
     </div>
 
     <script>
         const callsign = localStorage.getItem('CHAOS_CALLSIGN');
         if(!callsign) window.location.href = '/';
 
-        const engine = new ChaosEngine(callsign);
+        const chaos = new ChaosID(callsign);
         
-        // Setup UI
-        document.getElementById('displayCallsign').innerText = engine.callsign;
-        const badge = document.getElementById('badgeIcon');
-        
-        if(engine.isAdmin) {
-            badge.innerText = "MASTER";
-            badge.className = "badge badge-admin";
-            document.getElementById('adminPanel').style.display = "block";
-            document.getElementById('rewardStatus').innerText = "SYSTEM OWNER";
-        } else {
-            badge.innerText = "VERIFIED USER";
-            badge.className = "badge badge-user";
+        // Initial UI Setup
+        document.getElementById('callsignDisplay').innerText = chaos.callsign;
+        if(chaos.isAdmin) {
+            document.getElementById('mainCard').classList.add('master-glow');
+            document.getElementById('adminBtn').style.display = 'inline-block';
         }
 
-        function updateUI() {
-            const score = engine.trustScore;
-            document.getElementById('scoreText').innerText = score;
-            document.getElementById('scoreFill').style.width = score + "%";
-            
-            if(!engine.isAdmin) {
-                let rank = "NOVICE";
-                if(score > 70) rank = "TRUSTED OPERATOR";
-                if(score > 90) rank = "CHAOS VETERAN";
-                document.getElementById('rewardStatus').innerText = "RANK: " + rank;
-            }
-        }
-
-        function handleAction(type) {
-            const token = engine.generateProof(type);
-            document.getElementById('tokenOutput').innerText = token;
+        async function execute(action) {
+            const proof = await chaos.generateProof(action);
+            document.getElementById('output').innerText = "PROOF: " + proof;
             updateUI();
         }
 
+        function updateUI() {
+            document.getElementById('trustText').innerText = chaos.trust;
+            document.getElementById('trustFill').style.width = chaos.trust + "%";
+            
+            const logs = document.getElementById('logs');
+            logs.innerHTML = chaos.vault.map(v => `<div>[${new Date(v.timestamp).toLocaleTimeString()}] ${v.action} Verified</div>`).reverse().join('');
+        }
+
+        function nightmareReset() {
+            if(confirm("MASTER OVERRIDE: Clear all global reputation data?")) {
+                localStorage.clear();
+                window.location.reload();
+            }
+        }
+
         updateUI();
+        setInterval(updateUI, 1000);
     </script>
 </body>
 </html>
