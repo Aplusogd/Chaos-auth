@@ -2,88 +2,101 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Chaosverse | API Dash</title>
+    <title>Chaosverse | Infinite Nexus</title>
     <link rel="stylesheet" href="css/modern.css">
     <script src="js/chaos-core.js"></script>
+    <script src="js/skill-engine.js"></script>
     <style>
-        .api-console { background: #000; border: 1px solid #1a1a1a; padding: 15px; font-family: monospace; font-size: 10px; color: #00ff9d; height: 150px; overflow-y: auto; margin-top: 10px; }
-        .loc-box { background: var(--iron-lite); border-left: 4px solid var(--gold); padding: 15px; margin-bottom: 20px; }
+        .skill-web-container {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px; padding: 20px; background: #050505; border: 1px solid #111;
+            height: 300px; overflow-y: auto;
+        }
+        .node-circle {
+            width: 50px; height: 50px; border-radius: 50%; border: 1px solid var(--slate);
+            display: flex; align-items: center; justify-content: center; font-size: 8px;
+            cursor: pointer; transition: 0.3s;
+        }
+        .node-circle.active { border-color: var(--mint); color: var(--mint); box-shadow: 0 0 10px var(--mint-glow); }
+        .node-circle:hover { transform: scale(1.1); background: #111; }
     </style>
 </head>
 <body>
     <div class="nexus-grid">
         <aside class="pane">
-            <h2 style="color:var(--mint);">[ API_IDENTITY ]</h2>
-            <div style="font-size: 10px; color: var(--slate); margin: 10px 0;">CALLSIGN</div>
-            <div id="uName" style="color:var(--white); font-weight:bold;">---</div>
+            <h2 style="color:var(--mint);">[ ${localStorage.getItem('CHAOS_CALLSIGN')} ]</h2>
+            <div id="jobTitle" style="color:var(--gold); font-size: 10px; margin-bottom: 20px;">OCCUPATION: ---</div>
             
-            <div style="font-size: 10px; color: var(--slate); margin: 10px 0;">SDK_KEY</div>
-            <div id="uKey" style="color:var(--mint); font-size: 10px; word-break: break-all; background:#000; padding:5px;">---</div>
+            <div class="vital-row">
+                <div class="vital-header"><span>Skill Points (XP)</span><span id="txtXP">0</span></div>
+                <div class="bar-frame"><div id="barXP" class="bar-fill" style="background:var(--gold); width: 0%;"></div></div>
+            </div>
 
-            <h3 style="color:var(--gold); margin-top: 30px;">[ SKILL_WEB ]</h3>
-            <div id="skillTree" style="font-size:10px; color:var(--slate);">Initializing PoE 2 Passives...</div>
-        </aside>
+            </aside>
 
         <main class="pane">
-            <div id="currentLoc" class="loc-box">
-                <div class="label">CURRENT_COORDINATES</div>
-                <h3 id="locName" style="color:var(--gold);">Sector 0000-Origin</h3>
-                <div id="locStats" style="font-size:11px; color:var(--slate);">Danger: 0 | Loot: x1.0</div>
+            <div id="feed" class="feed" style="height: 150px;">
+                <div class="line">>> System online. Skill Web established.</div>
             </div>
 
-            <div id="mainFeed" class="feed" style="height: 300px;"></div>
+            <h4 style="color:var(--slate); margin: 15px 0 5px;">// PASSIVE_SKILL_WEB (PoE 2)</h4>
+            <div class="skill-web-container" id="skillWeb">
+                </div>
 
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px;">
-                <button class="cmd-btn" onclick="travel()">>> WARP_TO_NEW_COORDS</button>
-                <button class="cmd-btn" onclick="apiAction('SCAVENGE')">>> API_SCAVENGE</button>
-            </div>
-
-            <div class="api-console" id="apiConsole">
-                > System Boot: API Listening...
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 20px;">
+                <button class="btn-protocol" onclick="trigger('CHAOS')">🌀 CHAOS</button>
+                <button class="btn-protocol" onclick="trigger('ABYSS')">🕳️ ABYSS</button>
+                <button class="btn-protocol" onclick="trigger('NIGHTMARE')">🌑 NIGHTMARE</button>
+                <button class="btn-protocol" onclick="trigger('DREAM')">✨ DREAM</button>
             </div>
         </main>
 
         <aside class="pane">
-            <h2 style="color:var(--slate);">[ LOOT_VAULT ]</h2>
-            <div id="invGrid" class="inv-grid"></div>
+            <h3 style="color:var(--slate);">[ ABYSS_VAULT ]</h3>
+            <div id="inventory"></div>
         </aside>
     </div>
 
     <script>
-        const cSign = localStorage.getItem('CHAOS_CALLSIGN') || "GUEST";
-        const cHash = localStorage.getItem('CHAOS_IDENTITY_HASH') || "000";
+        // Init Player and Skill Engine
+        const playerRaw = localStorage.getItem('CHAOS_PLAYER') || JSON.stringify({job: 'NETRUNNER', xpPool: 50});
+        const player = JSON.parse(playerRaw);
+        const engine = new SkillEngine(player);
         
-        const verse = new ChaosVerse(cSign, cHash);
-        document.getElementById('uName').innerText = verse.callsign;
-        document.getElementById('uKey').innerText = verse.apiKey;
+        document.getElementById('jobTitle').innerText = "OCCUPATION: " + engine.job;
 
-        function logAPI(msg) {
-            const con = document.getElementById('apiConsole');
-            con.innerHTML += `<div>[${new Date().toLocaleTimeString()}] ${msg}</div>`;
-            con.scrollTop = con.scrollHeight;
+        function renderWeb() {
+            const container = document.getElementById('skillWeb');
+            container.innerHTML = '';
+            engine.tree.forEach(node => {
+                const div = document.createElement('div');
+                div.className = 'node-circle' + (node.locked ? '' : ' active');
+                div.innerText = node.id.split('-')[0].substring(0,1) + node.id.split('-')[1];
+                div.title = `${node.name} | Power: +${node.power}`;
+                div.onclick = () => unlockNode(node);
+                container.appendChild(div);
+            });
+            document.getElementById('txtXP').innerText = Math.floor(engine.xpPool);
         }
 
-        async function apiAction(act) {
-            logAPI(`POST /api/v1/chaos/${act} HTTP/1.1`);
-            const res = await verse.callAPI(act);
-            if(res.error) {
-                logAPI(`RES: 403 Forbidden - ${res.error}`);
-            } else {
-                logAPI(`RES: 200 OK - TXID: ${res.id}`);
-                document.getElementById('mainFeed').innerHTML += `<div class="line" style="color:var(--mint)">> ${act} Protocol Verified.</div>`;
+        function unlockNode(node) {
+            if(engine.xpPool >= node.cost && node.locked) {
+                engine.xpPool -= node.cost;
+                node.locked = false;
+                renderWeb();
+                save();
             }
         }
 
-        function travel() {
-            const coords = Math.floor(Math.random() * 999999);
-            const loc = verse.generateLocation(coords);
-            document.getElementById('locName').innerText = loc.name;
-            document.getElementById('locStats').innerText = `Danger: ${loc.danger} | Loot: x${loc.loot_mult}`;
-            logAPI(`GET /api/v1/world/warp/${coords}`);
-            document.getElementById('mainFeed').innerHTML += `<div class="line" style="color:var(--gold)">> Warping to ${loc.name}...</div>`;
+        function save() {
+            localStorage.setItem('CHAOS_PLAYER', JSON.stringify({
+                job: engine.job,
+                tree: engine.tree,
+                xpPool: engine.xpPool
+            }));
         }
 
-        travel();
+        renderWeb();
     </script>
 </body>
 </html>
